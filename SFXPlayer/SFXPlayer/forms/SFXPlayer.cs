@@ -5,6 +5,7 @@ using NAudio.Midi;
 using NAudio.Wave;
 using SFXPlayer.Properties;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -31,6 +32,7 @@ namespace SFXPlayer
         private bool InitialisingDevices = false;
         private XMLFileHandler<Show> ShowFileHandler = new XMLFileHandler<Show>();
         private const int WM_DEVICECHANGE = 0x0219;
+        private readonly ConcurrentQueue<Action> _commandQueue = new ConcurrentQueue<Action>();
 
         protected override void WndProc(ref Message m)
         {
@@ -203,7 +205,24 @@ namespace SFXPlayer
             }
         }
 
-        public Action<object, DisplaySettings> DisplayChanged { get; internal set; }
+        public event EventHandler<DisplaySettings> DisplayChanged;
+
+        protected virtual void OnDisplayChanged(DisplaySettings e)
+        {
+            DisplayChanged?.Invoke(this, e);
+        }
+
+        private void UpdateWebApp()
+        {
+            DisplaySettings disp = new DisplaySettings()
+            {
+                Title = Text,
+                PrevMainText = rtPrevMainText.Text,
+                MainText = rtMainText.Text,
+                TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName)
+            };
+            OnDisplayChanged(disp);
+        }
 
         private void NextPlayCueChanged()
         {
@@ -712,7 +731,19 @@ namespace SFXPlayer
 
         private void Highlight_Paint(object sender, PaintEventArgs e)
         {
-            throw new NotImplementedException();
+            base.OnPaint(e);
+            PlayStrip ps = NextPlayCue;
+            if (ps != null)
+            {
+                if (((Control)sender).Bottom == ps.Top)
+                {
+                    e.Graphics.DrawLine(Pens.Black, 0, ((Control)sender).Height - 1, ((Control)sender).Width, ((Control)sender).Height - 1);
+                }
+                if (((Control)sender).Top == ps.Bottom)
+                {
+                    e.Graphics.DrawLine(Pens.Black, 0, 0, ((Control)sender).Width, 0);
+                }
+            }
         }
 
         /// <summary>
@@ -723,6 +754,9 @@ namespace SFXPlayer
         private void AddPlaystrip(SFX sfx, int cueIndex)
         {
             PlayStrip ps = new PlayStrip(sfx) { Width = CueList.ClientSize.Width, PlayStripIndex = cueIndex };
+            ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
+            ps.ReportStatus += Ps_ReportStatus;
+            FocusTrackLowestControls(ps);
             Spacer sp = new Spacer { Width = CueList.ClientSize.Width };
             sp.Paint += Highlight_Paint;
             int rowIndex = TableRowFromCueIndex(cueIndex);
@@ -731,6 +765,21 @@ namespace SFXPlayer
             rowIndex++;
             CueList.RowCount++;
             CueList.Controls.Add(sp, 0, rowIndex);
+        }
+
+        private void Ps_ReportStatus(object sender, StatusEventArgs e)
+        {
+            if (e.Clear)
+            {
+                if (statusBar.Text == e.Status)
+                {
+                    ReportStatus("");
+                }
+            }
+            else
+            {
+                ReportStatus(e.Status);
+            }
         }
 
         private PlayStrip InsertPlaystrip(SFX sfx, int cueIndex)
@@ -752,6 +801,9 @@ namespace SFXPlayer
                 }
             }
             ps = new PlayStrip(sfx) { Width = CueList.ClientSize.Width, PlayStripIndex = cueIndex };
+            ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
+            ps.ReportStatus += Ps_ReportStatus;
+            FocusTrackLowestControls(ps);
             Spacer sp = new Spacer { Width = CueList.ClientSize.Width };
             CueList.Controls.Add(ps, 0, rowIndex);
             CueList.Controls.Add(sp, 0, rowIndex + 1);
@@ -763,6 +815,13 @@ namespace SFXPlayer
         {
             int rowIndex = TableRowFromCueIndex(cueIndex);
             CueList.SuspendLayout();
+            PlayStrip removedPs = CueList.GetControlFromPosition(0, rowIndex) as PlayStrip;
+            if (removedPs != null)
+            {
+                removedPs.Stop();
+                removedPs.ReportStatus -= Ps_ReportStatus;
+                FocusUntrackLowestControls(removedPs);
+            }
             CueList.Controls.Remove(CueList.GetControlFromPosition(0, rowIndex));
             CueList.Controls.Remove(CueList.GetControlFromPosition(0, rowIndex + 1));
             foreach (Control ctl in CueList.Controls)
@@ -898,6 +957,12 @@ namespace SFXPlayer
 
         private void ProgressTimer_Tick(object sender, EventArgs e)
         {
+            // Process queued commands (from WebSocket or cross-thread callers) on the UI thread
+            while (_commandQueue.TryDequeue(out Action action))
+            {
+                action();
+            }
+
             foreach (Control ctl in CueList.Controls)
             {
                 if (ctl.GetType() == typeof(PlayStrip))
@@ -1142,7 +1207,7 @@ namespace SFXPlayer
                 ReportStatus("Creating sample project...");
 
                 // Create a new show with default sounds
-                var sampleShow = Show.CreateDefaultShow();
+                var sampleShow = classes.Show.CreateDefaultShow();
 
                 // Save the sample show
                 XMLFileHandler<Show>.UntrackedSave(sampleShow, sampleFilePath);
@@ -1182,22 +1247,74 @@ namespace SFXPlayer
 
         internal void PlayNextCue()
         {
-            throw new NotImplementedException();
+            _commandQueue.Enqueue(() => bnPlayNext_Click(null, null));
         }
 
         internal void StopAll()
         {
-            throw new NotImplementedException();
+            _commandQueue.Enqueue(() => bnStopAll_Click(null, null));
         }
 
         internal void PreviousCue()
         {
-            throw new NotImplementedException();
+            _commandQueue.Enqueue(() => bnPrev_Click(null, null));
         }
 
         internal void NextCue()
         {
-            throw new NotImplementedException();
+            _commandQueue.Enqueue(() => bnNext_Click(null, null));
+        }
+
+        // Drag & drop helpers
+        Control LastHovered;
+        Color LastHoveredColor;
+        bool ReplaceOK;
+        bool AddOK;
+        bool AddZone;
+        bool ReplaceZone;
+
+        private void HighlightControl(Control ctl)
+        {
+            if (LastHovered == ctl) return;
+            UnHighlightControl();
+            if (ctl == null) return;
+            LastHovered = ctl;
+            LastHoveredColor = LastHovered.BackColor;
+            LastHovered.BackColor = SystemColors.Highlight;
+        }
+
+        private void UnHighlightControl()
+        {
+            if (LastHovered != null)
+            {
+                LastHovered.BackColor = LastHoveredColor;
+                LastHovered = null;
+            }
+        }
+
+        private Point ScreenToChild(Point pt, Control child)
+        {
+            return new Point(
+                pt.X - RectangleToScreen(ClientRectangle).Left - child.Left,
+                pt.Y - RectangleToScreen(ClientRectangle).Top - child.Top);
+        }
+
+        private bool CheckAllFilesAreAudio(string[] files)
+        {
+            foreach (string file in files)
+            {
+                bool fileOK = false;
+                foreach (string filter in filters)
+                {
+                    if (Path.GetExtension(file).ToUpper() == filter)
+                    {
+                        fileOK = true;
+                        break;
+                    }
+                }
+                if (!fileOK) return false;
+            }
+            return true;
         }
     }
 }

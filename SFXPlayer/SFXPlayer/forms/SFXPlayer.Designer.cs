@@ -1,5 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
+using SFXPlayer.classes;
+using SFXPlayer.Properties;
 
 namespace SFXPlayer
 {
@@ -569,117 +574,271 @@ namespace SFXPlayer
 
         private void stopAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            bnStopAll_Click(sender, e);
         }
 
         private void playToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            bnPlayNext_Click(sender, e);
         }
 
         private void previousCueToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            bnPrev_Click(sender, e);
         }
 
         private void nextCueToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            bnNext_Click(sender, e);
         }
 
         private void helpToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            MessageBox.Show("It is recommended to disable system sounds\r\n" +
+                            "right click on the windows speaker icon and choose \"Sounds\"\r\n" +
+                            "then choose Sound Scheme: No Sounds", Application.ProductName);
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            throw new NotImplementedException();
+            if (e.KeyCode == Keys.Escape)
+            {
+                bnStopAll_Click(sender, e);
+            }
         }
 
         private void Form1_ControlAdded(object sender, ControlEventArgs e)
         {
-            throw new NotImplementedException();
+            FocusTrackLowestControls(e.Control);
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
-            throw new NotImplementedException();
+            _ = WebApp.StopAsync();
         }
 
         private void WebLink_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            System.Diagnostics.Process.Start(WebLink.Text);
         }
 
         private void DeviceChangeTimer_Tick(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            DeviceChangeTimer.Enabled = false;
+            Debug.WriteLine("Device Changed");
+            UpdateDevices();
         }
 
         private void CueList_MouseDown(object sender, MouseEventArgs e)
         {
-            throw new NotImplementedException();
+            Point CueListMousePos = ScreenToChild(e.Location, CueList);
+            Control selectedControl = CueList.GetChildAtPoint(CueListMousePos);
+            Debug.WriteLine("CueList_MouseDown");
+            if (selectedControl != null)
+            {
+                if (selectedControl.GetType() == typeof(PlayStrip))
+                {
+                    DoDragDrop(selectedControl, DragDropEffects.Move | DragDropEffects.Scroll);
+                }
+            }
         }
 
         private void CueList_DragLeave(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            UnHighlightControl();
         }
 
         private void CueList_DragOver(object sender, DragEventArgs e)
         {
-            throw new NotImplementedException();
+            AddZone = false;
+            ReplaceZone = false;
+
+            Point CueListMousePos = ScreenToChild(new Point(e.X, e.Y), CueList);
+            int Ypos = CueListMousePos.Y - CueList.AutoScrollPosition.Y;
+            Control ctl = CueList.GetChildAtPoint(CueListMousePos);
+            PlayStrip ps = ctl as PlayStrip;
+
+            if (ps != null && ReplaceOK)
+            {
+                HighlightControl(ps);
+                ReplaceZone = true;
+                e.Effect = DragDropEffects.Move;
+            }
+            else if (AddOK && Math.Abs(Ypos % CueListSpacing) < SpacerControlHeight)
+            {
+                UnHighlightControl();
+                AddZone = true;
+                e.Effect = DragDropEffects.Move;
+            }
+            else
+            {
+                UnHighlightControl();
+                e.Effect = DragDropEffects.None;
+            }
         }
 
         private void CueList_DragEnter(object sender, DragEventArgs e)
         {
-            throw new NotImplementedException();
+            ReplaceOK = AddOK = false;
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (CheckAllFilesAreAudio(files))
+                {
+                    AddOK = true;
+                    ReplaceOK = (files.Length == 1);
+                }
+            }
+            else if (e.Data.GetDataPresent(typeof(PlayStrip)))
+            {
+                AddOK = true;
+            }
         }
 
         private void CueList_DragDrop(object sender, DragEventArgs e)
         {
-            throw new NotImplementedException();
+            Point CueListMousePos = ScreenToChild(new Point(e.X, e.Y), CueList);
+            int index = (CueListMousePos.Y - CueList.AutoScrollPosition.Y - TOPGAP) / CueListSpacing + 1;
+            index = Math.Max(index, 0);
+            index = Math.Min(index, CurrentShow.Cues.Count);
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                PlayStrip ps = LastHovered as PlayStrip;
+                if (ps != null)
+                {
+                    string msg = "do you wish to replace the file" + Environment.NewLine;
+                    msg += ps.SFX.ShortFileNameOnly + Environment.NewLine;
+                    msg += "with" + Environment.NewLine;
+                    msg += Path.GetFileName(files[0]) + Environment.NewLine;
+                    msg += "in cue " + (ps.PlayStripIndex + 1).ToString("D3") + "?" + Environment.NewLine;
+                    if (string.IsNullOrEmpty(ps.SFX.FileName) ||
+                        MessageBox.Show(msg, "Replace File", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) == DialogResult.OK)
+                    {
+                        ps.SelectFile(files[0]);
+                    }
+                }
+                else if (AddZone)
+                {
+                    foreach (string file in files)
+                    {
+                        SFX sfx = new SFX();
+                        InsertPlaystrip(sfx, index).SelectFile(file);
+                        CurrentShow.AddCue(sfx, index++);
+                    }
+                    PadCueList();
+                    NextPlayCueChanged();
+                }
+            }
+            else if (e.Data.GetDataPresent(typeof(PlayStrip)))
+            {
+                if (AddZone)
+                {
+                    PlayStrip ps = ((PlayStrip)e.Data.GetData(typeof(PlayStrip)));
+                    int src = ps.PlayStripIndex;
+                    int dest = index;
+                    if (dest > src) dest--;
+                    if (dest != src)
+                    {
+                        CurrentShow.Cues.Move(src, dest);
+                        RemovePlaystrip(src);
+                        InsertPlaystrip(ps.SFX, dest);
+                    }
+                }
+            }
+            UnHighlightControl();
         }
 
         private void CueList_ControlRemoved(object sender, ControlEventArgs e)
         {
-            throw new NotImplementedException();
+            if (e.Control is PlayStrip ps)
+            {
+                ps.Stop();
+                ps.ReportStatus -= Ps_ReportStatus;
+            }
+            FocusUntrackLowestControls(e.Control);
         }
 
         private void CueList_ControlAdded(object sender, ControlEventArgs e)
         {
-            throw new NotImplementedException();
+            FocusTrackLowestControls(e.Control);
         }
 
         private void cbPreview_SelectedIndexChanged(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            if (CurrentPreviewDeviceIdx != cbPreview.SelectedIndex)
+            {
+                if (cbPreview.SelectedIndex != -1)
+                {
+                    if (Settings.Default.LastPreviewDevice != (string)cbPreview.SelectedItem)
+                    {
+                        Settings.Default.LastPreviewDevice = (string)cbPreview.SelectedItem;
+                        Settings.Default.Save();
+                        UpdateDevices();
+                    }
+                }
+                else
+                {
+                    UpdateDevices();
+                }
+            }
         }
 
         private void cbPlayback_SelectedIndexChanged(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            if (CurrentPlaybackDeviceIdx != cbPlayback.SelectedIndex)
+            {
+                if (cbPlayback.SelectedIndex != -1)
+                {
+                    if (Settings.Default.LastPlaybackDevice != (string)cbPlayback.SelectedItem)
+                    {
+                        Settings.Default.LastPlaybackDevice = (string)cbPlayback.SelectedItem;
+                        Settings.Default.Save();
+                        UpdateDevices();
+                    }
+                }
+                else
+                {
+                    UpdateDevices();
+                }
+            }
         }
 
         private void cbMIDI_SelectedIndexChanged(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            if (CurrentMIDIDeviceIdx != cbMIDI.SelectedIndex)
+            {
+                if (cbMIDI.SelectedIndex != -1)
+                {
+                    if (Settings.Default.LastMidiDevice != (string)cbMIDI.SelectedItem)
+                    {
+                        Settings.Default.LastMidiDevice = (string)cbMIDI.SelectedItem;
+                        Settings.Default.Save();
+                        UpdateDevices();
+                    }
+                }
+                else
+                {
+                    UpdateDevices();
+                }
+            }
         }
 
         private void bnPrev_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            NextPlayCueIndex -= 1;
         }
 
         private void bnNext_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            NextPlayCueIndex += 1;
         }
 
         private void autoLoadLastsfxCuelistToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            Settings.Default.AutoLoadLastSession = autoLoadLastsfxCuelistToolStripMenuItem.Checked;
+            Settings.Default.Save();
         }
 
         #endregion

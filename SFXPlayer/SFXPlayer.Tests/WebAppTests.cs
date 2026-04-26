@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using Xunit;
 using Xunit.Abstractions;
+using SFXPlayer.classes;
 
 namespace SFXPlayer.Tests;
 

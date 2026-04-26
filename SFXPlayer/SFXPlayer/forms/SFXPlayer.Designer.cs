@@ -77,6 +77,8 @@ namespace SFXPlayer
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusBar = new System.Windows.Forms.ToolStripStatusLabel();
             this.WebLink = new System.Windows.Forms.ToolStripStatusLabel();
+            this.playbackProgressBar = new System.Windows.Forms.ToolStripProgressBar();
+            this.playbackTimeLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.DeviceChangeTimer = new System.Windows.Forms.Timer(this.components);
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.bnMIDI = new System.Windows.Forms.ToolStripDropDownButton();
@@ -415,6 +417,8 @@ namespace SFXPlayer
             this.statusStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusBar,
+            this.playbackProgressBar,
+            this.playbackTimeLabel,
             this.WebLink});
             this.statusStrip.Location = new System.Drawing.Point(0, 428);
             this.statusStrip.Name = "statusStrip";
@@ -436,6 +440,22 @@ namespace SFXPlayer
             this.WebLink.Size = new System.Drawing.Size(48, 17);
             this.WebLink.Text = "Remote";
             this.WebLink.Click += new System.EventHandler(this.WebLink_Click);
+            // 
+            // playbackProgressBar
+            // 
+            this.playbackProgressBar.Name = "playbackProgressBar";
+            this.playbackProgressBar.Size = new System.Drawing.Size(120, 16);
+            this.playbackProgressBar.Minimum = 0;
+            this.playbackProgressBar.Maximum = 1000;
+            this.playbackProgressBar.Value = 0;
+            this.playbackProgressBar.ToolTipText = "Playback progress";
+            // 
+            // playbackTimeLabel
+            // 
+            this.playbackTimeLabel.Name = "playbackTimeLabel";
+            this.playbackTimeLabel.Size = new System.Drawing.Size(90, 17);
+            this.playbackTimeLabel.Text = "0:00 / 0:00";
+            this.playbackTimeLabel.ToolTipText = "Position / Duration";
             // 
             // DeviceChangeTimer
             // 
@@ -881,6 +901,8 @@ namespace SFXPlayer
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel statusBar;
         private System.Windows.Forms.ToolStripStatusLabel WebLink;
+        private System.Windows.Forms.ToolStripProgressBar playbackProgressBar;
+        private System.Windows.Forms.ToolStripStatusLabel playbackTimeLabel;
         private System.Windows.Forms.Timer DeviceChangeTimer;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripDropDownButton bnMIDI;

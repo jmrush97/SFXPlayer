@@ -17,5 +17,9 @@ namespace SFXPlayer.classes
         public string TrackName = null;
         [DefaultValue("")]
         public string Title = "";
+        [DefaultValue(0.0)]
+        public double TrackPositionSeconds = 0.0;
+        [DefaultValue(0.0)]
+        public double TrackDurationSeconds = 0.0;
     }
 }

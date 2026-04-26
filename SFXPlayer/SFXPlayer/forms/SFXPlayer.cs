@@ -964,16 +964,71 @@ namespace SFXPlayer
                 action();
             }
 
+            PlayStrip playingStrip = null;
             foreach (Control ctl in CueList.Controls)
             {
                 if (ctl.GetType() == typeof(PlayStrip))
                 {
-                    if (((PlayStrip)ctl).IsPlaying)
+                    PlayStrip ps = (PlayStrip)ctl;
+                    if (ps.IsPlaying)
                     {
-                        ((PlayStrip)ctl).ProgressUpdate(sender, e);
+                        ps.ProgressUpdate(sender, e);
+                        playingStrip = ps;
                     }
                 }
             }
+
+            UpdateProgressDisplay(playingStrip);
+        }
+
+        private void UpdateProgressDisplay(PlayStrip playingStrip)
+        {
+            if (playingStrip != null)
+            {
+                double duration = playingStrip.PlaybackLength.TotalSeconds;
+                double position = playingStrip.PlaybackPosition.TotalSeconds;
+                double remaining = Math.Max(0, duration - position);
+
+                if (duration > 0)
+                {
+                    playbackProgressBar.Value = (int)(position / duration * 1000);
+                }
+                else
+                {
+                    playbackProgressBar.Value = 0;
+                }
+
+                playbackTimeLabel.Text = string.Format("{0} / -{1}",
+                    FormatTime(position), FormatTime(remaining));
+
+                UpdateWebAppProgress(position, duration);
+            }
+            else
+            {
+                playbackProgressBar.Value = 0;
+                playbackTimeLabel.Text = "0:00 / 0:00";
+            }
+        }
+
+        private static string FormatTime(double totalSeconds)
+        {
+            int mins = (int)(totalSeconds / 60);
+            int secs = (int)(totalSeconds % 60);
+            return string.Format("{0}:{1:D2}", mins, secs);
+        }
+
+        private void UpdateWebAppProgress(double positionSeconds, double durationSeconds)
+        {
+            DisplaySettings disp = new DisplaySettings()
+            {
+                Title = Text,
+                PrevMainText = rtPrevMainText.Text,
+                MainText = rtMainText.Text,
+                TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName),
+                TrackPositionSeconds = positionSeconds,
+                TrackDurationSeconds = durationSeconds
+            };
+            OnDisplayChanged(disp);
         }
 
         private void bnPlayNext_Click(object sender, EventArgs e)

@@ -399,6 +399,9 @@ namespace SFXPlayer
 
         public bool IsPlaying => (PlayerState == PlayerState.play);
 
+        public TimeSpan PlaybackPosition => _musicPlayer.Position;
+        public TimeSpan PlaybackLength => _musicPlayer.Length;
+
         private void bnPlay_Click(object sender, EventArgs e)
         {
             try

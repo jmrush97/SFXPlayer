@@ -116,6 +116,14 @@ namespace SFXPlayer
             trackBar1.Maximum = pictureBox1.Width - pictureBox1.Padding.Horizontal;
             bm = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             Graphics g = Graphics.FromImage(bm);
+            if (SFX==null)
+            {
+                pictureBox1.Image = bm; return;
+            }
+            if (SFX.Triggers.Count == 0)
+            {
+                pictureBox1.Image = bm; return;
+            }
             foreach (var trig in SFX.Triggers)
             {
                 var X = TicksToPosition(trig.TimeTicks);

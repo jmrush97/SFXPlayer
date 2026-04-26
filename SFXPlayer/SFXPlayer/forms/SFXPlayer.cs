@@ -1012,9 +1012,9 @@ namespace SFXPlayer
             {
                 // Reset form progress bar
                 playbackProgressBar.Value = 0;
-                double idleDuration = (NextPlayCue?.PlaybackLength ?? TimeSpan.Zero).TotalSeconds;
-                playbackTimeLabel.Text = idleDuration > 0
-                    ? string.Format("0:00 / {0}", FormatTime(idleDuration))
+                double cueFileDuration = (NextPlayCue?.PlaybackLength ?? TimeSpan.Zero).TotalSeconds;
+                playbackTimeLabel.Text = cueFileDuration > 0
+                    ? string.Format("0:00 / {0}", FormatTime(cueFileDuration))
                     : "0:00 / 0:00";
                 UpdateTrackInfoLabel(null);
 

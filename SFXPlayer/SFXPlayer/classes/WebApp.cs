@@ -394,7 +394,7 @@ namespace SFXPlayer.classes
             await _sendLock.WaitAsync();
             try
             {
-                var payload = LastMessage;   // snapshot under the lock
+                var payload = (byte[])LastMessage?.Clone();   // true snapshot: safe against concurrent reassignment
                 var socketsCopy = webSockets.ToList();
                 foreach (WebSocket ws in socketsCopy)
                 {

@@ -251,6 +251,7 @@ namespace SFXPlayer
             }
             rtMainText.TextChanged += rtMainText_TextChanged;
             CurrentShow.NextPlayCueIndex = NextPlayCueIndex;
+            UpdateTrackInfoLabel(null);
             UpdateWebApp();
         }
 
@@ -981,10 +982,13 @@ namespace SFXPlayer
             UpdateProgressDisplay(playingStrip);
         }
 
+        private bool _wasPlaying = false;
+
         private void UpdateProgressDisplay(PlayStrip playingStrip)
         {
             if (playingStrip != null)
             {
+                _wasPlaying = true;
                 double duration = playingStrip.PlaybackLength.TotalSeconds;
                 double position = playingStrip.PlaybackPosition.TotalSeconds;
                 double remaining = Math.Max(0, duration - position);
@@ -1001,13 +1005,42 @@ namespace SFXPlayer
                 playbackTimeLabel.Text = string.Format("{0} / -{1}",
                     FormatTime(position), FormatTime(remaining));
 
+                UpdateTrackInfoLabel(playingStrip);
                 UpdateWebAppProgress(position, duration);
             }
             else
             {
+                // Reset form progress bar
                 playbackProgressBar.Value = 0;
-                playbackTimeLabel.Text = "0:00 / 0:00";
+                double idleDuration = (NextPlayCue?.PlaybackLength ?? TimeSpan.Zero).TotalSeconds;
+                playbackTimeLabel.Text = idleDuration > 0
+                    ? string.Format("0:00 / {0}", FormatTime(idleDuration))
+                    : "0:00 / 0:00";
+                UpdateTrackInfoLabel(null);
+
+                // Push a single web reset when transitioning from playing to stopped
+                if (_wasPlaying)
+                {
+                    _wasPlaying = false;
+                    UpdateWebApp();
+                }
             }
+        }
+
+        private void UpdateTrackInfoLabel(PlayStrip activeStrip)
+        {
+            PlayStrip cue = activeStrip ?? NextPlayCue;
+            if (cue == null || string.IsNullOrEmpty(cue.SFX.FileName))
+            {
+                trackInfoLabel.Text = "";
+                trackInfoLabel.ToolTipText = "";
+                return;
+            }
+            string filePath = cue.SFX.FileName;
+            double dur = cue.PlaybackLength.TotalSeconds;
+            string durStr = dur > 0 ? FormatTime(dur) : "?";
+            trackInfoLabel.Text = string.Format("{0} | {1}", Path.GetFileName(filePath), durStr);
+            trackInfoLabel.ToolTipText = filePath;
         }
 
         private static string FormatTime(double totalSeconds)

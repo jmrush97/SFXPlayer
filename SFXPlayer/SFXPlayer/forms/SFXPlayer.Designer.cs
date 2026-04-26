@@ -79,6 +79,7 @@ namespace SFXPlayer
             this.WebLink = new System.Windows.Forms.ToolStripStatusLabel();
             this.playbackProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             this.playbackTimeLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.trackInfoLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.DeviceChangeTimer = new System.Windows.Forms.Timer(this.components);
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.bnMIDI = new System.Windows.Forms.ToolStripDropDownButton();
@@ -417,6 +418,7 @@ namespace SFXPlayer
             this.statusStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusBar,
+            this.trackInfoLabel,
             this.playbackProgressBar,
             this.playbackTimeLabel,
             this.WebLink});
@@ -456,6 +458,13 @@ namespace SFXPlayer
             this.playbackTimeLabel.Size = new System.Drawing.Size(90, 17);
             this.playbackTimeLabel.Text = "0:00 / 0:00";
             this.playbackTimeLabel.ToolTipText = "Position / -Remaining";
+            // 
+            // trackInfoLabel
+            // 
+            this.trackInfoLabel.Name = "trackInfoLabel";
+            this.trackInfoLabel.AutoSize = true;
+            this.trackInfoLabel.Text = "";
+            this.trackInfoLabel.ToolTipText = "File path";
             // 
             // DeviceChangeTimer
             // 
@@ -903,6 +912,7 @@ namespace SFXPlayer
         private System.Windows.Forms.ToolStripStatusLabel WebLink;
         private System.Windows.Forms.ToolStripProgressBar playbackProgressBar;
         private System.Windows.Forms.ToolStripStatusLabel playbackTimeLabel;
+        private System.Windows.Forms.ToolStripStatusLabel trackInfoLabel;
         private System.Windows.Forms.Timer DeviceChangeTimer;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripDropDownButton bnMIDI;

@@ -265,6 +265,7 @@ namespace SFXPlayer.classes
 
         private static readonly List<WebSocket> webSockets = new List<WebSocket>();
         private static byte[] LastMessage = null;
+        private static readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
 
         public static bool Serving
         {
@@ -385,9 +386,15 @@ namespace SFXPlayer.classes
             {
                 LastMessage = null;
             }
-            
-            if (LastMessage != null)
+
+            if (LastMessage == null) return;
+
+            // Serialize all broadcast attempts so concurrent timer ticks never
+            // call SendAsync on the same socket simultaneously.
+            await _sendLock.WaitAsync();
+            try
             {
+                var payload = LastMessage;   // snapshot under the lock
                 var socketsCopy = webSockets.ToList();
                 foreach (WebSocket ws in socketsCopy)
                 {
@@ -395,21 +402,24 @@ namespace SFXPlayer.classes
                     {
                         if (ws.State == WebSocketState.Open)
                         {
-                            await ws.SendAsync(new ArraySegment<byte>(LastMessage, 0, LastMessage.Length), 
+                            await ws.SendAsync(new ArraySegment<byte>(payload, 0, payload.Length),
                                 WebSocketMessageType.Text, true, CancellationToken.None);
                         }
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"Error sending to WebSocket: {ex}");
-                        
-                        // Remove disconnected socket
+
                         lock (webSockets)
                         {
                             webSockets.Remove(ws);
                         }
                     }
                 }
+            }
+            finally
+            {
+                _sendLock.Release();
             }
         }
     }

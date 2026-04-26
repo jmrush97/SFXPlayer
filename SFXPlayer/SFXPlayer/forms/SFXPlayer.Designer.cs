@@ -455,7 +455,7 @@ namespace SFXPlayer
             this.playbackTimeLabel.Name = "playbackTimeLabel";
             this.playbackTimeLabel.Size = new System.Drawing.Size(90, 17);
             this.playbackTimeLabel.Text = "0:00 / 0:00";
-            this.playbackTimeLabel.ToolTipText = "Position / Duration";
+            this.playbackTimeLabel.ToolTipText = "Position / -Remaining";
             // 
             // DeviceChangeTimer
             // 

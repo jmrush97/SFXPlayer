@@ -48,19 +48,20 @@
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <PackageReference Include="System.Security.AccessControl" Version="6.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="2.3.0" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="MusicPlayer.cs">
+    <Compile Update="classes\MusicPlayer.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Update="PlayStrip.cs">
+    <Compile Update="forms\PlayStrip.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="Spacer.cs">
+    <Compile Update="forms\Spacer.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="ucVolume.cs">
+    <Compile Update="forms\ucVolume.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <None Include="..\..\LICENSE.md">
@@ -71,7 +72,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="FXPlayer.ico" />
     <Content Include="html\404.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -99,9 +99,9 @@
     <EmbeddedResource Include="Resources\volume-up-fill.svg" />
     <EmbeddedResource Include="Resources\stopwatch-fill.svg" />
     <EmbeddedResource Include="Resources\stopwatch.svg" />
-    <Content Include="SFXPlayer282.png" />
+    <Content Include="Resources\SFXPlayer282.png" />
     <Content Include="Resources\Stop.png" />
-    <Content Include="SFXPlayer.PNG" />
+    <Content Include="Resources\SFXPlayer.PNG" />
     <Content Include="Resources\FXPlayer.ico" />
     <Content Include="Resources\Headphones.ico" />
     <Content Include="Resources\Pause.png" />
@@ -136,4 +136,13 @@
   <ItemGroup>
     <Folder Include="html\bootstrap\" />
   </ItemGroup>
+  
+  <!-- Post-build event to run web service tests -->
+  <Target Name="RunWebServiceTests" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <Message Text="Running WebApp integration tests..." Importance="high" />
+    <Exec Command="dotnet test $(SolutionDir)SFXPlayer.Tests\SFXPlayer.Tests.csproj --filter &quot;FullyQualifiedName~WebAppTests&quot; --logger:&quot;console;verbosity=normal&quot; --no-build --no-restore" ContinueOnError="true" IgnoreExitCode="false">
+      <Output TaskParameter="ExitCode" PropertyName="TestExitCode" />
+    </Exec> 
+    <Message Text="WebApp tests completed with exit code: $(TestExitCode)" Importance="high" />
+  </Target>
 </Project>

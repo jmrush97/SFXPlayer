@@ -1,5 +1,6 @@
 ﻿using NAudio.Wave;
 using NAudio.WaveFormRenderer;
+using SFXPlayer.classes;
 using SFXPlayer.Properties;
 using System;
 using System.Collections.Generic;

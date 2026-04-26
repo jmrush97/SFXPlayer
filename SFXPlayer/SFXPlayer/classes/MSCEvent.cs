@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
-namespace SFXPlayer
+namespace SFXPlayer.classes
 {
     [Serializable]
     public class MSCEvent : AbstractShowEvent

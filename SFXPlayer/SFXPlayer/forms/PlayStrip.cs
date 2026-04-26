@@ -1,10 +1,9 @@
-﻿using static AJW.General.SVGResources;
+﻿using static SFXPlayer.classes.SVGResources;
 using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.ObjectModel;
-using AudioPlayerSample;
 using SFXPlayer.Properties;
 using System.Threading;
 using System.IO;
@@ -16,6 +15,7 @@ using Svg.FilterEffects;
 using System.Reflection;
 using System.Xml.Linq;
 using System.Linq;
+using SFXPlayer.classes;
 
 namespace SFXPlayer
 {

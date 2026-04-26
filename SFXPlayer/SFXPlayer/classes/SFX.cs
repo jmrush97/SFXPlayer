@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace SFXPlayer {
+namespace SFXPlayer.classes {
     [Serializable]
     [XmlInclude(typeof(MSCEvent))]
     public class SFX {

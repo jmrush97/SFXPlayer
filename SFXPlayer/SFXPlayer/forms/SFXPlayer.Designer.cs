@@ -1,4 +1,7 @@
-﻿namespace SFXPlayer
+﻿using System;
+using System.Windows.Forms;
+
+namespace SFXPlayer
 {
     partial class SFXPlayer
     {
@@ -46,6 +49,7 @@
             this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveAsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.createSampleProjectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportShowFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.importShowFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
@@ -194,6 +198,7 @@
             this.saveToolStripMenuItem,
             this.saveAsToolStripMenuItem,
             this.toolStripSeparator1,
+            this.createSampleProjectToolStripMenuItem,
             this.exportShowFileToolStripMenuItem,
             this.importShowFileToolStripMenuItem,
             this.toolStripSeparator2,
@@ -206,7 +211,7 @@
             // 
             this.newToolStripMenuItem.Name = "newToolStripMenuItem";
             this.newToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
-            this.newToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.newToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.newToolStripMenuItem.Text = "&New";
             this.newToolStripMenuItem.Click += new System.EventHandler(this.newToolStripMenuItem_Click);
             // 
@@ -214,7 +219,7 @@
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
             this.openToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.openToolStripMenuItem.Text = "&Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             // 
@@ -222,7 +227,7 @@
             // 
             this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
             this.saveToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
-            this.saveToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.saveToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.saveToolStripMenuItem.Text = "&Save";
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
             // 
@@ -230,39 +235,46 @@
             // 
             this.saveAsToolStripMenuItem.Name = "saveAsToolStripMenuItem";
             this.saveAsToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
-            this.saveAsToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.saveAsToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.saveAsToolStripMenuItem.Text = "Save &As";
             this.saveAsToolStripMenuItem.Click += new System.EventHandler(this.saveAsToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(160, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(207, 6);
+            // 
+            // createSampleProjectToolStripMenuItem
+            // 
+            this.createSampleProjectToolStripMenuItem.Name = "createSampleProjectToolStripMenuItem";
+            this.createSampleProjectToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.createSampleProjectToolStripMenuItem.Text = "Create &Sample Project...";
+            this.createSampleProjectToolStripMenuItem.Click += new System.EventHandler(this.createSampleProjectToolStripMenuItem_Click);
             // 
             // exportShowFileToolStripMenuItem
             // 
             this.exportShowFileToolStripMenuItem.Name = "exportShowFileToolStripMenuItem";
-            this.exportShowFileToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.exportShowFileToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.exportShowFileToolStripMenuItem.Text = "&Export Show File";
             this.exportShowFileToolStripMenuItem.Click += new System.EventHandler(this.exportShowFileToolStripMenuItem_Click);
             // 
             // importShowFileToolStripMenuItem
             // 
             this.importShowFileToolStripMenuItem.Name = "importShowFileToolStripMenuItem";
-            this.importShowFileToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.importShowFileToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.importShowFileToolStripMenuItem.Text = "&Import Show File";
             this.importShowFileToolStripMenuItem.Click += new System.EventHandler(this.importShowFileToolStripMenuItem_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(160, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(207, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
             this.exitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.exitToolStripMenuItem.Text = "E&xit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -555,6 +567,121 @@
 
         }
 
+        private void stopAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void playToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void previousCueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void nextCueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void helpToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Form1_ControlAdded(object sender, ControlEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void WebLink_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void DeviceChangeTimer_Tick(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void CueList_MouseDown(object sender, MouseEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void CueList_DragLeave(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void CueList_DragOver(object sender, DragEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void CueList_DragEnter(object sender, DragEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void CueList_DragDrop(object sender, DragEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void CueList_ControlRemoved(object sender, ControlEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void CueList_ControlAdded(object sender, ControlEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void cbPreview_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void cbPlayback_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void cbMIDI_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void bnPrev_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void bnNext_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void autoLoadLastsfxCuelistToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
         private System.Windows.Forms.TableLayoutPanel CueList;
         private System.Windows.Forms.OpenFileDialog dlgOpenAudioFile;
@@ -572,6 +699,7 @@
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem createSampleProjectToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportShowFileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem importShowFileToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;

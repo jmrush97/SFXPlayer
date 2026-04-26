@@ -619,7 +619,7 @@ namespace SFXPlayer
 
         private void WebLink_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start(WebLink.Text);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(WebLink.Text) { UseShellExecute = true });
         }
 
         private void DeviceChangeTimer_Tick(object sender, EventArgs e)

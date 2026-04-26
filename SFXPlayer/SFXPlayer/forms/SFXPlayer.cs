@@ -571,7 +571,8 @@ namespace SFXPlayer
 
         private void TrackFocused(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            lastFocused = sender as Control;
+            Debug.WriteLine("lastFocused = {0}", lastFocused);
         }
 
         private void FocusTrackLowestControls(Control.ControlCollection controls)

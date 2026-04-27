@@ -36,24 +36,62 @@
             white-space: nowrap;
             pointer-events: none;
         }
+        .cue-detail {
+            font-size: 0.75em;
+            color: #ccc;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            padding: 1px 4px;
+        }
+        .cue-detail span { margin-right: 6px; }
+        #cueActions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding: 2px 4px;
+            flex-wrap: wrap;
+        }
+        #cueActions button {
+            font-size: 0.75em;
+            padding: 2px 8px;
+            cursor: pointer;
+        }
+        #autoRunStatus { font-size: 0.75em; }
+        #pauseInput { width: 44px; font-size: 0.75em; }
     </style>
 </head>
 
 <body>
     <table style="position: absolute; top: 0; bottom: 0; left: 0; right:0; border: 1px solid; height: 100%; width:100%">
-        <tr style="height: 38%; outline: 1px solid; background-color:gray;">
+        <tr style="height: 3%; outline: 1px solid; background-color:#333;">
+            <td colspan="4" class="cue-detail">
+                <span id="PrevCueNumber" style="font-weight:bold;"></span>
+                <span id="PrevCueDescription"></span>
+                <span id="PrevCueFileName" style="color:#aaa;"></span>
+            </td>
+        </tr>
+        <tr style="height: 35%; outline: 1px solid; background-color:gray;">
             <td id="PrevMainText" colspan="4">Previous Cue</td>
         </tr>
-        <tr style="height: 38%; outline: 1px solid;">
+        <tr style="height: 3%; outline: 1px solid; background-color:#222;">
+            <td colspan="4" class="cue-detail">
+                <span id="CueNumber" style="font-weight:bold;"></span>
+                <span id="CueDescription"></span>
+                <span id="CueFileName" style="color:#aaa;"></span>
+                <span id="CueAutoRunDetail" style="color:#8f8;"></span>
+            </td>
+        </tr>
+        <tr style="height: 32%; outline: 1px solid;">
             <td id="MainText" colspan="4">Main Cue</td>
         </tr>
-        <tr style="height: 8%; outline: 1px solid;">
+        <tr style="height: 6%; outline: 1px solid;">
             <td id="TrackName" colspan="4">Track Name</td>
         </tr>
         <tr style="height: 4%; outline: 1px solid;">
             <td id="CueMode" colspan="4" style="text-align:center;">&#9654; Parallel</td>
         </tr>
-        <tr style="height: 6%;">
+        <tr style="height: 4%;">
             <td colspan="4" style="padding: 0;">
                 <div id="progressContainer">
                     <div id="progressBar"></div>
@@ -66,6 +104,15 @@
             <td style="background-color:red; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('stop')">Stop</td>
             <td style="background-color:limegreen; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('play')">Go</td>
             <td style="background-color:gray; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('next')">Next</td>
+        </tr>
+        <tr style="height: 4%;" id="cueActionsRow">
+            <td colspan="4" id="cueActions">
+                <button onclick="toggleAutoRun()" id="btnAutoRun">Auto-run: OFF</button>
+                <label style="font-size:0.75em;">Pause(s):</label>
+                <input id="pauseInput" type="number" min="0" max="60" step="0.1" value="0" />
+                <button onclick="setPause()" style="font-size:0.75em;padding:2px 8px;">Set Pause</button>
+                <button onclick="deleteCue()" style="font-size:0.75em;padding:2px 8px;background:tomato;color:white;">Delete Cue</button>
+            </td>
         </tr>
         <tr style="height: 4%;">
             <td colspan="4" style="padding: 2px 8px;">

@@ -107,10 +107,6 @@ namespace SFXPlayer
                 _SFX = value;
                 tbDescription.Text = SFX.Description;
                 bnStopAll.Checked = SFX.StopOthers;
-                cbAutoPlay.Checked = SFX.AutoPlay;
-                nudPauseMs.Value = Math.Min(nudPauseMs.Maximum, Math.Max(0, SFX.AutoPlayPauseMs));
-                nudPauseMs.Enabled = SFX.AutoPlay;
-                lblPauseMs.Enabled = SFX.AutoPlay;
                 UpdatePlayerState(PlayerState);
             }
         }
@@ -125,16 +121,53 @@ namespace SFXPlayer
             SFX.StopOthers = bnStopAll.Checked;
         }
 
-        private void cbAutoPlay_CheckedChanged(object sender, EventArgs e)
+        private void Delete_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            SFX.AutoPlay = cbAutoPlay.Checked;
-            nudPauseMs.Enabled = cbAutoPlay.Checked;
-            lblPauseMs.Enabled = cbAutoPlay.Checked;
+            autoRunToolStripMenuItem.Checked = SFX.AutoPlay;
+            setPauseToolStripMenuItem.Text = string.Format("Set Auto-run Pause ({0:0.0}s)...",
+                SFX.AutoPlayPauseMs / 1000.0);
         }
 
-        private void nudPauseMs_ValueChanged(object sender, EventArgs e)
+        private void autoRunToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            SFX.AutoPlayPauseMs = (int)nudPauseMs.Value;
+            SFX.AutoPlay = autoRunToolStripMenuItem.Checked;
+        }
+
+        private void setPauseToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            double currentSecs = SFX.AutoPlayPauseMs / 1000.0;
+            string input = ShowInputDialog(
+                "Enter pause before next cue (seconds, e.g. 1.5):",
+                "Auto-run Pause",
+                currentSecs.ToString("0.0"));
+            if (string.IsNullOrEmpty(input)) return;
+            if (double.TryParse(input,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.CurrentCulture,
+                out double secs))
+            {
+                SFX.AutoPlayPauseMs = (int)Math.Round(Math.Max(0, Math.Min(60, secs)) * 1000);
+            }
+        }
+
+        private static string ShowInputDialog(string prompt, string title, string defaultValue)
+        {
+            using Form dialog = new Form();
+            dialog.Text = title;
+            dialog.ClientSize = new System.Drawing.Size(300, 110);
+            dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+            dialog.StartPosition = FormStartPosition.CenterParent;
+            dialog.MaximizeBox = false;
+            dialog.MinimizeBox = false;
+            Label lbl = new Label { Text = prompt, Location = new System.Drawing.Point(10, 8), AutoSize = false, Width = 280, Height = 40 };
+            TextBox tb = new TextBox { Text = defaultValue, Location = new System.Drawing.Point(10, 52), Width = 280 };
+            Button btnOK = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new System.Drawing.Point(130, 78), Width = 75 };
+            Button btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new System.Drawing.Point(215, 78), Width = 75 };
+            dialog.Controls.AddRange(new Control[] { lbl, tb, btnOK, btnCancel });
+            dialog.AcceptButton = btnOK;
+            dialog.CancelButton = btnCancel;
+            tb.Select(0, defaultValue.Length);
+            return dialog.ShowDialog() == DialogResult.OK ? tb.Text : null;
         }
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)

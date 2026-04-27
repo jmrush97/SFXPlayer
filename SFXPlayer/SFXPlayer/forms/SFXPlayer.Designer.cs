@@ -563,6 +563,24 @@ namespace SFXPlayer
             this.cbPlayback.Size = new System.Drawing.Size(121, 23);
             this.cbPlayback.SelectedIndexChanged += new System.EventHandler(this.cbPlayback_SelectedIndexChanged);
             // 
+            // lbPrevCueInfo
+            // 
+            this.lbPrevCueInfo = new System.Windows.Forms.Label();
+            this.lbPrevCueInfo.AutoSize = false;
+            this.lbPrevCueInfo.Location = new System.Drawing.Point(12, 136);
+            this.lbPrevCueInfo.Name = "lbPrevCueInfo";
+            this.lbPrevCueInfo.Size = new System.Drawing.Size(287, 30);
+            this.lbPrevCueInfo.TabIndex = 40;
+            // 
+            // lbNextCueInfo
+            // 
+            this.lbNextCueInfo = new System.Windows.Forms.Label();
+            this.lbNextCueInfo.AutoSize = false;
+            this.lbNextCueInfo.Location = new System.Drawing.Point(12, 400);
+            this.lbNextCueInfo.Name = "lbNextCueInfo";
+            this.lbNextCueInfo.Size = new System.Drawing.Size(287, 30);
+            this.lbNextCueInfo.TabIndex = 41;
+            // 
             // SFXPlayer
             // 
             this.AllowDrop = true;
@@ -574,6 +592,8 @@ namespace SFXPlayer
             this.Controls.Add(this.pictureBox2);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.rtPrevMainText);
+            this.Controls.Add(this.lbPrevCueInfo);
+            this.Controls.Add(this.lbNextCueInfo);
             this.Controls.Add(this.bnNext);
             this.Controls.Add(this.bnPrev);
             this.Controls.Add(this.bnDeleteCue);
@@ -697,7 +717,19 @@ namespace SFXPlayer
             Control ctl = CueList.GetChildAtPoint(CueListMousePos);
             PlayStrip ps = ctl as PlayStrip;
 
-            if (ps != null && ReplaceOK)
+            if (e.Data.GetDataPresent(typeof(PlayStrip)))
+            {
+                // When reordering PlayStrips allow dropping anywhere in the list
+                AddZone = true;
+                e.Effect = DragDropEffects.Move;
+                if (ps != null && ps != (PlayStrip)e.Data.GetData(typeof(PlayStrip)))
+                    HighlightControl(ps);
+                else if (ctl is Spacer)
+                    HighlightControl(ctl);
+                else
+                    UnHighlightControl();
+            }
+            else if (ps != null && ReplaceOK)
             {
                 HighlightControl(ps);
                 ReplaceZone = true;
@@ -938,6 +970,8 @@ namespace SFXPlayer
         private System.Windows.Forms.ToolStripComboBox cbPreview;
         private System.Windows.Forms.ToolStripDropDownButton bnPlayback;
         private System.Windows.Forms.ToolStripComboBox cbPlayback;
+        private System.Windows.Forms.Label lbPrevCueInfo;
+        private System.Windows.Forms.Label lbNextCueInfo;
     }
 }
 

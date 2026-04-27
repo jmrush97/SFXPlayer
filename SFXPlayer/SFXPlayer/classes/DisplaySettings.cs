@@ -27,5 +27,25 @@ namespace SFXPlayer.classes
         public float CurrentSpeed = 1.0f;
         [DefaultValue(false)]
         public bool StopOthers = false;
+
+        // Current (next) cue details
+        [DefaultValue("")]
+        public string CueNumber = "";
+        [DefaultValue("")]
+        public string CueDescription = "";
+        [DefaultValue("")]
+        public string CueFileName = "";
+        [DefaultValue(false)]
+        public bool CueAutoRun = false;
+        [DefaultValue(0.0)]
+        public double CuePauseSeconds = 0.0;
+
+        // Previous cue details
+        [DefaultValue("")]
+        public string PrevCueNumber = "";
+        [DefaultValue("")]
+        public string PrevCueDescription = "";
+        [DefaultValue("")]
+        public string PrevCueFileName = "";
     }
 }

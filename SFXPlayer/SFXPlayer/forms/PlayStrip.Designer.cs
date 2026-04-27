@@ -39,11 +39,10 @@
             bnPreview = new System.Windows.Forms.PictureBox();
             bnEdit = new System.Windows.Forms.PictureBox();
             Delete = new System.Windows.Forms.ContextMenuStrip(components);
+            autoRunToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            setPauseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            contextMenuSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             deleteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            pnlAutoPlay = new System.Windows.Forms.FlowLayoutPanel();
-            cbAutoPlay = new System.Windows.Forms.CheckBox();
-            lblPauseMs = new System.Windows.Forms.Label();
-            nudPauseMs = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)bnFile).BeginInit();
             tableLayoutPanel2.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
@@ -51,8 +50,6 @@
             ((System.ComponentModel.ISupportInitialize)bnVolume).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnPreview).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnEdit).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)nudPauseMs).BeginInit();
-            pnlAutoPlay.SuspendLayout();
             SuspendLayout();
             // 
             // bnStopAll
@@ -90,15 +87,13 @@
             tableLayoutPanel2.ColumnCount = 1;
             tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             tableLayoutPanel2.Controls.Add(tableLayoutPanel1, 0, 0);
-            tableLayoutPanel2.Controls.Add(pnlAutoPlay, 0, 1);
             tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
             tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
-            tableLayoutPanel2.RowCount = 2;
-            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 52F));
-            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 38F));
-            tableLayoutPanel2.Size = new System.Drawing.Size(643, 90);
+            tableLayoutPanel2.RowCount = 1;
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel2.Size = new System.Drawing.Size(643, 67);
             tableLayoutPanel2.TabIndex = 1;
             // 
             // tableLayoutPanel1
@@ -203,9 +198,34 @@
             // Delete
             // 
             Delete.ImageScalingSize = new System.Drawing.Size(24, 24);
-            Delete.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { deleteToolStripMenuItem });
+            Delete.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+                autoRunToolStripMenuItem,
+                setPauseToolStripMenuItem,
+                contextMenuSeparator1,
+                deleteToolStripMenuItem });
             Delete.Name = "Delete";
-            Delete.Size = new System.Drawing.Size(201, 48);
+            Delete.Size = new System.Drawing.Size(201, 96);
+            Delete.Opening += new System.ComponentModel.CancelEventHandler(this.Delete_Opening);
+            // 
+            // autoRunToolStripMenuItem
+            // 
+            autoRunToolStripMenuItem.CheckOnClick = true;
+            autoRunToolStripMenuItem.Name = "autoRunToolStripMenuItem";
+            autoRunToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            autoRunToolStripMenuItem.Text = "Auto-run to next cue";
+            autoRunToolStripMenuItem.Click += new System.EventHandler(this.autoRunToolStripMenuItem_Click);
+            // 
+            // setPauseToolStripMenuItem
+            // 
+            setPauseToolStripMenuItem.Name = "setPauseToolStripMenuItem";
+            setPauseToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            setPauseToolStripMenuItem.Text = "Set Auto-run Pause...";
+            setPauseToolStripMenuItem.Click += new System.EventHandler(this.setPauseToolStripMenuItem_Click);
+            // 
+            // contextMenuSeparator1
+            // 
+            contextMenuSeparator1.Name = "contextMenuSeparator1";
+            contextMenuSeparator1.Size = new System.Drawing.Size(197, 6);
             // 
             // deleteToolStripMenuItem
             // 
@@ -213,54 +233,6 @@
             deleteToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
             deleteToolStripMenuItem.Text = "Delete Cue";
             deleteToolStripMenuItem.Click += new System.EventHandler(this.deleteToolStripMenuItem_Click);
-            // 
-            // pnlAutoPlay
-            // 
-            pnlAutoPlay.Controls.Add(cbAutoPlay);
-            pnlAutoPlay.Controls.Add(lblPauseMs);
-            pnlAutoPlay.Controls.Add(nudPauseMs);
-            pnlAutoPlay.Dock = System.Windows.Forms.DockStyle.Fill;
-            pnlAutoPlay.Location = new System.Drawing.Point(0, 52);
-            pnlAutoPlay.Margin = new System.Windows.Forms.Padding(0);
-            pnlAutoPlay.Name = "pnlAutoPlay";
-            pnlAutoPlay.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
-            pnlAutoPlay.Size = new System.Drawing.Size(643, 38);
-            pnlAutoPlay.TabIndex = 2;
-            pnlAutoPlay.WrapContents = false;
-            // 
-            // cbAutoPlay
-            // 
-            cbAutoPlay.AutoSize = true;
-            cbAutoPlay.Dock = System.Windows.Forms.DockStyle.None;
-            cbAutoPlay.Location = new System.Drawing.Point(8, 9);
-            cbAutoPlay.Margin = new System.Windows.Forms.Padding(3, 9, 8, 9);
-            cbAutoPlay.Name = "cbAutoPlay";
-            cbAutoPlay.Size = new System.Drawing.Size(150, 19);
-            cbAutoPlay.TabIndex = 9;
-            cbAutoPlay.Text = "Auto-run to next cue";
-            cbAutoPlay.UseVisualStyleBackColor = true;
-            cbAutoPlay.CheckedChanged += new System.EventHandler(this.cbAutoPlay_CheckedChanged);
-            // 
-            // lblPauseMs
-            // 
-            lblPauseMs.AutoSize = true;
-            lblPauseMs.Dock = System.Windows.Forms.DockStyle.None;
-            lblPauseMs.Location = new System.Drawing.Point(166, 11);
-            lblPauseMs.Margin = new System.Windows.Forms.Padding(3, 11, 3, 9);
-            lblPauseMs.Name = "lblPauseMs";
-            lblPauseMs.Size = new System.Drawing.Size(62, 15);
-            lblPauseMs.TabIndex = 10;
-            lblPauseMs.Text = "Pause (ms):";
-            // 
-            // nudPauseMs
-            // 
-            nudPauseMs.Location = new System.Drawing.Point(234, 8);
-            nudPauseMs.Margin = new System.Windows.Forms.Padding(3, 8, 3, 8);
-            nudPauseMs.Maximum = new decimal(new int[] { 60000, 0, 0, 0 });
-            nudPauseMs.Name = "nudPauseMs";
-            nudPauseMs.Size = new System.Drawing.Size(80, 23);
-            nudPauseMs.TabIndex = 11;
-            nudPauseMs.ValueChanged += new System.EventHandler(this.nudPauseMs_ValueChanged);
             // 
             // PlayStrip
             // 
@@ -272,7 +244,7 @@
             DoubleBuffered = true;
             Margin = new System.Windows.Forms.Padding(0);
             Name = "PlayStrip";
-            Size = new System.Drawing.Size(643, 90);
+            Size = new System.Drawing.Size(643, 67);
             Load += PlayStrip_Load;
             MouseDown += MouseDownHandler;
             Resize += PlayStrip_Resize;
@@ -284,9 +256,6 @@
             ((System.ComponentModel.ISupportInitialize)bnVolume).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnPreview).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnEdit).EndInit();
-            ((System.ComponentModel.ISupportInitialize)nudPauseMs).EndInit();
-            pnlAutoPlay.ResumeLayout(false);
-            pnlAutoPlay.PerformLayout();
             ResumeLayout(false);
 
         }
@@ -305,10 +274,9 @@
         private System.Windows.Forms.PictureBox bnPreview;
         private System.Windows.Forms.PictureBox bnEdit;
         private System.Windows.Forms.ContextMenuStrip Delete;
+        private System.Windows.Forms.ToolStripMenuItem autoRunToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem setPauseToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator contextMenuSeparator1;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
-        private System.Windows.Forms.FlowLayoutPanel pnlAutoPlay;
-        private System.Windows.Forms.CheckBox cbAutoPlay;
-        private System.Windows.Forms.Label lblPauseMs;
-        private System.Windows.Forms.NumericUpDown nudPauseMs;
     }
 }

@@ -364,6 +364,15 @@ namespace SFXPlayer.classes
                                     case "next":
                                         Program.mainForm.NextCue();
                                         break;
+                                    case "delete":
+                                        Program.mainForm.DeleteNextCue();
+                                        break;
+                                    case "autorun:true":
+                                        Program.mainForm.SetNextCueAutoRun(true);
+                                        break;
+                                    case "autorun:false":
+                                        Program.mainForm.SetNextCueAutoRun(false);
+                                        break;
                                     default:
                                         if (command.StartsWith("volume:") &&
                                             int.TryParse(command.Substring(7), out int vol))
@@ -377,6 +386,14 @@ namespace SFXPlayer.classes
                                                 out float spd))
                                         {
                                             Program.mainForm.SetNextCueSpeed(spd);
+                                        }
+                                        else if (command.StartsWith("pause:") &&
+                                            double.TryParse(command.Substring(6),
+                                                System.Globalization.NumberStyles.Float,
+                                                System.Globalization.CultureInfo.InvariantCulture,
+                                                out double pauseSecs))
+                                        {
+                                            Program.mainForm.SetNextCuePauseSeconds(pauseSecs);
                                         }
                                         break;
                                 }

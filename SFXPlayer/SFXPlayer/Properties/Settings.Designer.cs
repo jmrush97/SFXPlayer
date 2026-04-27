@@ -202,5 +202,17 @@ namespace SFXPlayer.Properties {
                 this["LastMidiDevice"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ConfirmDeleteCue {
+            get {
+                return ((bool)(this["ConfirmDeleteCue"]));
+            }
+            set {
+                this["ConfirmDeleteCue"] = value;
+            }
+        }
     }
 }

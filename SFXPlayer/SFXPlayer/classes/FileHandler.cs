@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
-namespace AJW.General {
+namespace SFXPlayer.classes {
     class XMLFileHandler<ObjectType> {
         const string AllFileExtensions = "All Files (*.*)|*.*";
         public string FileExtensions = "";
@@ -43,7 +43,7 @@ namespace AJW.General {
 
         internal ObjectType LoadFromFile() {
             OpenFileDialog of = new OpenFileDialog {
-                Filter = String.Join("|", new string[] { FileExtensions, AllFileExtensions }),
+                Filter = string.Join("|", new string[] { FileExtensions, AllFileExtensions }),
                 FileName = CurrentFileName,
                 AddExtension = true
             };
@@ -55,7 +55,7 @@ namespace AJW.General {
             if (result == DialogResult.OK) {
                 return LoadFromFile(of.FileName);
             }
-            return default(ObjectType);     //null where allowed
+            return default;     //null where allowed
         }
 
         internal ObjectType LoadFromFile(string FileName) {
@@ -71,9 +71,9 @@ namespace AJW.General {
         }
 
         internal static ObjectType Load(string FileName) {
-            ObjectType loadedfile = default(ObjectType);
+            ObjectType loadedfile = default;
             if (!File.Exists(FileName)) {
-                return default(ObjectType);
+                return default;
             }
             try {
                 XmlSerializer xs = new XmlSerializer(typeof(ObjectType));
@@ -82,7 +82,7 @@ namespace AJW.General {
                 }
             } catch (Exception e) {
                 MessageBox.Show(e.Message);
-                loadedfile = default(ObjectType);
+                loadedfile = default;
             }
             return loadedfile;
         }
@@ -106,7 +106,7 @@ namespace AJW.General {
 
         internal DialogResult SaveAs(ObjectType theObject) {
             SaveFileDialog sf = new SaveFileDialog {
-                Filter = String.Join("|", new string[] { FileExtensions, AllFileExtensions }),
+                Filter = string.Join("|", new string[] { FileExtensions, AllFileExtensions }),
                 FileName = CurrentFileName,
                 AddExtension = true
             };

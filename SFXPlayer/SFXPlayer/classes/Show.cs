@@ -1,5 +1,4 @@
-﻿using AJW.General;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -13,7 +12,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
-namespace SFXPlayer {
+namespace SFXPlayer.classes {
     class SFXShowEvent {
 
     }
@@ -143,6 +142,65 @@ namespace SFXPlayer {
 
         internal void RemoveCue(SFX sfx) {
             Cues.Remove(sfx);
+        }
+
+        /// <summary>
+        /// Creates a new show with default sound effects
+        /// </summary>
+        /// <returns>A Show object with four default sound cues</returns>
+        public static Show CreateDefaultShow()
+        {
+            var show = new Show();
+            
+            try
+            {
+                // Create default sounds directory in user's Documents/SFXPlayer folder
+                string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string defaultSoundsPath = Path.Combine(documentsPath, "SFXPlayer", "DefaultSounds");
+                
+                // Generate default sound files
+                string[] soundFiles = DefaultSoundGenerator.CreateDefaultSounds(defaultSoundsPath);
+                
+                // Create SFX cues for each sound file
+                var descriptions = new[]
+                {
+                    "C Major Scale - Ascending from Middle C to C (C-D-E-F-G-A-B-C)",
+                    "Chromatic Scale - All 12 notes from C to C (C-C#-D-D#-E-F-F#-G-G#-A-A#-B-C)",
+                    "F# Major Scale - F#-G#-A#-B-C#-D#-E#-F#",
+                    "C Minor Scale - Descending from C to C (C-B-Bb-A-G-F-Eb-D-C)"
+                };
+
+                var mainTexts = new[]
+                {
+                    "C MAJOR ASCENDING",
+                    "CHROMATIC SCALE",
+                    "F# MAJOR",
+                    "C MINOR DESCENDING"
+                };
+
+                for (int i = 0; i < soundFiles.Length; i++)
+                {
+                    var sfx = new SFX
+                    {
+                        FileName = soundFiles[i],
+                        Description = descriptions[i],
+                        MainText = mainTexts[i],
+                        Volume = 70,
+                        StopOthers = false
+                    };
+                    
+                    show.AddCue(sfx, i);
+                }
+                
+                Program.mainForm?.ReportStatus($"Default show created with {soundFiles.Length} musical scales");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating default show: {ex}");
+                Program.mainForm?.ReportStatus($"Error creating default sounds: {ex.Message}");
+            }
+            
+            return show;
         }
     }
 }

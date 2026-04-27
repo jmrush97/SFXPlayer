@@ -27,13 +27,13 @@ var WebApp = function () {
                                 var volSlider = document.getElementById("volumeSlider");
                                 if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
                                 var volSpan = document.getElementById("CurrentVolume");
-                                if (volSpan) volSpan.innerHTML = nodeValue;
+                                if (volSpan) volSpan.textContent = nodeValue;
                             } else if (nodeName === "CurrentSpeed") {
                                 var spd = parseFloat(nodeValue) || 1.0;
                                 var spdSlider = document.getElementById("speedSlider");
                                 if (spdSlider) spdSlider.value = Math.round(spd * 100);
                                 var spdSpan = document.getElementById("CurrentSpeed");
-                                if (spdSpan) spdSpan.innerHTML = spd.toFixed(2);
+                                if (spdSpan) spdSpan.textContent = spd.toFixed(2);
                             } else if (nodeName === "CueAutoRun") {
                                 var isAutoRun = nodeValue === "true";
                                 window._cueAutoRun = isAutoRun;
@@ -57,7 +57,7 @@ var WebApp = function () {
                             } else {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {
-                                    field.innerHTML = nodeValue;
+                                    field.textContent = nodeValue;
                                 } else {
                                     console.log("Unable to locate id=" + nodeName + ". New value = " + nodeValue);
                                 }

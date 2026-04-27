@@ -69,7 +69,6 @@ namespace SFXPlayer
             // Listen for the SoundLocationChanged event.
             //player.SoundLocationChanged += new EventHandler(player_LocationChanged);
 
-            components = new Container();
             components.Add(_musicPlayer);
             _musicPlayer.PlaybackStopped += _musicPlayer_PlaybackStopped;
             components.Add(_PreviewPlayer);

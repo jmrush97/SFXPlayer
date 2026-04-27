@@ -1,4 +1,5 @@
-﻿namespace SFXPlayer {
+﻿namespace SFXPlayer
+{
     partial class PlayStrip {
         /// <summary> 
         /// Required designer variable.
@@ -61,7 +62,7 @@
             // bnFile
             // 
             bnFile.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            bnFile.Image = SFXPlayer.Properties.Resources.SoundFile2_18;
+            bnFile.Image = Properties.Resources.SoundFile2_18;
             bnFile.Location = new System.Drawing.Point(378, 6);
             bnFile.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnFile.Name = "bnFile";
@@ -147,7 +148,7 @@
             // bnPlay
             // 
             bnPlay.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            bnPlay.Image = SFXPlayer.Properties.Resources.Play2_18;
+            bnPlay.Image = Properties.Resources.Play2_18;
             bnPlay.Location = new System.Drawing.Point(468, 6);
             bnPlay.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnPlay.Name = "bnPlay";
@@ -172,7 +173,7 @@
             // bnPreview
             // 
             bnPreview.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            bnPreview.Image = SFXPlayer.Properties.Resources.Headphones2_18;
+            bnPreview.Image = Properties.Resources.Headphones2_18;
             bnPreview.Location = new System.Drawing.Point(423, 6);
             bnPreview.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnPreview.Name = "bnPreview";

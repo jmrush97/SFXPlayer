@@ -1,4 +1,4 @@
-﻿using static SFXPlayer.classes.SVGResources;
+using static SFXPlayer.classes.SVGResources;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using NAudio.Midi;
@@ -222,7 +222,8 @@ namespace SFXPlayer
                 MainText = rtMainText.Text,
                 TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName),
                 CurrentVolume = NextPlayCue?.SFX.Volume ?? 50,
-                CurrentSpeed = NextPlayCue?.SFX.Speed ?? 1.0f
+                CurrentSpeed = NextPlayCue?.SFX.Speed ?? 1.0f,
+                StopOthers = NextPlayCue?.SFX.StopOthers ?? false
             };
             OnDisplayChanged(disp);
         }
@@ -1080,7 +1081,8 @@ namespace SFXPlayer
                 TrackPositionSeconds = positionSeconds,
                 TrackDurationSeconds = durationSeconds,
                 CurrentVolume = NextPlayCue?.SFX.Volume ?? 50,
-                CurrentSpeed = NextPlayCue?.SFX.Speed ?? 1.0f
+                CurrentSpeed = NextPlayCue?.SFX.Speed ?? 1.0f,
+                StopOthers = NextPlayCue?.SFX.StopOthers ?? false
             };
             OnDisplayChanged(disp);
         }

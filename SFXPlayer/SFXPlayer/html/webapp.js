@@ -1,4 +1,4 @@
-﻿var WebApp = function () {
+var WebApp = function () {
     var ws;
     if ("WebSocket" in window) {
 
@@ -17,7 +17,9 @@
                         if (DisplaySettings[i + 1].nodeType == Node.TEXT_NODE) {
                             var nodeName = DisplaySettings[i].nodeName;
                             var nodeValue = DisplaySettings[i].textContent;
-                            if (nodeName === "TrackPositionSeconds") {
+                            if (nodeName === "StopOthers") {
+                                updateCueMode(nodeValue === "true");
+                            } else if (nodeName === "TrackPositionSeconds") {
                                 posSeconds = parseFloat(nodeValue) || 0;
                             } else if (nodeName === "TrackDurationSeconds") {
                                 durSeconds = parseFloat(nodeValue) || 0;
@@ -84,6 +86,18 @@ function formatTime(totalSeconds) {
 
 function init() {
     webapp = new WebApp();
+}
+
+function updateCueMode(stopOthers) {
+    var modeEl = document.getElementById("CueMode");
+    if (modeEl === null) return;
+    if (stopOthers) {
+        modeEl.className = "cue-mode stop-others";
+        modeEl.innerHTML = "&#9632; Stop Others";
+    } else {
+        modeEl.className = "cue-mode parallel";
+        modeEl.innerHTML = "&#9654; Parallel";
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);

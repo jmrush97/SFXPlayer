@@ -455,14 +455,14 @@ namespace SFXPlayer
             {
                 LoadFile();
             }
+            if (bnStopAll.Checked)
+            {
+                StopAll?.Invoke(this, new EventArgs());
+            }
             if (PlayerState == PlayerState.loaded)
             {
                 PlayFromStart();
                 ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly));
-            }
-            if (bnStopAll.Checked)
-            {
-                StopAll?.Invoke(this, new EventArgs());
             }
         }
 

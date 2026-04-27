@@ -1089,6 +1089,10 @@ namespace SFXPlayer
 
         private void bnPlayNext_Click(object sender, EventArgs e)
         {
+            if (PrevPlayCue!=null)
+            {
+                PrevPlayCue.Stop();
+            }
             if (NextPlayCue != null)
             {
                 NextPlayCue.Play();

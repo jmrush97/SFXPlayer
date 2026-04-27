@@ -21,6 +21,17 @@
                                 posSeconds = parseFloat(nodeValue) || 0;
                             } else if (nodeName === "TrackDurationSeconds") {
                                 durSeconds = parseFloat(nodeValue) || 0;
+                            } else if (nodeName === "CurrentVolume") {
+                                var volSlider = document.getElementById("volumeSlider");
+                                if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
+                                var volSpan = document.getElementById("CurrentVolume");
+                                if (volSpan) volSpan.innerHTML = nodeValue;
+                            } else if (nodeName === "CurrentSpeed") {
+                                var spd = parseFloat(nodeValue) || 1.0;
+                                var spdSlider = document.getElementById("speedSlider");
+                                if (spdSlider) spdSlider.value = Math.round(spd * 100);
+                                var spdSpan = document.getElementById("CurrentSpeed");
+                                if (spdSpan) spdSpan.innerHTML = spd.toFixed(2);
                             } else {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {

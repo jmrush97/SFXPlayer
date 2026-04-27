@@ -133,6 +133,7 @@ namespace SFXPlayer
             //PlayStrip.Devices = cbPlayback;
             //PlayStrip.PreviewDevices = cbPreview;
             autoLoadLastsfxCuelistToolStripMenuItem.Checked = Settings.Default.AutoLoadLastSession;
+            confirmDeleteCueToolStripMenuItem.Checked = Settings.Default.ConfirmDeleteCue;
         }
 
         // Convenience method for setting message text in 
@@ -219,7 +220,9 @@ namespace SFXPlayer
                 Title = Text,
                 PrevMainText = rtPrevMainText.Text,
                 MainText = rtMainText.Text,
-                TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName)
+                TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName),
+                CurrentVolume = NextPlayCue?.SFX.Volume ?? 50,
+                CurrentSpeed = NextPlayCue?.SFX.Speed ?? 1.0f
             };
             OnDisplayChanged(disp);
         }
@@ -758,6 +761,13 @@ namespace SFXPlayer
             PlayStrip ps = new PlayStrip(sfx) { Width = CueList.ClientSize.Width, PlayStripIndex = cueIndex };
             ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
             ps.ReportStatus += Ps_ReportStatus;
+            ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
+            {
+                if (pauseMs > 0)
+                    System.Threading.Tasks.Task.Delay(pauseMs).ContinueWith(_ => _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)));
+                else
+                    bnPlayNext_Click(null, null);
+            });
             FocusTrackLowestControls(ps);
             Spacer sp = new Spacer { Width = CueList.ClientSize.Width };
             sp.Paint += Highlight_Paint;
@@ -805,6 +815,13 @@ namespace SFXPlayer
             ps = new PlayStrip(sfx) { Width = CueList.ClientSize.Width, PlayStripIndex = cueIndex };
             ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
             ps.ReportStatus += Ps_ReportStatus;
+            ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
+            {
+                if (pauseMs > 0)
+                    System.Threading.Tasks.Task.Delay(pauseMs).ContinueWith(_ => _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)));
+                else
+                    bnPlayNext_Click(null, null);
+            });
             FocusTrackLowestControls(ps);
             Spacer sp = new Spacer { Width = CueList.ClientSize.Width };
             CueList.Controls.Add(ps, 0, rowIndex);
@@ -1039,7 +1056,8 @@ namespace SFXPlayer
             string filePath = cue.SFX.FileName;
             double dur = cue.PlaybackLength.TotalSeconds;
             string durStr = dur > 0 ? FormatTime(dur) : "?";
-            trackInfoLabel.Text = string.Format("{0} | {1}", Path.GetFileName(filePath), durStr);
+            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.0}x" : "";
+            trackInfoLabel.Text = string.Format("{0} | {1}{2}", Path.GetFileName(filePath), durStr, speedStr);
             trackInfoLabel.ToolTipText = filePath;
         }
 
@@ -1059,7 +1077,9 @@ namespace SFXPlayer
                 MainText = rtMainText.Text,
                 TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName),
                 TrackPositionSeconds = positionSeconds,
-                TrackDurationSeconds = durationSeconds
+                TrackDurationSeconds = durationSeconds,
+                CurrentVolume = NextPlayCue?.SFX.Volume ?? 50,
+                CurrentSpeed = NextPlayCue?.SFX.Speed ?? 1.0f
             };
             OnDisplayChanged(disp);
         }
@@ -1088,14 +1108,15 @@ namespace SFXPlayer
         {
             PlayStrip ps = NextPlayCue;
             if (ps == null) return;
-            DialogResult Response = MessageBox.Show(string.Format("Delete Cue {0}?\r\n{1}", ps.PlayStripIndex + 1, ps.SFX.Description), "Cue List", MessageBoxButtons.YesNo);
-            if (Response == DialogResult.Yes)
+            if (Settings.Default.ConfirmDeleteCue)
             {
-                RemovePlaystrip(NextPlayCueIndex);
-                CurrentShow.RemoveCue(ps.SFX);
-                PadCueList();
-                NextPlayCueChanged();
+                DialogResult Response = MessageBox.Show(string.Format("Delete Cue {0}?\r\n{1}", ps.PlayStripIndex + 1, ps.SFX.Description), "Cue List", MessageBoxButtons.YesNo);
+                if (Response != DialogResult.Yes) return;
             }
+            RemovePlaystrip(NextPlayCueIndex);
+            CurrentShow.RemoveCue(ps.SFX);
+            PadCueList();
+            NextPlayCueChanged();
         }
 
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1352,6 +1373,28 @@ namespace SFXPlayer
         internal void NextCue()
         {
             _commandQueue.Enqueue(() => bnNext_Click(null, null));
+        }
+
+        internal void SetNextCueVolume(int vol)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.Volume = Math.Max(0, Math.Min(100, vol));
+                }
+            });
+        }
+
+        internal void SetNextCueSpeed(float speed)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.Speed = Math.Max(0.1f, Math.Min(20.0f, speed));
+                }
+            });
         }
 
         // Drag & drop helpers

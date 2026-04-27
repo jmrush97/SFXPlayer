@@ -45,6 +45,7 @@ namespace SFXPlayer
                 {
                     WaveLength = waveStream.TotalTime;
                     Length.Text = WaveLength.ToString(@"mm\:ss\.ff");
+                    volDisplayLabel.Text = $"Volume: {SFX.Volume}";
                     pictureBox1.BackgroundImageLayout = ImageLayout.Stretch;
                     pictureBox1.BackgroundImage = renderer.Render(waveStream, maxPeakProvider, myRendererSettings);
                     bm = new Bitmap(pictureBox1.BackgroundImage.Width, pictureBox1.BackgroundImage.Height);

@@ -351,6 +351,21 @@ namespace SFXPlayer.classes
                                     case "next":
                                         Program.mainForm.NextCue();
                                         break;
+                                    default:
+                                        if (command.StartsWith("volume:") &&
+                                            int.TryParse(command.Substring(7), out int vol))
+                                        {
+                                            Program.mainForm.SetNextCueVolume(vol);
+                                        }
+                                        else if (command.StartsWith("speed:") &&
+                                            float.TryParse(command.Substring(6),
+                                                System.Globalization.NumberStyles.Float,
+                                                System.Globalization.CultureInfo.InvariantCulture,
+                                                out float spd))
+                                        {
+                                            Program.mainForm.SetNextCueSpeed(spd);
+                                        }
+                                        break;
                                 }
                             }
                         }

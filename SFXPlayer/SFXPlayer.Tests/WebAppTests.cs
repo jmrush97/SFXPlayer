@@ -283,6 +283,86 @@ public class WebAppTests : IDisposable
     }
 
 
+    [Fact]
+    public async Task WebApp_HandlesVolumeCommand_ViaWebSocket()
+    {
+        // Arrange
+        var originalPort = WebApp.wsPort;
+        WebApp.wsPort = TestPort;
+        ClientWebSocket? webSocket = null;
+
+        try
+        {
+            await WebApp.StartAsync();
+            await Task.Delay(1000);
+
+            webSocket = new ClientWebSocket();
+            webSocket.Options.AddSubProtocol("ws-SFX-protocol");
+            var uri = new Uri($"ws://localhost:{TestPort}/ws");
+            await webSocket.ConnectAsync(uri, CancellationToken.None);
+
+            // Act — send a volume command
+            var msg = Encoding.UTF8.GetBytes("<command>volume:75</command>");
+            await webSocket.SendAsync(new ArraySegment<byte>(msg), WebSocketMessageType.Text, true, CancellationToken.None);
+            await Task.Delay(300);
+
+            // Assert — no exception means the command was handled without crashing
+            Assert.Equal(WebSocketState.Open, webSocket.State);
+            _output.WriteLine("? Volume WebSocket command handled without error");
+        }
+        finally
+        {
+            if (webSocket?.State == WebSocketState.Open)
+            {
+                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete", CancellationToken.None);
+                webSocket.Dispose();
+            }
+            await WebApp.StopAsync();
+            await Task.Delay(500);
+            WebApp.wsPort = originalPort;
+        }
+    }
+
+    [Fact]
+    public async Task WebApp_HandlesSpeedCommand_ViaWebSocket()
+    {
+        // Arrange
+        var originalPort = WebApp.wsPort;
+        WebApp.wsPort = TestPort;
+        ClientWebSocket? webSocket = null;
+
+        try
+        {
+            await WebApp.StartAsync();
+            await Task.Delay(1000);
+
+            webSocket = new ClientWebSocket();
+            webSocket.Options.AddSubProtocol("ws-SFX-protocol");
+            var uri = new Uri($"ws://localhost:{TestPort}/ws");
+            await webSocket.ConnectAsync(uri, CancellationToken.None);
+
+            // Act — send a speed command
+            var msg = Encoding.UTF8.GetBytes("<command>speed:1.50</command>");
+            await webSocket.SendAsync(new ArraySegment<byte>(msg), WebSocketMessageType.Text, true, CancellationToken.None);
+            await Task.Delay(300);
+
+            // Assert — no exception means the command was handled without crashing
+            Assert.Equal(WebSocketState.Open, webSocket.State);
+            _output.WriteLine("? Speed WebSocket command handled without error");
+        }
+        finally
+        {
+            if (webSocket?.State == WebSocketState.Open)
+            {
+                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete", CancellationToken.None);
+                webSocket.Dispose();
+            }
+            await WebApp.StopAsync();
+            await Task.Delay(500);
+            WebApp.wsPort = originalPort;
+        }
+    }
+
     public void Dispose()
     {
         _httpClient?.Dispose();

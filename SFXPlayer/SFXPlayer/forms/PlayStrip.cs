@@ -39,6 +39,7 @@ namespace SFXPlayer
         ucVolume volume = new ucVolume();
         public event EventHandler StopAll;
         public event EventHandler<StatusEventArgs> ReportStatus;
+        public event EventHandler<int> AutoPlayNext;
         int prevPct = -1;
 
         #region Initialisation
@@ -373,7 +374,7 @@ namespace SFXPlayer
             }
             PlayerState = PlayerState.loading;
             UpdatePlayerState(PlayerState);
-            _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx);
+            _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed);
             _musicPlayer.Volume = SFX.Volume;
             PlayerState = PlayerState.loaded;
         }
@@ -488,16 +489,25 @@ namespace SFXPlayer
 
         private void PlayFromStart()
         {
-            _musicPlayer.Position = TimeSpan.Zero;  //this resets the volume!
+            _musicPlayer.Position = TimeSpan.Zero;
             _musicPlayer.Volume = SFX.Volume;
-            _musicPlayer.Play();
-            if (SFX.Triggers.Any())
+            if (SFX.DebounceStartMs > 0)
             {
-                timer1.Start();
-                LastTrigger = 0;
+                PlayerState = PlayerState.play;
+                UpdatePlayButton();
+                System.Threading.Tasks.Task.Delay(SFX.DebounceStartMs).ContinueWith(_ => this.BeginInvoke(new Action(() =>
+                {
+                    if (PlayerState == PlayerState.play)
+                        _musicPlayer.Play();
+                })));
             }
-            PlayerState = PlayerState.play;
-            UpdatePlayButton();
+            else
+            {
+                _musicPlayer.Play();
+                PlayerState = PlayerState.play;
+                UpdatePlayButton();
+            }
+            if (SFX.Triggers.Any()) { timer1.Start(); LastTrigger = 0; }
         }
 
         private void Pause()
@@ -538,6 +548,19 @@ namespace SFXPlayer
                 ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly, true));
             }
             catch { }
+
+            if (SFX.AutoPlay)
+            {
+                if (SFX.DebounceEndMs > 0)
+                    System.Threading.Tasks.Task.Delay(SFX.DebounceEndMs).ContinueWith(_ => TriggerAutoPlay());
+                else
+                    TriggerAutoPlay();
+            }
+        }
+
+        private void TriggerAutoPlay()
+        {
+            AutoPlayNext?.Invoke(this, SFX.AutoPlayPauseMs);
         }
 
         #endregion

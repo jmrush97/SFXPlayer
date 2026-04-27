@@ -67,6 +67,7 @@ namespace SFXPlayer
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.autoLoadLastsfxCuelistToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.confirmDeleteCueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ScrollTimer = new System.Windows.Forms.Timer(this.components);
             this.bnPrev = new System.Windows.Forms.Button();
@@ -338,7 +339,8 @@ namespace SFXPlayer
             // settingsToolStripMenuItem
             // 
             this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.autoLoadLastsfxCuelistToolStripMenuItem});
+            this.autoLoadLastsfxCuelistToolStripMenuItem,
+            this.confirmDeleteCueToolStripMenuItem});
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
             this.settingsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
             this.settingsToolStripMenuItem.Text = "Settings";
@@ -352,6 +354,14 @@ namespace SFXPlayer
             this.autoLoadLastsfxCuelistToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.autoLoadLastsfxCuelistToolStripMenuItem.Text = "Auto load last .sfx cue-list";
             this.autoLoadLastsfxCuelistToolStripMenuItem.Click += new System.EventHandler(this.autoLoadLastsfxCuelistToolStripMenuItem_Click);
+            // 
+            // confirmDeleteCueToolStripMenuItem
+            // 
+            this.confirmDeleteCueToolStripMenuItem.CheckOnClick = true;
+            this.confirmDeleteCueToolStripMenuItem.Name = "confirmDeleteCueToolStripMenuItem";
+            this.confirmDeleteCueToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.confirmDeleteCueToolStripMenuItem.Text = "Confirm delete cue";
+            this.confirmDeleteCueToolStripMenuItem.Click += new System.EventHandler(this.confirmDeleteCueToolStripMenuItem_Click);
             // 
             // helpToolStripMenuItem
             // 
@@ -870,6 +880,12 @@ namespace SFXPlayer
             Settings.Default.Save();
         }
 
+        private void confirmDeleteCueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Settings.Default.ConfirmDeleteCue = confirmDeleteCueToolStripMenuItem.Checked;
+            Settings.Default.Save();
+        }
+
         #endregion
         private System.Windows.Forms.TableLayoutPanel CueList;
         private System.Windows.Forms.OpenFileDialog dlgOpenAudioFile;
@@ -902,6 +918,7 @@ namespace SFXPlayer
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem autoLoadLastsfxCuelistToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem confirmDeleteCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem previousCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem nextCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;

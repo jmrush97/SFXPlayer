@@ -21,5 +21,9 @@ namespace SFXPlayer.classes
         public double TrackPositionSeconds = 0.0;
         [DefaultValue(0.0)]
         public double TrackDurationSeconds = 0.0;
+        [DefaultValue(50)]
+        public int CurrentVolume = 50;
+        [DefaultValue(1.0f)]
+        public float CurrentSpeed = 1.0f;
     }
 }

@@ -63,6 +63,22 @@
             <td style="background-color:limegreen; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('play')">Go</td>
             <td style="background-color:gray; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('next')">Next</td>
         </tr>
+        <tr style="height: 4%;">
+            <td colspan="4" style="padding: 2px 8px;">
+                <label for="volumeSlider">Volume:</label>
+                <input id="volumeSlider" type="range" min="0" max="100" value="50" style="width:80%;"
+                    oninput="webapp.sendCommand('volume:' + this.value)" />
+                <span id="CurrentVolume">50</span>
+            </td>
+        </tr>
+        <tr style="height: 4%;">
+            <td colspan="4" style="padding: 2px 8px;">
+                <label for="speedSlider">Speed:</label>
+                <input id="speedSlider" type="range" min="10" max="200" value="100" style="width:80%;"
+                    oninput="webapp.sendCommand('speed:' + (this.value / 100).toFixed(2))" />
+                <span id="CurrentSpeed">1.00</span>
+            </td>
+        </tr>
     </table>
 </body>
 </html>

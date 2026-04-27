@@ -50,11 +50,13 @@ namespace SFXPlayer
         static Dictionary<string, string> contentTypes = new Dictionary<string, string>() {
             { ".html", "text/html" },
             { ".js", "text/javascript" },
+            { ".css", "text/css" },
             { ".ico", "image/x-icon" }
         };
         static Dictionary<string, bool> contentBinary = new Dictionary<string, bool>() {
             { ".html", false },
             { ".js", false },
+            { ".css", false },
             { ".ico", true }
         };
 

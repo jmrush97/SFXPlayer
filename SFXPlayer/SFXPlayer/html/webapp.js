@@ -13,19 +13,23 @@
 
         ws.onmessage = function (evt) {
             var received_msg = evt.data;
-            //console.log("Message received:\n" + received_msg);
             BuildXMLFromString(received_msg);
-            //document.getElementById("PrevMainText").innerHTML = xmlDoc.getElementsByTagName("PrevMainText")[0].childNodes[0].nodeValue;
             var DisplaySettings = xmlDoc.getElementsByTagName("DisplaySettings")[0].childNodes;
             if (DisplaySettings != null) {
                 for (i = 0; i < DisplaySettings.length; i++) {
                     if (DisplaySettings[i].nodeType == Node.ELEMENT_NODE) {
                         if (DisplaySettings[i + 1].nodeType == Node.TEXT_NODE) {
-                            var field = document.getElementById(DisplaySettings[i].nodeName);
-                            if (field != null) {
-                                field.innerHTML = DisplaySettings[i].textContent;
+                            var nodeName = DisplaySettings[i].nodeName;
+                            var nodeValue = DisplaySettings[i].textContent;
+                            if (nodeName === "StopOthers") {
+                                updateCueMode(nodeValue === "true");
                             } else {
-                                console.log("Unable to locate id=" + DisplaySettings[i].nodeName + ". New value = " + DisplaySettings[i].textContent);
+                                var field = document.getElementById(nodeName);
+                                if (field != null) {
+                                    field.innerHTML = nodeValue;
+                                } else {
+                                    console.log("Unable to locate id=" + nodeName + ". New value = " + nodeValue);
+                                }
                             }
                         }
                     }
@@ -52,6 +56,18 @@
 
 function init() {
     webapp = new WebApp();
+}
+
+function updateCueMode(stopOthers) {
+    var modeEl = document.getElementById("CueMode");
+    if (modeEl === null) return;
+    if (stopOthers) {
+        modeEl.className = "cue-mode stop-others";
+        modeEl.innerHTML = "&#9632; Stop Others";
+    } else {
+        modeEl.className = "cue-mode parallel";
+        modeEl.innerHTML = "&#9654; Parallel";
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);

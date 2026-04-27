@@ -1518,7 +1518,8 @@ namespace SFXPlayer
                 Title = Text,
                 PrevMainText = rtPrevMainText.Text,
                 MainText = rtMainText.Text,
-                TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName)
+                TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName),
+                StopOthers = NextPlayCue?.SFX.StopOthers ?? false
             };
             OnDisplayChanged(disp);
         }
@@ -1652,5 +1653,7 @@ namespace SFXPlayer
         public string TrackName = null;
         [DefaultValue("")]
         public string Title = "";
+        [DefaultValue(false)]
+        public bool StopOthers = false;
     }
 }

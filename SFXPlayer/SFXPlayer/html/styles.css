@@ -1,0 +1,136 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.sfx-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    border: 2px solid #444;
+}
+
+/* Previous cue text area (40% of height) */
+.prev-cue {
+    flex: 4;
+    background-color: #3a3a4a;
+    color: #aaaacc;
+}
+
+/* Current cue text area (40% of height) */
+.current-cue {
+    flex: 4;
+    background-color: #16213e;
+    color: #ffffff;
+    border-top: 2px solid #444;
+}
+
+.cue-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    font-size: clamp(1rem, 4vw, 2.5rem);
+    font-weight: bold;
+    text-align: center;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+/* Track name + cue mode row (10% of height) */
+.cue-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background-color: #0f3460;
+    border-top: 2px solid #444;
+    gap: 8px;
+}
+
+.track-name {
+    font-size: clamp(0.75rem, 2.5vw, 1.1rem);
+    color: #a0c4ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cue-mode {
+    font-size: clamp(0.7rem, 2vw, 0.95rem);
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.cue-mode.stop-others {
+    background-color: #c0392b;
+    color: #ffffff;
+}
+
+.cue-mode.parallel {
+    background-color: #27ae60;
+    color: #ffffff;
+}
+
+/* Controls row (10% of height) */
+.controls {
+    flex: 1;
+    display: flex;
+    border-top: 2px solid #444;
+    min-height: 48px;
+}
+
+.btn {
+    flex: 1;
+    border: none;
+    border-right: 1px solid #333;
+    cursor: pointer;
+    font-size: clamp(0.85rem, 2.5vw, 1.2rem);
+    font-weight: bold;
+    color: #ffffff;
+    transition: filter 0.1s ease;
+    outline: none;
+    padding: 0;
+}
+
+.btn:last-child {
+    border-right: none;
+}
+
+.btn:active {
+    filter: brightness(0.75);
+}
+
+.btn-prev {
+    background-color: #555566;
+}
+
+.btn-stop {
+    background-color: #c0392b;
+}
+
+.btn-go {
+    background-color: #27ae60;
+}
+
+.btn-next {
+    background-color: #555566;
+}

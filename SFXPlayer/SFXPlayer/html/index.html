@@ -6,22 +6,83 @@
     <title id="Title">SFX Player</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="webapp.js"></script>
+    <style>
+        .disable-selection{
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+        #progressContainer {
+            width: 100%;
+            height: 100%;
+            background-color: #444;
+            position: relative;
+        }
+        #progressBar {
+            height: 100%;
+            width: 0%;
+            background-color: limegreen;
+            transition: width 0.1s linear;
+        }
+        #progressTime {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 0.85em;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="sfx-container">
-        <div id="PrevMainText" class="cue-text prev-cue">Previous Cue</div>
-        <div id="MainText" class="cue-text current-cue">Main Cue</div>
-        <div class="cue-info">
-            <div id="TrackName" class="track-name">Track Name</div>
-            <div id="CueMode" class="cue-mode parallel">&#9654; Parallel</div>
-        </div>
-        <div class="controls">
-            <button class="btn btn-prev" onclick="webapp.sendCommand('previous')">&#9664; Prev</button>
-            <button class="btn btn-stop" onclick="webapp.sendCommand('stop')">&#9632; Stop</button>
-            <button class="btn btn-go" onclick="webapp.sendCommand('play')">Go &#9654;</button>
-            <button class="btn btn-next" onclick="webapp.sendCommand('next')">Next &#9654;</button>
-        </div>
-    </div>
+    <table style="position: absolute; top: 0; bottom: 0; left: 0; right:0; border: 1px solid; height: 100%; width:100%">
+        <tr style="height: 38%; outline: 1px solid; background-color:gray;">
+            <td id="PrevMainText" colspan="4">Previous Cue</td>
+        </tr>
+        <tr style="height: 38%; outline: 1px solid;">
+            <td id="MainText" colspan="4">Main Cue</td>
+        </tr>
+        <tr style="height: 8%; outline: 1px solid;">
+            <td id="TrackName" colspan="4">Track Name</td>
+        </tr>
+        <tr style="height: 4%; outline: 1px solid;">
+            <td id="CueMode" colspan="4" style="text-align:center;">&#9654; Parallel</td>
+        </tr>
+        <tr style="height: 6%;">
+            <td colspan="4" style="padding: 0;">
+                <div id="progressContainer">
+                    <div id="progressBar"></div>
+                    <div id="progressTime">0:00 / 0:00</div>
+                </div>
+            </td>
+        </tr>
+        <tr style="height: 10%;">
+            <td style="background-color:gray; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('previous')">Previous</td>
+            <td style="background-color:red; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('stop')">Stop</td>
+            <td style="background-color:limegreen; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('play')">Go</td>
+            <td style="background-color:gray; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('next')">Next</td>
+        </tr>
+        <tr style="height: 4%;">
+            <td colspan="4" style="padding: 2px 8px;">
+                <label for="volumeSlider">Volume:</label>
+                <input id="volumeSlider" type="range" min="0" max="100" value="50" style="width:80%;"
+                    oninput="webapp.sendCommand('volume:' + this.value)" />
+                <span id="CurrentVolume">50</span>
+            </td>
+        </tr>
+        <tr style="height: 4%;">
+            <td colspan="4" style="padding: 2px 8px;">
+                <label for="speedSlider">Speed:</label>
+                <input id="speedSlider" type="range" min="10" max="200" value="100" style="width:80%;"
+                    oninput="webapp.sendCommand('speed:' + (this.value / 100).toFixed(2))" />
+                <span id="CurrentSpeed">1.00</span>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

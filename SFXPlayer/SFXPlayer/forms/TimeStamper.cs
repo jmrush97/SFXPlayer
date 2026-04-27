@@ -1,5 +1,6 @@
 ﻿using NAudio.Wave;
 using NAudio.WaveFormRenderer;
+using SFXPlayer.classes;
 using SFXPlayer.Properties;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,6 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web.UI.WebControls;
 using System.Windows.Forms;
 
 namespace SFXPlayer
@@ -45,6 +45,7 @@ namespace SFXPlayer
                 {
                     WaveLength = waveStream.TotalTime;
                     Length.Text = WaveLength.ToString(@"mm\:ss\.ff");
+                    volDisplayLabel.Text = $"Volume: {SFX.Volume}";
                     pictureBox1.BackgroundImageLayout = ImageLayout.Stretch;
                     pictureBox1.BackgroundImage = renderer.Render(waveStream, maxPeakProvider, myRendererSettings);
                     bm = new Bitmap(pictureBox1.BackgroundImage.Width, pictureBox1.BackgroundImage.Height);
@@ -116,6 +117,14 @@ namespace SFXPlayer
             trackBar1.Maximum = pictureBox1.Width - pictureBox1.Padding.Horizontal;
             bm = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             Graphics g = Graphics.FromImage(bm);
+            if (SFX==null)
+            {
+                pictureBox1.Image = bm; return;
+            }
+            if (SFX.Triggers.Count == 0)
+            {
+                pictureBox1.Image = bm; return;
+            }
             foreach (var trig in SFX.Triggers)
             {
                 var X = TicksToPosition(trig.TimeTicks);

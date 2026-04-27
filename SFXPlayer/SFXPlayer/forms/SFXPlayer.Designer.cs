@@ -1,4 +1,12 @@
-﻿namespace SFXPlayer
+﻿using System;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Windows.Forms;
+using SFXPlayer.classes;
+using SFXPlayer.Properties;
+
+namespace SFXPlayer
 {
     partial class SFXPlayer
     {
@@ -46,6 +54,7 @@
             this.saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.saveAsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.createSampleProjectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportShowFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.importShowFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
@@ -58,6 +67,7 @@
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.autoLoadLastsfxCuelistToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.confirmDeleteCueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ScrollTimer = new System.Windows.Forms.Timer(this.components);
             this.bnPrev = new System.Windows.Forms.Button();
@@ -68,6 +78,9 @@
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusBar = new System.Windows.Forms.ToolStripStatusLabel();
             this.WebLink = new System.Windows.Forms.ToolStripStatusLabel();
+            this.playbackProgressBar = new System.Windows.Forms.ToolStripProgressBar();
+            this.playbackTimeLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            this.trackInfoLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.DeviceChangeTimer = new System.Windows.Forms.Timer(this.components);
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.bnMIDI = new System.Windows.Forms.ToolStripDropDownButton();
@@ -194,6 +207,7 @@
             this.saveToolStripMenuItem,
             this.saveAsToolStripMenuItem,
             this.toolStripSeparator1,
+            this.createSampleProjectToolStripMenuItem,
             this.exportShowFileToolStripMenuItem,
             this.importShowFileToolStripMenuItem,
             this.toolStripSeparator2,
@@ -206,7 +220,7 @@
             // 
             this.newToolStripMenuItem.Name = "newToolStripMenuItem";
             this.newToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
-            this.newToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.newToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.newToolStripMenuItem.Text = "&New";
             this.newToolStripMenuItem.Click += new System.EventHandler(this.newToolStripMenuItem_Click);
             // 
@@ -214,7 +228,7 @@
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
             this.openToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.openToolStripMenuItem.Text = "&Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
             // 
@@ -222,7 +236,7 @@
             // 
             this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
             this.saveToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.S)));
-            this.saveToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.saveToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.saveToolStripMenuItem.Text = "&Save";
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
             // 
@@ -230,39 +244,46 @@
             // 
             this.saveAsToolStripMenuItem.Name = "saveAsToolStripMenuItem";
             this.saveAsToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
-            this.saveAsToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.saveAsToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.saveAsToolStripMenuItem.Text = "Save &As";
             this.saveAsToolStripMenuItem.Click += new System.EventHandler(this.saveAsToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(160, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(207, 6);
+            // 
+            // createSampleProjectToolStripMenuItem
+            // 
+            this.createSampleProjectToolStripMenuItem.Name = "createSampleProjectToolStripMenuItem";
+            this.createSampleProjectToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.createSampleProjectToolStripMenuItem.Text = "Create &Sample Project...";
+            this.createSampleProjectToolStripMenuItem.Click += new System.EventHandler(this.createSampleProjectToolStripMenuItem_Click);
             // 
             // exportShowFileToolStripMenuItem
             // 
             this.exportShowFileToolStripMenuItem.Name = "exportShowFileToolStripMenuItem";
-            this.exportShowFileToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.exportShowFileToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.exportShowFileToolStripMenuItem.Text = "&Export Show File";
             this.exportShowFileToolStripMenuItem.Click += new System.EventHandler(this.exportShowFileToolStripMenuItem_Click);
             // 
             // importShowFileToolStripMenuItem
             // 
             this.importShowFileToolStripMenuItem.Name = "importShowFileToolStripMenuItem";
-            this.importShowFileToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.importShowFileToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.importShowFileToolStripMenuItem.Text = "&Import Show File";
             this.importShowFileToolStripMenuItem.Click += new System.EventHandler(this.importShowFileToolStripMenuItem_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(160, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(207, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
             this.exitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(163, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.exitToolStripMenuItem.Text = "E&xit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
@@ -318,7 +339,8 @@
             // settingsToolStripMenuItem
             // 
             this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.autoLoadLastsfxCuelistToolStripMenuItem});
+            this.autoLoadLastsfxCuelistToolStripMenuItem,
+            this.confirmDeleteCueToolStripMenuItem});
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
             this.settingsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
             this.settingsToolStripMenuItem.Text = "Settings";
@@ -332,6 +354,14 @@
             this.autoLoadLastsfxCuelistToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.autoLoadLastsfxCuelistToolStripMenuItem.Text = "Auto load last .sfx cue-list";
             this.autoLoadLastsfxCuelistToolStripMenuItem.Click += new System.EventHandler(this.autoLoadLastsfxCuelistToolStripMenuItem_Click);
+            // 
+            // confirmDeleteCueToolStripMenuItem
+            // 
+            this.confirmDeleteCueToolStripMenuItem.CheckOnClick = true;
+            this.confirmDeleteCueToolStripMenuItem.Name = "confirmDeleteCueToolStripMenuItem";
+            this.confirmDeleteCueToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.confirmDeleteCueToolStripMenuItem.Text = "Confirm delete cue";
+            this.confirmDeleteCueToolStripMenuItem.Click += new System.EventHandler(this.confirmDeleteCueToolStripMenuItem_Click);
             // 
             // helpToolStripMenuItem
             // 
@@ -398,6 +428,9 @@
             this.statusStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusBar,
+            this.trackInfoLabel,
+            this.playbackProgressBar,
+            this.playbackTimeLabel,
             this.WebLink});
             this.statusStrip.Location = new System.Drawing.Point(0, 428);
             this.statusStrip.Name = "statusStrip";
@@ -419,6 +452,29 @@
             this.WebLink.Size = new System.Drawing.Size(48, 17);
             this.WebLink.Text = "Remote";
             this.WebLink.Click += new System.EventHandler(this.WebLink_Click);
+            // 
+            // playbackProgressBar
+            // 
+            this.playbackProgressBar.Name = "playbackProgressBar";
+            this.playbackProgressBar.Size = new System.Drawing.Size(120, 16);
+            this.playbackProgressBar.Minimum = 0;
+            this.playbackProgressBar.Maximum = 1000;
+            this.playbackProgressBar.Value = 0;
+            this.playbackProgressBar.ToolTipText = "Playback progress";
+            // 
+            // playbackTimeLabel
+            // 
+            this.playbackTimeLabel.Name = "playbackTimeLabel";
+            this.playbackTimeLabel.Size = new System.Drawing.Size(90, 17);
+            this.playbackTimeLabel.Text = "0:00 / 0:00";
+            this.playbackTimeLabel.ToolTipText = "Position / -Remaining";
+            // 
+            // trackInfoLabel
+            // 
+            this.trackInfoLabel.Name = "trackInfoLabel";
+            this.trackInfoLabel.AutoSize = true;
+            this.trackInfoLabel.Text = "";
+            this.trackInfoLabel.ToolTipText = "File path";
             // 
             // DeviceChangeTimer
             // 
@@ -555,6 +611,281 @@
 
         }
 
+        private void stopAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            bnStopAll_Click(sender, e);
+        }
+
+        private void playToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            bnPlayNext_Click(sender, e);
+        }
+
+        private void previousCueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            bnPrev_Click(sender, e);
+        }
+
+        private void nextCueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            bnNext_Click(sender, e);
+        }
+
+        private void helpToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("It is recommended to disable system sounds\r\n" +
+                            "right click on the windows speaker icon and choose \"Sounds\"\r\n" +
+                            "then choose Sound Scheme: No Sounds", Application.ProductName);
+        }
+
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Escape)
+            {
+                bnStopAll_Click(sender, e);
+            }
+        }
+
+        private void Form1_ControlAdded(object sender, ControlEventArgs e)
+        {
+            FocusTrackLowestControls(e.Control);
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            _ = WebApp.StopAsync();
+        }
+
+        private void WebLink_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(WebLink.Text) { UseShellExecute = true });
+        }
+
+        private void DeviceChangeTimer_Tick(object sender, EventArgs e)
+        {
+            DeviceChangeTimer.Enabled = false;
+            Debug.WriteLine("Device Changed");
+            UpdateDevices();
+        }
+
+        private void CueList_MouseDown(object sender, MouseEventArgs e)
+        {
+            Point CueListMousePos = ScreenToChild(e.Location, CueList);
+            Control selectedControl = CueList.GetChildAtPoint(CueListMousePos);
+            Debug.WriteLine("CueList_MouseDown");
+            if (selectedControl != null)
+            {
+                if (selectedControl.GetType() == typeof(PlayStrip))
+                {
+                    DoDragDrop(selectedControl, DragDropEffects.Move | DragDropEffects.Scroll);
+                }
+            }
+        }
+
+        private void CueList_DragLeave(object sender, EventArgs e)
+        {
+            UnHighlightControl();
+        }
+
+        private void CueList_DragOver(object sender, DragEventArgs e)
+        {
+            AddZone = false;
+            ReplaceZone = false;
+
+            Point CueListMousePos = ScreenToChild(new Point(e.X, e.Y), CueList);
+            int Ypos = CueListMousePos.Y - CueList.AutoScrollPosition.Y;
+            Control ctl = CueList.GetChildAtPoint(CueListMousePos);
+            PlayStrip ps = ctl as PlayStrip;
+
+            if (ps != null && ReplaceOK)
+            {
+                HighlightControl(ps);
+                ReplaceZone = true;
+                e.Effect = DragDropEffects.Move;
+            }
+            else if (AddOK && Math.Abs(Ypos % CueListSpacing) < SpacerControlHeight)
+            {
+                UnHighlightControl();
+                AddZone = true;
+                e.Effect = DragDropEffects.Move;
+            }
+            else
+            {
+                UnHighlightControl();
+                e.Effect = DragDropEffects.None;
+            }
+        }
+
+        private void CueList_DragEnter(object sender, DragEventArgs e)
+        {
+            ReplaceOK = AddOK = false;
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (CheckAllFilesAreAudio(files))
+                {
+                    AddOK = true;
+                    ReplaceOK = (files.Length == 1);
+                }
+            }
+            else if (e.Data.GetDataPresent(typeof(PlayStrip)))
+            {
+                AddOK = true;
+            }
+        }
+
+        private void CueList_DragDrop(object sender, DragEventArgs e)
+        {
+            Point CueListMousePos = ScreenToChild(new Point(e.X, e.Y), CueList);
+            int index = (CueListMousePos.Y - CueList.AutoScrollPosition.Y - TOPGAP) / CueListSpacing + 1;
+            index = Math.Max(index, 0);
+            index = Math.Min(index, CurrentShow.Cues.Count);
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                PlayStrip ps = LastHovered as PlayStrip;
+                if (ps != null)
+                {
+                    string msg = "do you wish to replace the file" + Environment.NewLine;
+                    msg += ps.SFX.ShortFileNameOnly + Environment.NewLine;
+                    msg += "with" + Environment.NewLine;
+                    msg += Path.GetFileName(files[0]) + Environment.NewLine;
+                    msg += "in cue " + (ps.PlayStripIndex + 1).ToString("D3") + "?" + Environment.NewLine;
+                    if (string.IsNullOrEmpty(ps.SFX.FileName) ||
+                        MessageBox.Show(msg, "Replace File", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) == DialogResult.OK)
+                    {
+                        ps.SelectFile(files[0]);
+                    }
+                }
+                else if (AddZone)
+                {
+                    foreach (string file in files)
+                    {
+                        SFX sfx = new SFX();
+                        InsertPlaystrip(sfx, index).SelectFile(file);
+                        CurrentShow.AddCue(sfx, index++);
+                    }
+                    PadCueList();
+                    NextPlayCueChanged();
+                }
+            }
+            else if (e.Data.GetDataPresent(typeof(PlayStrip)))
+            {
+                if (AddZone)
+                {
+                    PlayStrip ps = ((PlayStrip)e.Data.GetData(typeof(PlayStrip)));
+                    int src = ps.PlayStripIndex;
+                    int dest = index;
+                    if (dest > src) dest--;
+                    if (dest != src)
+                    {
+                        CurrentShow.Cues.Move(src, dest);
+                        RemovePlaystrip(src);
+                        InsertPlaystrip(ps.SFX, dest);
+                    }
+                }
+            }
+            UnHighlightControl();
+        }
+
+        private void CueList_ControlRemoved(object sender, ControlEventArgs e)
+        {
+            if (e.Control is PlayStrip ps)
+            {
+                ps.Stop();
+                ps.ReportStatus -= Ps_ReportStatus;
+            }
+            FocusUntrackLowestControls(e.Control);
+        }
+
+        private void CueList_ControlAdded(object sender, ControlEventArgs e)
+        {
+            FocusTrackLowestControls(e.Control);
+        }
+
+        private void cbPreview_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (CurrentPreviewDeviceIdx != cbPreview.SelectedIndex)
+            {
+                if (cbPreview.SelectedIndex != -1)
+                {
+                    if (Settings.Default.LastPreviewDevice != (string)cbPreview.SelectedItem)
+                    {
+                        Settings.Default.LastPreviewDevice = (string)cbPreview.SelectedItem;
+                        Settings.Default.Save();
+                        UpdateDevices();
+                    }
+                }
+                else
+                {
+                    UpdateDevices();
+                }
+            }
+        }
+
+        private void cbPlayback_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (CurrentPlaybackDeviceIdx != cbPlayback.SelectedIndex)
+            {
+                if (cbPlayback.SelectedIndex != -1)
+                {
+                    if (Settings.Default.LastPlaybackDevice != (string)cbPlayback.SelectedItem)
+                    {
+                        Settings.Default.LastPlaybackDevice = (string)cbPlayback.SelectedItem;
+                        Settings.Default.Save();
+                        UpdateDevices();
+                    }
+                }
+                else
+                {
+                    UpdateDevices();
+                }
+            }
+        }
+
+        private void cbMIDI_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (CurrentMIDIDeviceIdx != cbMIDI.SelectedIndex)
+            {
+                if (cbMIDI.SelectedIndex != -1)
+                {
+                    if (Settings.Default.LastMidiDevice != (string)cbMIDI.SelectedItem)
+                    {
+                        Settings.Default.LastMidiDevice = (string)cbMIDI.SelectedItem;
+                        Settings.Default.Save();
+                        UpdateDevices();
+                    }
+                }
+                else
+                {
+                    UpdateDevices();
+                }
+            }
+        }
+
+        private void bnPrev_Click(object sender, EventArgs e)
+        {
+            NextPlayCueIndex -= 1;
+        }
+
+        private void bnNext_Click(object sender, EventArgs e)
+        {
+            NextPlayCueIndex += 1;
+        }
+
+        private void autoLoadLastsfxCuelistToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Settings.Default.AutoLoadLastSession = autoLoadLastsfxCuelistToolStripMenuItem.Checked;
+            Settings.Default.Save();
+        }
+
+        private void confirmDeleteCueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Settings.Default.ConfirmDeleteCue = confirmDeleteCueToolStripMenuItem.Checked;
+            Settings.Default.Save();
+        }
+
         #endregion
         private System.Windows.Forms.TableLayoutPanel CueList;
         private System.Windows.Forms.OpenFileDialog dlgOpenAudioFile;
@@ -572,6 +903,7 @@
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveAsToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem createSampleProjectToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportShowFileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem importShowFileToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
@@ -586,6 +918,7 @@
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem autoLoadLastsfxCuelistToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem confirmDeleteCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem previousCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem nextCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
@@ -594,6 +927,9 @@
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel statusBar;
         private System.Windows.Forms.ToolStripStatusLabel WebLink;
+        private System.Windows.Forms.ToolStripProgressBar playbackProgressBar;
+        private System.Windows.Forms.ToolStripStatusLabel playbackTimeLabel;
+        private System.Windows.Forms.ToolStripStatusLabel trackInfoLabel;
         private System.Windows.Forms.Timer DeviceChangeTimer;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripDropDownButton bnMIDI;

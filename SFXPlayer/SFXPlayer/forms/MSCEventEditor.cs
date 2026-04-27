@@ -1,5 +1,6 @@
 ﻿using ExCSS;
 using NAudio.Wave;
+using SFXPlayer.classes;
 using System;
 using System.CodeDom;
 using System.Collections;

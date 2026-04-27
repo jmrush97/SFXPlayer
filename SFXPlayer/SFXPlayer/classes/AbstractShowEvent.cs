@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SFXPlayer
+namespace SFXPlayer.classes
 {
     [Serializable]
     public abstract class AbstractShowEvent

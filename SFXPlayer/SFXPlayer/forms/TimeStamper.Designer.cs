@@ -33,6 +33,8 @@
             this.label1 = new System.Windows.Forms.Label();
             this.Length = new System.Windows.Forms.Label();
             this.trackBar1 = new System.Windows.Forms.TrackBar();
+            this.volDisplayLabel = new System.Windows.Forms.Label();
+            this.timeProgressBar = new System.Windows.Forms.ProgressBar();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).BeginInit();
             this.SuspendLayout();
@@ -95,6 +97,25 @@
             this.trackBar1.TickStyle = System.Windows.Forms.TickStyle.None;
             this.trackBar1.Scroll += new System.EventHandler(this.trackBar1_Scroll);
             // 
+            // volDisplayLabel
+            // 
+            this.volDisplayLabel.AutoSize = true;
+            this.volDisplayLabel.Location = new System.Drawing.Point(100, 179);
+            this.volDisplayLabel.Name = "volDisplayLabel";
+            this.volDisplayLabel.Size = new System.Drawing.Size(60, 13);
+            this.volDisplayLabel.TabIndex = 6;
+            this.volDisplayLabel.Text = "Volume: 50";
+            // 
+            // timeProgressBar
+            // 
+            this.timeProgressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.timeProgressBar.Location = new System.Drawing.Point(200, 176);
+            this.timeProgressBar.Maximum = 1000;
+            this.timeProgressBar.Name = "timeProgressBar";
+            this.timeProgressBar.Size = new System.Drawing.Size(480, 20);
+            this.timeProgressBar.TabIndex = 7;
+            // 
             // TimeStamper
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -105,6 +126,8 @@
             this.Controls.Add(this.Length);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.listBox1);
+            this.Controls.Add(this.volDisplayLabel);
+            this.Controls.Add(this.timeProgressBar);
             this.Name = "TimeStamper";
             this.Text = "TimeStamper";
             this.Load += new System.EventHandler(this.TimeStamper_Load);
@@ -122,5 +145,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label Length;
         private System.Windows.Forms.TrackBar trackBar1;
+        private System.Windows.Forms.Label volDisplayLabel;
+        private System.Windows.Forms.ProgressBar timeProgressBar;
     }
 }

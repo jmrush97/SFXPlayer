@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using SFXPlayer.Properties;
 
 namespace SFXPlayer {
     static class Program {
@@ -19,7 +20,7 @@ namespace SFXPlayer {
             ss.Show();
             ss.Refresh();
 #endif  
-            Properties.Settings.Default.Upgrade();
+            Settings.Default.Upgrade();
             mainForm = new SFXPlayer();
             Application.Run(mainForm);
         }

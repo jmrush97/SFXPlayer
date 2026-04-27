@@ -1,21 +1,17 @@
-﻿var WebApp = function () {
+var WebApp = function () {
     var ws;
     if ("WebSocket" in window) {
 
         // Let us open a web socket
         ws = new WebSocket("ws://" + location.hostname + ":3030", "ws-SFX-protocol");
 
-        //ws.onopen = function () {
-        //    // Web Socket is connected, send data using send()
-        //    ws.send("<command>Play</command>");
-        //    alert("Message is sent...");
-        //};
-
         ws.onmessage = function (evt) {
             var received_msg = evt.data;
             BuildXMLFromString(received_msg);
             var DisplaySettings = xmlDoc.getElementsByTagName("DisplaySettings")[0].childNodes;
             if (DisplaySettings != null) {
+                var posSeconds = 0;
+                var durSeconds = 0;
                 for (i = 0; i < DisplaySettings.length; i++) {
                     if (DisplaySettings[i].nodeType == Node.ELEMENT_NODE) {
                         if (DisplaySettings[i + 1].nodeType == Node.TEXT_NODE) {
@@ -23,6 +19,21 @@
                             var nodeValue = DisplaySettings[i].textContent;
                             if (nodeName === "StopOthers") {
                                 updateCueMode(nodeValue === "true");
+                            } else if (nodeName === "TrackPositionSeconds") {
+                                posSeconds = parseFloat(nodeValue) || 0;
+                            } else if (nodeName === "TrackDurationSeconds") {
+                                durSeconds = parseFloat(nodeValue) || 0;
+                            } else if (nodeName === "CurrentVolume") {
+                                var volSlider = document.getElementById("volumeSlider");
+                                if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
+                                var volSpan = document.getElementById("CurrentVolume");
+                                if (volSpan) volSpan.innerHTML = nodeValue;
+                            } else if (nodeName === "CurrentSpeed") {
+                                var spd = parseFloat(nodeValue) || 1.0;
+                                var spdSlider = document.getElementById("speedSlider");
+                                if (spdSlider) spdSlider.value = Math.round(spd * 100);
+                                var spdSpan = document.getElementById("CurrentSpeed");
+                                if (spdSpan) spdSpan.innerHTML = spd.toFixed(2);
                             } else {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {
@@ -34,13 +45,12 @@
                         }
                     }
                 }
+                updateProgress(posSeconds, durSeconds);
             }
         };
 
         ws.onclose = function () {
-
             // websocket is closed.
-            //alert("Connection is closed...");
         };
     } else {
         // The browser doesn't support WebSocket
@@ -48,10 +58,30 @@
     }
     this.sendCommand = function (command) {
         if (ws && ws.readyState == WebSocket.OPEN) {
-            //ws.send("<root><command>" + command + "</command></root>");
             ws.send("<command>" + command + "</command>");
         }
     }
+}
+
+function updateProgress(posSeconds, durSeconds) {
+    var bar = document.getElementById("progressBar");
+    var label = document.getElementById("progressTime");
+    if (!bar || !label) return;
+    if (durSeconds > 0) {
+        var pct = Math.min(100, (posSeconds / durSeconds) * 100);
+        bar.style.width = pct.toFixed(1) + "%";
+        var remaining = Math.max(0, durSeconds - posSeconds);
+        label.textContent = formatTime(posSeconds) + " / -" + formatTime(remaining);
+    } else {
+        bar.style.width = "0%";
+        label.textContent = "0:00 / 0:00";
+    }
+}
+
+function formatTime(totalSeconds) {
+    var mins = Math.floor(totalSeconds / 60);
+    var secs = Math.floor(totalSeconds % 60);
+    return mins + ":" + (secs < 10 ? "0" : "") + secs;
 }
 
 function init() {
@@ -83,8 +113,6 @@ function CreateXMLDocument(str) {
         xmlDoc.loadXML(str);
     }
     return xmlDoc;
-    //var customerNode = xmlDoc.getElementsByTagName("customer")[0];
-    //var customerName = customerNode.getAttribute("name");
 }
 
 function CreateMSXMLDocumentObject() {
@@ -113,9 +141,6 @@ function BuildXMLFromString(text) {
         try {
             xmlDoc = parser.parseFromString(text, "text/xml");
         } catch (e) {
-            // if text is not well-formed,
-            // it raises an exception in IE from version 9
-            //alert("XML parsing error.");
             return false;
         };
     }
@@ -151,6 +176,5 @@ function BuildXMLFromString(text) {
         return false;
     }
 
-    //alert("Parsing was successful!");
     return true;
 }

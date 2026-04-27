@@ -1,10 +1,9 @@
-﻿using static AJW.General.SVGResources;
+﻿using static SFXPlayer.classes.SVGResources;
 using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.ObjectModel;
-using AudioPlayerSample;
 using SFXPlayer.Properties;
 using System.Threading;
 using System.IO;
@@ -16,6 +15,7 @@ using Svg.FilterEffects;
 using System.Reflection;
 using System.Xml.Linq;
 using System.Linq;
+using SFXPlayer.classes;
 
 namespace SFXPlayer
 {
@@ -39,6 +39,7 @@ namespace SFXPlayer
         ucVolume volume = new ucVolume();
         public event EventHandler StopAll;
         public event EventHandler<StatusEventArgs> ReportStatus;
+        public event EventHandler<int> AutoPlayNext;
         int prevPct = -1;
 
         #region Initialisation
@@ -68,7 +69,6 @@ namespace SFXPlayer
             // Listen for the SoundLocationChanged event.
             //player.SoundLocationChanged += new EventHandler(player_LocationChanged);
 
-            components = new Container();
             components.Add(_musicPlayer);
             _musicPlayer.PlaybackStopped += _musicPlayer_PlaybackStopped;
             components.Add(_PreviewPlayer);
@@ -373,7 +373,7 @@ namespace SFXPlayer
             }
             PlayerState = PlayerState.loading;
             UpdatePlayerState(PlayerState);
-            _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx);
+            _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed);
             _musicPlayer.Volume = SFX.Volume;
             PlayerState = PlayerState.loaded;
         }
@@ -398,6 +398,9 @@ namespace SFXPlayer
         }
 
         public bool IsPlaying => (PlayerState == PlayerState.play);
+
+        public TimeSpan PlaybackPosition => _musicPlayer.Position;
+        public TimeSpan PlaybackLength => _musicPlayer.Length;
 
         private void bnPlay_Click(object sender, EventArgs e)
         {
@@ -485,16 +488,33 @@ namespace SFXPlayer
 
         private void PlayFromStart()
         {
-            _musicPlayer.Position = TimeSpan.Zero;  //this resets the volume!
+            _musicPlayer.Position = TimeSpan.Zero;
             _musicPlayer.Volume = SFX.Volume;
-            _musicPlayer.Play();
-            if (SFX.Triggers.Any())
+            if (SFX.DebounceStartMs > 0)
             {
-                timer1.Start();
-                LastTrigger = 0;
+                PlayerState = PlayerState.play;
+                UpdatePlayButton();
+                System.Threading.Tasks.Task.Delay(SFX.DebounceStartMs).ContinueWith(_ =>
+                {
+                    try
+                    {
+                        if (!IsDisposed && IsHandleCreated)
+                            BeginInvoke(new Action(() =>
+                            {
+                                if (!IsDisposed && PlayerState == PlayerState.play)
+                                    _musicPlayer.Play();
+                            }));
+                    }
+                    catch (Exception) { }
+                });
             }
-            PlayerState = PlayerState.play;
-            UpdatePlayButton();
+            else
+            {
+                _musicPlayer.Play();
+                PlayerState = PlayerState.play;
+                UpdatePlayButton();
+            }
+            if (SFX.Triggers.Any()) { timer1.Start(); LastTrigger = 0; }
         }
 
         private void Pause()
@@ -535,6 +555,23 @@ namespace SFXPlayer
                 ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly, true));
             }
             catch { }
+
+            if (SFX.AutoPlay)
+            {
+                if (SFX.DebounceEndMs > 0)
+                    System.Threading.Tasks.Task.Delay(SFX.DebounceEndMs).ContinueWith(_ =>
+                    {
+                        try { if (!IsDisposed) TriggerAutoPlay(); }
+                        catch (Exception) { }
+                    });
+                else
+                    TriggerAutoPlay();
+            }
+        }
+
+        private void TriggerAutoPlay()
+        {
+            AutoPlayNext?.Invoke(this, SFX.AutoPlayPauseMs);
         }
 
         #endregion

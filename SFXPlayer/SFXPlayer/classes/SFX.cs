@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace SFXPlayer {
+namespace SFXPlayer.classes {
     [Serializable]
     [XmlInclude(typeof(MSCEvent))]
     public class SFX {
@@ -17,6 +17,7 @@ namespace SFXPlayer {
         private bool _StopOthers = false;
         private string _MainText = "";
         private int _Volume = 50;
+        private float _Speed = 1.0f;
         public SFX()
         {
             Triggers.ListChanged += Triggers_ListChanged;
@@ -32,6 +33,18 @@ namespace SFXPlayer {
         [DefaultValue(false)] public bool StopOthers { get { return _StopOthers; } set { _StopOthers = value; SFXBecameDirty?.Invoke(); } }
         [DefaultValue("")] public string MainText { get { return _MainText; } set { _MainText = value; SFXBecameDirty?.Invoke(); } }
         [DefaultValue(50)] public int Volume { get { return _Volume; } set { _Volume = value; SFXBecameDirty?.Invoke(); } }
+        [DefaultValue(1.0f)] public float Speed { get { return _Speed; } set { _Speed = value; SFXBecameDirty?.Invoke(); } }
+
+        private bool _AutoPlay = false;
+        private int _AutoPlayPauseMs = 0;
+        private int _DebounceStartMs = 0;
+        private int _DebounceEndMs = 0;
+
+        [DefaultValue(false)] public bool AutoPlay { get { return _AutoPlay; } set { _AutoPlay = value; SFXBecameDirty?.Invoke(); } }
+        [DefaultValue(0)] public int AutoPlayPauseMs { get { return _AutoPlayPauseMs; } set { _AutoPlayPauseMs = value; SFXBecameDirty?.Invoke(); } }
+        [DefaultValue(0)] public int DebounceStartMs { get { return _DebounceStartMs; } set { _DebounceStartMs = value; SFXBecameDirty?.Invoke(); } }
+        [DefaultValue(0)] public int DebounceEndMs { get { return _DebounceEndMs; } set { _DebounceEndMs = value; SFXBecameDirty?.Invoke(); } }
+
         public BindingList<Trigger> Triggers { get; set; } = new BindingList<Trigger>();
         public string ShortFileNameOnly {
             get {

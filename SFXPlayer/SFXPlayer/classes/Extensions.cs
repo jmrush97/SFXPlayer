@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace SFXPlayer {
+namespace SFXPlayer.classes {
     internal static class Extensions {
         public static string SerializeToXmlString<T>(this T value) {
             if (value == null) {

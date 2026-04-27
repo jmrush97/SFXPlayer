@@ -495,11 +495,19 @@ namespace SFXPlayer
             {
                 PlayerState = PlayerState.play;
                 UpdatePlayButton();
-                System.Threading.Tasks.Task.Delay(SFX.DebounceStartMs).ContinueWith(_ => this.BeginInvoke(new Action(() =>
+                System.Threading.Tasks.Task.Delay(SFX.DebounceStartMs).ContinueWith(_ =>
                 {
-                    if (PlayerState == PlayerState.play)
-                        _musicPlayer.Play();
-                })));
+                    try
+                    {
+                        if (!IsDisposed && IsHandleCreated)
+                            BeginInvoke(new Action(() =>
+                            {
+                                if (!IsDisposed && PlayerState == PlayerState.play)
+                                    _musicPlayer.Play();
+                            }));
+                    }
+                    catch (Exception) { }
+                });
             }
             else
             {
@@ -552,7 +560,11 @@ namespace SFXPlayer
             if (SFX.AutoPlay)
             {
                 if (SFX.DebounceEndMs > 0)
-                    System.Threading.Tasks.Task.Delay(SFX.DebounceEndMs).ContinueWith(_ => TriggerAutoPlay());
+                    System.Threading.Tasks.Task.Delay(SFX.DebounceEndMs).ContinueWith(_ =>
+                    {
+                        try { TriggerAutoPlay(); }
+                        catch (Exception) { }
+                    });
                 else
                     TriggerAutoPlay();
             }

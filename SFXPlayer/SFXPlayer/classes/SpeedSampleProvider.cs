@@ -12,13 +12,13 @@ namespace SFXPlayer.classes
         private readonly ISampleProvider _source;
         private readonly float _speed;
         private readonly float[] _readBuffer;
-        private const int MaxReadBuffer = 4096;
+        private const int MaxReadBufferSamples = 4096;
 
         public SpeedSampleProvider(ISampleProvider source, float speed)
         {
             _source = source ?? throw new ArgumentNullException(nameof(source));
             _speed = Math.Max(0.1f, Math.Min(20.0f, speed));
-            _readBuffer = new float[MaxReadBuffer];
+            _readBuffer = new float[MaxReadBufferSamples];
         }
 
         public WaveFormat WaveFormat => _source.WaveFormat;
@@ -32,7 +32,7 @@ namespace SFXPlayer.classes
             int inputSamples = inputFrames * channels;
 
             // read source into a temporary buffer
-            float[] src = inputSamples <= MaxReadBuffer ? _readBuffer : new float[inputSamples];
+            float[] src = inputSamples <= MaxReadBufferSamples ? _readBuffer : new float[inputSamples];
             int samplesRead = _source.Read(src, 0, inputSamples);
             int framesRead = samplesRead / channels;
 

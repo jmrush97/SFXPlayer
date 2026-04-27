@@ -764,7 +764,11 @@ namespace SFXPlayer
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
             {
                 if (pauseMs > 0)
-                    System.Threading.Tasks.Task.Delay(pauseMs).ContinueWith(_ => _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)));
+                    System.Threading.Tasks.Task.Delay(pauseMs).ContinueWith(_ =>
+                    {
+                        try { _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)); }
+                        catch (Exception) { }
+                    });
                 else
                     bnPlayNext_Click(null, null);
             });
@@ -818,7 +822,11 @@ namespace SFXPlayer
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
             {
                 if (pauseMs > 0)
-                    System.Threading.Tasks.Task.Delay(pauseMs).ContinueWith(_ => _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)));
+                    System.Threading.Tasks.Task.Delay(pauseMs).ContinueWith(_ =>
+                    {
+                        try { _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)); }
+                        catch (Exception) { }
+                    });
                 else
                     bnPlayNext_Click(null, null);
             });

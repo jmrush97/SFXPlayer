@@ -84,6 +84,7 @@ namespace SFXPlayer.classes {
         }
 
         internal string CreateArchive(string CurrentFileName) {
+            AppLogger.Info($"Show.CreateArchive: \"{CurrentFileName}\"");
             string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             string tempArchiveFileName = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(CurrentFileName) + ".show");
             Directory.CreateDirectory(tempDirectory);
@@ -150,6 +151,7 @@ namespace SFXPlayer.classes {
         /// <returns>A Show object with four default sound cues</returns>
         public static Show CreateDefaultShow()
         {
+            AppLogger.Info("Show.CreateDefaultShow");
             var show = new Show();
             
             try
@@ -188,7 +190,7 @@ namespace SFXPlayer.classes {
                         Volume = 70,
                         StopOthers = false
                     };
-                    
+                    AppLogger.Info($"Show.CreateDefaultShow: cue {i + 1} file=\"{soundFiles[i]}\" description=\"{descriptions[i]}\"");
                     show.AddCue(sfx, i);
                 }
                 
@@ -196,6 +198,7 @@ namespace SFXPlayer.classes {
             }
             catch (Exception ex)
             {
+                AppLogger.Error("Show.CreateDefaultShow: error creating default show", ex);
                 Debug.WriteLine($"Error creating default show: {ex}");
                 Program.mainForm?.ReportStatus($"Error creating default sounds: {ex.Message}");
             }

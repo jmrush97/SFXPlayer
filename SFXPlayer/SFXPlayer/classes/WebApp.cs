@@ -29,12 +29,14 @@ namespace SFXPlayer.classes
         
         public static async Task StartAsync()
         {
+            AppLogger.Info("WebApp.StartAsync: starting");
             await _startStopLock.WaitAsync();
             try
             {
                 // Idempotent: if already started, return immediately
                 if (_host != null && Serving)
                 {
+                    AppLogger.Info("WebApp.StartAsync: already running, skipping start");
                     Debug.WriteLine("WebApp already running, skipping start");
                     return;
                 }
@@ -117,10 +119,12 @@ namespace SFXPlayer.classes
                     catch (OperationCanceledException)
                     {
                         // Expected when stopping
+                        AppLogger.Info("WebApp host cancelled normally");
                         Debug.WriteLine("WebApp host cancelled normally");
                     }
                     catch (Exception ex)
                     {
+                        AppLogger.Error("WebApp host encountered an error", ex);
                         Debug.WriteLine($"WebApp host error: {ex}");
                     }
                 });
@@ -133,10 +137,12 @@ namespace SFXPlayer.classes
                     Program.mainForm.DisplayChanged += UpdateWebAppsWithDisplayChangeAsync;
                 }
                 
+                AppLogger.Info($"WebApp.StartAsync: started successfully on port {wsPort}");
                 Debug.WriteLine($"WebApp started successfully on port {wsPort}");
             }
             catch (Exception ex)
             {
+                AppLogger.Error("WebApp.StartAsync: failed to start", ex);
                 Debug.WriteLine($"Failed to start WebApp: {ex}");
                 
                 // Clean up on failure
@@ -165,15 +171,18 @@ namespace SFXPlayer.classes
 
         public static async Task StopAsync()
         {
+            AppLogger.Info("WebApp.StopAsync: stopping");
             await _startStopLock.WaitAsync();
             try
             {
                 if (_host == null)
                 {
+                    AppLogger.Info("WebApp.StopAsync: already stopped, skipping");
                     Debug.WriteLine("WebApp already stopped, skipping stop");
                     return;
                 }
                 
+                AppLogger.Info("WebApp.StopAsync: shutting down host");
                 Debug.WriteLine("Stopping WebApp...");
                 
                 if (Program.mainForm != null)
@@ -194,6 +203,7 @@ namespace SFXPlayer.classes
                     }
                     catch (Exception ex)
                     {
+                        AppLogger.Error("WebApp.StopAsync: error closing WebSocket", ex);
                         Debug.WriteLine($"Error closing WebSocket: {ex}");
                     }
                 }
@@ -220,6 +230,7 @@ namespace SFXPlayer.classes
                 }
                 catch (Exception ex)
                 {
+                    AppLogger.Error("WebApp.StopAsync: error stopping host", ex);
                     Debug.WriteLine($"Error stopping WebApp: {ex}");
                 }
                 finally
@@ -230,6 +241,7 @@ namespace SFXPlayer.classes
                     _cancellationTokenSource = null;
                 }
                 
+                AppLogger.Info("WebApp.StopAsync: stopped successfully");
                 Debug.WriteLine("WebApp stopped successfully");
             }
             finally
@@ -299,6 +311,7 @@ namespace SFXPlayer.classes
             try
             {
                 ws = await context.WebSockets.AcceptWebSocketAsync(SFXProtocol);
+                AppLogger.Info($"WebApp: WebSocket connection accepted from {context.Connection.RemoteIpAddress}");
                 
                 if (LastMessage != null)
                 {
@@ -374,6 +387,7 @@ namespace SFXPlayer.classes
             }
             catch (Exception e)
             {
+                AppLogger.Error("WebApp.ProcessWebSocketRequestAsync: WebSocket error", e);
                 Debug.WriteLine($"WebSocket error: {e}");
             }
             finally
@@ -423,6 +437,7 @@ namespace SFXPlayer.classes
                     }
                     catch (Exception ex)
                     {
+                        AppLogger.Error("WebApp: error broadcasting to WebSocket client", ex);
                         Debug.WriteLine($"Error sending to WebSocket: {ex}");
 
                         lock (webSockets)

@@ -80,7 +80,7 @@ namespace SFXPlayer.classes
         public void Open(string filename, int deviceNumber, float speed = 1.0f)
         {
             CleanupPlayback();
-            Debug.WriteLine($"Open {filename}, {deviceNumber}, speed={speed}");
+            AppLogger.Info($"MusicPlayer.Open: file=\"{filename}\", device={deviceNumber}, speed={speed}");
             _waveSource = new AudioFileReader(filename);
             _soundOut = new WaveOutEvent();
             _soundOut.DeviceNumber = deviceNumber;
@@ -100,7 +100,7 @@ namespace SFXPlayer.classes
 
         public void Play()
         {
-            Debug.WriteLine("Play");
+            AppLogger.Info("MusicPlayer.Play");
             _soundOut?.Play();
         }
 
@@ -108,7 +108,7 @@ namespace SFXPlayer.classes
         {
             if (_soundOut != null)
             {
-                Debug.WriteLine("Pause");
+                AppLogger.Info("MusicPlayer.Pause");
                 _soundOut.Pause();
             }
         }
@@ -117,7 +117,7 @@ namespace SFXPlayer.classes
         {
             if (_soundOut != null)
             {
-                Debug.WriteLine("Resume");
+                AppLogger.Info("MusicPlayer.Resume");
                 _soundOut.Play();
             }
         }
@@ -126,7 +126,7 @@ namespace SFXPlayer.classes
         {
             if (_soundOut != null)
             {
-                Debug.WriteLine("Stop");
+                AppLogger.Info("MusicPlayer.Stop");
                 _soundOut.Stop();
             }
         }

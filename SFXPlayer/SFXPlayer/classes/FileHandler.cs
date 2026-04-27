@@ -59,6 +59,7 @@ namespace SFXPlayer.classes {
         }
 
         internal ObjectType LoadFromFile(string FileName) {
+            AppLogger.Info($"XMLFileHandler.LoadFromFile: \"{FileName}\"");
             Settings.Default.LastAudioFolder = Path.GetDirectoryName(FileName); Settings.Default.Save();
             CurrentFileName = FileName;
             Settings.Default.LastSession = CurrentFileName;
@@ -71,8 +72,10 @@ namespace SFXPlayer.classes {
         }
 
         internal static ObjectType Load(string FileName) {
+            AppLogger.Info($"XMLFileHandler.Load: \"{FileName}\"");
             ObjectType loadedfile = default;
             if (!File.Exists(FileName)) {
+                AppLogger.Warning($"XMLFileHandler.Load: file not found \"{FileName}\"");
                 return default;
             }
             try {
@@ -80,7 +83,9 @@ namespace SFXPlayer.classes {
                 using (TextReader tr = new StreamReader(FileName)) {
                     loadedfile = (ObjectType)xs.Deserialize(tr);
                 }
+                AppLogger.Info($"XMLFileHandler.Load: loaded successfully \"{FileName}\"");
             } catch (Exception e) {
+                AppLogger.Error($"XMLFileHandler.Load: failed to load \"{FileName}\"", e);
                 MessageBox.Show(e.Message);
                 loadedfile = default;
             }
@@ -88,6 +93,7 @@ namespace SFXPlayer.classes {
         }
 
         internal void Save(ObjectType theObject) {
+            AppLogger.Info($"XMLFileHandler.Save: \"{CurrentFileName}\"");
             if (CurrentFileName == "") {
                 SaveAs(theObject);
             } else {

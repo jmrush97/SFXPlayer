@@ -341,6 +341,7 @@ namespace SFXPlayer
 
         public void SelectFile(string FileName)
         {
+            AppLogger.Info($"PlayStrip.SelectFile: \"{FileName}\" | description: \"{SFX.Description}\"");
             Settings.Default.LastAudioFolder = Path.GetDirectoryName(FileName); Settings.Default.Save();
             if (tbDescription.Text == SFX.ShortFileNameOnly) tbDescription.Text = "";
             SFX.FileName = FileName;
@@ -367,15 +368,18 @@ namespace SFXPlayer
             }
             if (!File.Exists(SFX.FileName))
             {
+                AppLogger.Warning($"PlayStrip.LoadFile: file not found \"{SFX.FileName}\" (description: \"{SFX.Description}\")");
                 Program.mainForm.ReportStatus("File not found: " + SFX.FileName);
                 Debug.WriteLine("File not found: " + Path.GetFullPath(SFX.FileName));
                 return;
             }
+            AppLogger.Info($"PlayStrip.LoadFile: loading \"{SFX.FileName}\" | description: \"{SFX.Description}\"");
             PlayerState = PlayerState.loading;
             UpdatePlayerState(PlayerState);
             _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed);
             _musicPlayer.Volume = SFX.Volume;
             PlayerState = PlayerState.loaded;
+            AppLogger.Info($"PlayStrip.LoadFile: loaded \"{SFX.FileName}\" | duration: {_musicPlayer.Length}");
         }
 
         #endregion
@@ -419,8 +423,9 @@ namespace SFXPlayer
                     Play();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                AppLogger.Error("PlayStrip.bnPlay_Click: unexpected exception", ex);
                 //ReportStatus(ex.Message);
             }
         }
@@ -451,6 +456,7 @@ namespace SFXPlayer
 
         public void Play()
         {
+            AppLogger.Info($"PlayStrip.Play: \"{SFX.FileName}\" | description: \"{SFX.Description}\"");
             if (PlayerState == PlayerState.uninitialised)
             {
                 LoadFile();
@@ -519,6 +525,7 @@ namespace SFXPlayer
 
         private void Pause()
         {
+            AppLogger.Info($"PlayStrip.Pause: \"{SFX.FileName}\"");
             _musicPlayer.Pause();
             PlayerState = PlayerState.paused;
             ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly, true));
@@ -527,6 +534,7 @@ namespace SFXPlayer
 
         private void UnPause()
         {
+            AppLogger.Info($"PlayStrip.UnPause: \"{SFX.FileName}\"");
             _musicPlayer.Resume();
             PlayerState = PlayerState.play;
             ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly));
@@ -535,6 +543,7 @@ namespace SFXPlayer
 
         public void Stop()
         {
+            AppLogger.Info($"PlayStrip.Stop: \"{SFX.FileName}\"");
             if (PlayerState == PlayerState.paused || PlayerState == PlayerState.play)
             {
                 //_musicPlayer.Volume = 0;    //makes the stop less "clicky"

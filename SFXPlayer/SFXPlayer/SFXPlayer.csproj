@@ -137,10 +137,10 @@
     <Folder Include="html\bootstrap\" />
   </ItemGroup>
   
-  <!-- Post-build event to run web service tests -->
-  <Target Name="RunWebServiceTests" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+  <!-- Post-build event to run web service tests (Windows only — requires Microsoft.WindowsDesktop.App runtime) -->
+  <Target Name="RunWebServiceTests" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' and '$(OS)' == 'Windows_NT'">
     <Message Text="Running WebApp integration tests..." Importance="high" />
-    <Exec Command="dotnet test $(SolutionDir)SFXPlayer.Tests\SFXPlayer.Tests.csproj --filter &quot;FullyQualifiedName~WebAppTests&quot; --logger:&quot;console;verbosity=normal&quot; --no-build --no-restore" ContinueOnError="true" IgnoreExitCode="false">
+    <Exec Command="dotnet test $(MSBuildProjectDirectory)\..\SFXPlayer.Tests\SFXPlayer.Tests.csproj --filter &quot;FullyQualifiedName~WebAppTests&quot; --logger:&quot;console;verbosity=normal&quot;" ContinueOnError="true" IgnoreExitCode="false">
       <Output TaskParameter="ExitCode" PropertyName="TestExitCode" />
     </Exec> 
     <Message Text="WebApp tests completed with exit code: $(TestExitCode)" Importance="high" />

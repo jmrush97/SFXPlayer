@@ -22,190 +22,205 @@
         /// Required method for Designer support - do not modify 
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent() {
-            this.components = new System.ComponentModel.Container();
-            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
-            this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
-            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.lbIndex = new System.Windows.Forms.Label();
-            this.tbDescription = new System.Windows.Forms.TextBox();
-            this.bnPlay = new System.Windows.Forms.PictureBox();
-            this.bnStopAll = new System.Windows.Forms.CheckBox();
-            this.bnFile = new System.Windows.Forms.PictureBox();
-            this.bnVolume = new System.Windows.Forms.PictureBox();
-            this.bnPreview = new System.Windows.Forms.PictureBox();
-            this.bnEdit = new System.Windows.Forms.PictureBox();
-            this.tableLayoutPanel2.SuspendLayout();
-            this.tableLayoutPanel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.bnPlay)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.bnFile)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.bnVolume)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.bnPreview)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.bnEdit)).BeginInit();
-            this.SuspendLayout();
-            // 
-            // timer1
-            // 
-            this.timer1.Interval = 400;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
-            // 
-            // tableLayoutPanel2
-            // 
-            this.tableLayoutPanel2.ColumnCount = 1;
-            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel2.Controls.Add(this.tableLayoutPanel1, 0, 0);
-            this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
-            this.tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
-            this.tableLayoutPanel2.Name = "tableLayoutPanel2";
-            this.tableLayoutPanel2.RowCount = 2;
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 27F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel2.Size = new System.Drawing.Size(386, 35);
-            this.tableLayoutPanel2.TabIndex = 1;
-            // 
-            // tableLayoutPanel1
-            // 
-            this.tableLayoutPanel1.ColumnCount = 8;
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 27F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 27F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 27F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 27F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 27F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 27F));
-            this.tableLayoutPanel1.Controls.Add(this.lbIndex, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this.tbDescription, 1, 0);
-            this.tableLayoutPanel1.Controls.Add(this.bnPlay, 4, 0);
-            this.tableLayoutPanel1.Controls.Add(this.bnStopAll, 5, 0);
-            this.tableLayoutPanel1.Controls.Add(this.bnFile, 2, 0);
-            this.tableLayoutPanel1.Controls.Add(this.bnVolume, 7, 0);
-            this.tableLayoutPanel1.Controls.Add(this.bnPreview, 3, 0);
-            this.tableLayoutPanel1.Controls.Add(this.bnEdit, 6, 0);
-            this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
-            this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
-            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 1;
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(386, 27);
-            this.tableLayoutPanel1.TabIndex = 1;
-            // 
-            // lbIndex
-            // 
-            this.lbIndex.AutoSize = true;
-            this.lbIndex.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lbIndex.Location = new System.Drawing.Point(3, 0);
-            this.lbIndex.Name = "lbIndex";
-            this.lbIndex.Size = new System.Drawing.Size(25, 27);
-            this.lbIndex.TabIndex = 0;
-            this.lbIndex.Text = "000";
-            this.lbIndex.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // tbDescription
-            // 
-            this.tbDescription.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tbDescription.Location = new System.Drawing.Point(34, 3);
-            this.tbDescription.Name = "tbDescription";
-            this.tbDescription.Size = new System.Drawing.Size(187, 20);
-            this.tbDescription.TabIndex = 1;
-            // 
-            // bnPlay
-            // 
-            this.bnPlay.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            this.bnPlay.Image = global::SFXPlayer.Properties.Resources.Play2_18;
-            this.bnPlay.Location = new System.Drawing.Point(281, 3);
-            this.bnPlay.Name = "bnPlay";
-            this.bnPlay.Size = new System.Drawing.Size(20, 20);
-            this.bnPlay.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
-            this.bnPlay.TabIndex = 2;
-            this.bnPlay.TabStop = false;
-            this.bnPlay.Click += new System.EventHandler(this.bnPlay_Click);
+        private void InitializeComponent()
+        {
+            components = new System.ComponentModel.Container();
+            toolTip1 = new System.Windows.Forms.ToolTip(components);
+            bnStopAll = new System.Windows.Forms.CheckBox();
+            bnFile = new System.Windows.Forms.PictureBox();
+            timer1 = new System.Windows.Forms.Timer(components);
+            tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
+            tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            lbIndex = new System.Windows.Forms.Label();
+            tbDescription = new System.Windows.Forms.TextBox();
+            bnPlay = new System.Windows.Forms.PictureBox();
+            bnVolume = new System.Windows.Forms.PictureBox();
+            bnPreview = new System.Windows.Forms.PictureBox();
+            bnEdit = new System.Windows.Forms.PictureBox();
+            Delete = new System.Windows.Forms.ContextMenuStrip(components);
+            ((System.ComponentModel.ISupportInitialize)bnFile).BeginInit();
+            tableLayoutPanel2.SuspendLayout();
+            tableLayoutPanel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)bnPlay).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)bnVolume).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)bnPreview).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)bnEdit).BeginInit();
+            SuspendLayout();
             // 
             // bnStopAll
             // 
-            this.bnStopAll.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
-            this.bnStopAll.Location = new System.Drawing.Point(311, 6);
-            this.bnStopAll.Margin = new System.Windows.Forms.Padding(6);
-            this.bnStopAll.Name = "bnStopAll";
-            this.bnStopAll.Size = new System.Drawing.Size(14, 15);
-            this.bnStopAll.TabIndex = 4;
-            this.toolTip1.SetToolTip(this.bnStopAll, "Stops All Other Sounds");
-            this.bnStopAll.UseVisualStyleBackColor = true;
+            bnStopAll.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            bnStopAll.Location = new System.Drawing.Point(518, 12);
+            bnStopAll.Margin = new System.Windows.Forms.Padding(10, 12, 10, 12);
+            bnStopAll.Name = "bnStopAll";
+            bnStopAll.Size = new System.Drawing.Size(23, 28);
+            bnStopAll.TabIndex = 4;
+            toolTip1.SetToolTip(bnStopAll, "Stops All Other Sounds");
+            bnStopAll.UseVisualStyleBackColor = true;
             // 
             // bnFile
             // 
-            this.bnFile.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            this.bnFile.Image = global::SFXPlayer.Properties.Resources.SoundFile2_18;
-            this.bnFile.Location = new System.Drawing.Point(227, 3);
-            this.bnFile.Name = "bnFile";
-            this.bnFile.Size = new System.Drawing.Size(21, 21);
-            this.bnFile.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
-            this.bnFile.TabIndex = 5;
-            this.bnFile.TabStop = false;
-            this.toolTip1.SetToolTip(this.bnFile, "File");
-            this.bnFile.Click += new System.EventHandler(this.bnFile_Click);
+            bnFile.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+            bnFile.Image = SFXPlayer.Properties.Resources.SoundFile2_18;
+            bnFile.Location = new System.Drawing.Point(378, 6);
+            bnFile.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            bnFile.Name = "bnFile";
+            bnFile.Size = new System.Drawing.Size(35, 40);
+            bnFile.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            bnFile.TabIndex = 5;
+            bnFile.TabStop = false;
+            toolTip1.SetToolTip(bnFile, "File");
+            bnFile.Click += bnFile_Click;
+            // 
+            // timer1
+            // 
+            timer1.Interval = 400;
+            timer1.Tick += timer1_Tick;
+            // 
+            // tableLayoutPanel2
+            // 
+            tableLayoutPanel2.ColumnCount = 1;
+            tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel2.Controls.Add(tableLayoutPanel1, 0, 0);
+            tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
+            tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
+            tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
+            tableLayoutPanel2.Name = "tableLayoutPanel2";
+            tableLayoutPanel2.RowCount = 2;
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 52F));
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 38F));
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 38F));
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 38F));
+            tableLayoutPanel2.Size = new System.Drawing.Size(643, 67);
+            tableLayoutPanel2.TabIndex = 1;
+            // 
+            // tableLayoutPanel1
+            // 
+            tableLayoutPanel1.ColumnCount = 8;
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
+            tableLayoutPanel1.Controls.Add(lbIndex, 0, 0);
+            tableLayoutPanel1.Controls.Add(tbDescription, 1, 0);
+            tableLayoutPanel1.Controls.Add(bnPlay, 4, 0);
+            tableLayoutPanel1.Controls.Add(bnStopAll, 5, 0);
+            tableLayoutPanel1.Controls.Add(bnFile, 2, 0);
+            tableLayoutPanel1.Controls.Add(bnVolume, 7, 0);
+            tableLayoutPanel1.Controls.Add(bnPreview, 3, 0);
+            tableLayoutPanel1.Controls.Add(bnEdit, 6, 0);
+            tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
+            tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
+            tableLayoutPanel1.Name = "tableLayoutPanel1";
+            tableLayoutPanel1.RowCount = 1;
+            tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 52F));
+            tableLayoutPanel1.Size = new System.Drawing.Size(643, 52);
+            tableLayoutPanel1.TabIndex = 1;
+            // 
+            // lbIndex
+            // 
+            lbIndex.AutoSize = true;
+            lbIndex.Dock = System.Windows.Forms.DockStyle.Fill;
+            lbIndex.Location = new System.Drawing.Point(5, 0);
+            lbIndex.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
+            lbIndex.Name = "lbIndex";
+            lbIndex.Size = new System.Drawing.Size(42, 52);
+            lbIndex.TabIndex = 0;
+            lbIndex.Text = "000";
+            lbIndex.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // tbDescription
+            // 
+            tbDescription.Dock = System.Windows.Forms.DockStyle.Fill;
+            tbDescription.Location = new System.Drawing.Point(57, 6);
+            tbDescription.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            tbDescription.Name = "tbDescription";
+            tbDescription.Size = new System.Drawing.Size(311, 31);
+            tbDescription.TabIndex = 1;
+            // 
+            // bnPlay
+            // 
+            bnPlay.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+            bnPlay.Image = SFXPlayer.Properties.Resources.Play2_18;
+            bnPlay.Location = new System.Drawing.Point(468, 6);
+            bnPlay.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            bnPlay.Name = "bnPlay";
+            bnPlay.Size = new System.Drawing.Size(33, 38);
+            bnPlay.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            bnPlay.TabIndex = 2;
+            bnPlay.TabStop = false;
+            bnPlay.Click += bnPlay_Click;
             // 
             // bnVolume
             // 
-            this.bnVolume.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            this.bnVolume.Location = new System.Drawing.Point(362, 3);
-            this.bnVolume.Name = "bnVolume";
-            this.bnVolume.Size = new System.Drawing.Size(20, 20);
-            this.bnVolume.TabIndex = 6;
-            this.bnVolume.TabStop = false;
-            this.bnVolume.Text = "Volume";
-            this.bnVolume.Click += new System.EventHandler(this.bnVolume_Click);
+            bnVolume.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+            bnVolume.Location = new System.Drawing.Point(603, 6);
+            bnVolume.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            bnVolume.Name = "bnVolume";
+            bnVolume.Size = new System.Drawing.Size(33, 38);
+            bnVolume.TabIndex = 6;
+            bnVolume.TabStop = false;
+            bnVolume.Text = "Volume";
+            bnVolume.Click += bnVolume_Click;
             // 
             // bnPreview
             // 
-            this.bnPreview.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            this.bnPreview.Image = global::SFXPlayer.Properties.Resources.Headphones2_18;
-            this.bnPreview.Location = new System.Drawing.Point(254, 3);
-            this.bnPreview.Name = "bnPreview";
-            this.bnPreview.Size = new System.Drawing.Size(21, 21);
-            this.bnPreview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
-            this.bnPreview.TabIndex = 7;
-            this.bnPreview.TabStop = false;
-            this.bnPreview.Click += new System.EventHandler(this.bnPreview_Click);
+            bnPreview.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
+            bnPreview.Image = SFXPlayer.Properties.Resources.Headphones2_18;
+            bnPreview.Location = new System.Drawing.Point(423, 6);
+            bnPreview.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            bnPreview.Name = "bnPreview";
+            bnPreview.Size = new System.Drawing.Size(35, 40);
+            bnPreview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            bnPreview.TabIndex = 7;
+            bnPreview.TabStop = false;
+            bnPreview.Click += bnPreview_Click;
             // 
             // bnEdit
             // 
-            this.bnEdit.Location = new System.Drawing.Point(335, 3);
-            this.bnEdit.Name = "bnEdit";
-            this.bnEdit.Size = new System.Drawing.Size(20, 20);
-            this.bnEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
-            this.bnEdit.TabIndex = 8;
-            this.bnEdit.TabStop = false;
-            this.bnEdit.Click += new System.EventHandler(this.bnEdit_Click);
+            bnEdit.Location = new System.Drawing.Point(558, 6);
+            bnEdit.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            bnEdit.Name = "bnEdit";
+            bnEdit.Size = new System.Drawing.Size(33, 38);
+            bnEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            bnEdit.TabIndex = 8;
+            bnEdit.TabStop = false;
+            bnEdit.Click += bnEdit_Click;
+            // 
+            // Delete
+            // 
+            Delete.ImageScalingSize = new System.Drawing.Size(24, 24);
+            Delete.Name = "Delete";
+            Delete.Size = new System.Drawing.Size(241, 37);
             // 
             // PlayStrip
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
-            this.Controls.Add(this.tableLayoutPanel2);
-            this.DoubleBuffered = true;
-            this.Margin = new System.Windows.Forms.Padding(0);
-            this.Name = "PlayStrip";
-            this.Size = new System.Drawing.Size(386, 35);
-            this.Load += new System.EventHandler(this.PlayStrip_Load);
-            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.MouseDownHandler);
-            this.Resize += new System.EventHandler(this.PlayStrip_Resize);
-            this.tableLayoutPanel2.ResumeLayout(false);
-            this.tableLayoutPanel1.ResumeLayout(false);
-            this.tableLayoutPanel1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.bnPlay)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.bnFile)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.bnVolume)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.bnPreview)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.bnEdit)).EndInit();
-            this.ResumeLayout(false);
+            AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            Controls.Add(tableLayoutPanel2);
+            DoubleBuffered = true;
+            Margin = new System.Windows.Forms.Padding(0);
+            Name = "PlayStrip";
+            Size = new System.Drawing.Size(643, 67);
+            Load += PlayStrip_Load;
+            MouseDown += MouseDownHandler;
+            Resize += PlayStrip_Resize;
+            ((System.ComponentModel.ISupportInitialize)bnFile).EndInit();
+            tableLayoutPanel2.ResumeLayout(false);
+            tableLayoutPanel1.ResumeLayout(false);
+            tableLayoutPanel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)bnPlay).EndInit();
+            ((System.ComponentModel.ISupportInitialize)bnVolume).EndInit();
+            ((System.ComponentModel.ISupportInitialize)bnPreview).EndInit();
+            ((System.ComponentModel.ISupportInitialize)bnEdit).EndInit();
+            ResumeLayout(false);
 
         }
 
@@ -222,5 +237,6 @@
         private System.Windows.Forms.PictureBox bnVolume;
         private System.Windows.Forms.PictureBox bnPreview;
         private System.Windows.Forms.PictureBox bnEdit;
+        private System.Windows.Forms.ContextMenuStrip Delete;
     }
 }

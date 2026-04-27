@@ -261,6 +261,7 @@ namespace SFXPlayer
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            AppLogger.Info("SFXPlayer.Form1_Load");
             Debug.WriteLine("Form1_Load");
             StartWebApp();
             ShowFileHandler.FileTitleUpdate += UpdateTitleBar;
@@ -479,6 +480,7 @@ namespace SFXPlayer
         public MidiOut MIDIOut;
         private void StartWebApp()
         {
+            AppLogger.Info("SFXPlayer.StartWebApp");
             Debug.WriteLine("MouseWheelScrollLines = " + SystemInformation.MouseWheelScrollLines);
 
             // Start WebApp asynchronously
@@ -649,12 +651,14 @@ namespace SFXPlayer
 
         void FileNew()
         {
+            AppLogger.Info("SFXPlayer.FileNew");
             CurrentShow = new Show();
             ShowFileHandler.NewFile();
         }
 
         void FileOpen()
         {
+            AppLogger.Info("SFXPlayer.FileOpen (dialog)");
             Show newShow;
             newShow = ShowFileHandler.LoadFromFile();
             if (newShow != null)
@@ -667,6 +671,7 @@ namespace SFXPlayer
 
         void FileOpen(string FileName)
         {
+            AppLogger.Info($"SFXPlayer.FileOpen: \"{FileName}\"");
             Show oldShow = CurrentShow;
             if (oldShow != null) oldShow.ShowFileBecameDirty -= ShowFileHandler.SetDirty;
             CurrentShow = ShowFileHandler.LoadFromFile(FileName);
@@ -1135,6 +1140,7 @@ namespace SFXPlayer
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            AppLogger.Info($"SFXPlayer.Form1_FormClosing: reason={e.CloseReason}");
             if (e.CloseReason == CloseReason.TaskManagerClosing) return;    //allow close from task manager
             if (ShowFileHandler.CheckSave(CurrentShow) != DialogResult.OK)
             {
@@ -1352,6 +1358,7 @@ namespace SFXPlayer
             }
             catch (Exception ex)
             {
+                AppLogger.Error("SFXPlayer.createSampleProject: failed", ex);
                 MessageBox.Show(
                     $"Error creating sample project:\n{ex.Message}",
                     "Error",
@@ -1364,21 +1371,25 @@ namespace SFXPlayer
 
         internal void PlayNextCue()
         {
+            AppLogger.Info("SFXPlayer.PlayNextCue");
             _commandQueue.Enqueue(() => bnPlayNext_Click(null, null));
         }
 
         internal void StopAll()
         {
+            AppLogger.Info("SFXPlayer.StopAll");
             _commandQueue.Enqueue(() => bnStopAll_Click(null, null));
         }
 
         internal void PreviousCue()
         {
+            AppLogger.Info("SFXPlayer.PreviousCue");
             _commandQueue.Enqueue(() => bnPrev_Click(null, null));
         }
 
         internal void NextCue()
         {
+            AppLogger.Info("SFXPlayer.NextCue");
             _commandQueue.Enqueue(() => bnNext_Click(null, null));
         }
 

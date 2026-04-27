@@ -14,26 +14,33 @@ namespace SFXPlayer.classes
     public static class AppLogger
     {
         private static readonly object _lock = new object();
-        private static string _logFilePath;
+        private static string _currentLogFilePath;
+        private static string _currentLogDate;
+        private const int MaxInnerExceptionDepth = 5;
 
-        static AppLogger()
+        private static string GetLogFilePath()
         {
+            string today = DateTime.Now.ToString("yyyy-MM-dd");
+            if (today == _currentLogDate && _currentLogFilePath != null)
+                return _currentLogFilePath;
+
             try
             {
                 string logDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "SFXPlayer", "Logs");
                 Directory.CreateDirectory(logDir);
-                // One file per calendar day – keeps the directory tidy.
-                string fileName = $"SFXPlayer_{DateTime.Now:yyyy-MM-dd}.log";
-                _logFilePath = Path.Combine(logDir, fileName);
+                _currentLogDate = today;
+                _currentLogFilePath = Path.Combine(logDir, $"SFXPlayer_{today}.log");
             }
             catch
             {
-                // If we cannot create the log directory (e.g. highly restricted environment)
-                // fall back to the temp directory so we never throw from the logger itself.
-                _logFilePath = Path.Combine(Path.GetTempPath(), "SFXPlayer.log");
+                // Fall back to temp directory so we never throw from the logger.
+                _currentLogDate = today;
+                _currentLogFilePath = Path.Combine(Path.GetTempPath(), "SFXPlayer.log");
             }
+
+            return _currentLogFilePath;
         }
 
         // ------------------------------------------------------------------ //
@@ -50,7 +57,7 @@ namespace SFXPlayer.classes
         public static void Error(string message, Exception ex = null) => Write("ERROR", message, ex);
 
         /// <summary>Returns the full path of the current log file.</summary>
-        public static string LogFilePath => _logFilePath;
+        public static string LogFilePath => GetLogFilePath();
 
         // ------------------------------------------------------------------ //
         //  Implementation                                                      //
@@ -80,7 +87,7 @@ namespace SFXPlayer.classes
                 // Walk the inner-exception chain so nothing is silently lost.
                 Exception inner = ex.InnerException;
                 int depth = 0;
-                while (inner != null && depth < 5)
+                while (inner != null && depth < MaxInnerExceptionDepth)
                 {
                     sb.Append("  ---> ");
                     sb.Append(inner.GetType().FullName);
@@ -103,7 +110,7 @@ namespace SFXPlayer.classes
             {
                 try
                 {
-                    File.AppendAllText(_logFilePath, entry + Environment.NewLine);
+                    File.AppendAllText(GetLogFilePath(), entry + Environment.NewLine);
                 }
                 catch
                 {

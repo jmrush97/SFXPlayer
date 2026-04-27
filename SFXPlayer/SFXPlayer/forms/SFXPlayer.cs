@@ -756,9 +756,8 @@ namespace SFXPlayer
         /// </summary>
         /// <param name="sfx">null = placeholder</param>
         /// <param name="rowIndex">sfx Index or TOPPLACEHOLDER or BOTTOMPLACEHOLDER</param>
-        private void AddPlaystrip(SFX sfx, int cueIndex)
+        private void SubscribePlaystripEvents(PlayStrip ps)
         {
-            PlayStrip ps = new PlayStrip(sfx) { Width = CueList.ClientSize.Width, PlayStripIndex = cueIndex };
             ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
             ps.ReportStatus += Ps_ReportStatus;
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
@@ -766,12 +765,18 @@ namespace SFXPlayer
                 if (pauseMs > 0)
                     System.Threading.Tasks.Task.Delay(pauseMs).ContinueWith(_ =>
                     {
-                        try { _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)); }
+                        try { if (!IsDisposed) _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)); }
                         catch (Exception) { }
                     });
                 else
                     bnPlayNext_Click(null, null);
             });
+        }
+
+        private void AddPlaystrip(SFX sfx, int cueIndex)
+        {
+            PlayStrip ps = new PlayStrip(sfx) { Width = CueList.ClientSize.Width, PlayStripIndex = cueIndex };
+            SubscribePlaystripEvents(ps);
             FocusTrackLowestControls(ps);
             Spacer sp = new Spacer { Width = CueList.ClientSize.Width };
             sp.Paint += Highlight_Paint;
@@ -817,19 +822,7 @@ namespace SFXPlayer
                 }
             }
             ps = new PlayStrip(sfx) { Width = CueList.ClientSize.Width, PlayStripIndex = cueIndex };
-            ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
-            ps.ReportStatus += Ps_ReportStatus;
-            ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
-            {
-                if (pauseMs > 0)
-                    System.Threading.Tasks.Task.Delay(pauseMs).ContinueWith(_ =>
-                    {
-                        try { _commandQueue.Enqueue(() => bnPlayNext_Click(null, null)); }
-                        catch (Exception) { }
-                    });
-                else
-                    bnPlayNext_Click(null, null);
-            });
+            SubscribePlaystripEvents(ps);
             FocusTrackLowestControls(ps);
             Spacer sp = new Spacer { Width = CueList.ClientSize.Width };
             CueList.Controls.Add(ps, 0, rowIndex);

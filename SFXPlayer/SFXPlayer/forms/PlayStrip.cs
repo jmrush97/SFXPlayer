@@ -562,7 +562,7 @@ namespace SFXPlayer
                 if (SFX.DebounceEndMs > 0)
                     System.Threading.Tasks.Task.Delay(SFX.DebounceEndMs).ContinueWith(_ =>
                     {
-                        try { TriggerAutoPlay(); }
+                        try { if (!IsDisposed) TriggerAutoPlay(); }
                         catch (Exception) { }
                     });
                 else

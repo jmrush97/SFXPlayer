@@ -766,6 +766,7 @@ namespace SFXPlayer
         {
             ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
             ps.ReportStatus += Ps_ReportStatus;
+            ps.DeleteCue += Ps_DeleteCue;
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
             {
                 if (pauseMs > 0)
@@ -809,6 +810,24 @@ namespace SFXPlayer
             }
         }
 
+        private void Ps_DeleteCue(object sender, EventArgs e)
+        {
+            PlayStrip ps = sender as PlayStrip;
+            if (ps == null) return;
+            if (Settings.Default.ConfirmDeleteCue)
+            {
+                DialogResult response = MessageBox.Show(
+                    string.Format("Delete Cue {0}?\r\n{1}", ps.PlayStripIndex + 1, ps.SFX.Description),
+                    "Cue List", MessageBoxButtons.YesNo);
+                if (response != DialogResult.Yes) return;
+            }
+            SFX sfxToRemove = ps.SFX;
+            RemovePlaystrip(ps.PlayStripIndex);
+            CurrentShow.RemoveCue(sfxToRemove);
+            PadCueList();
+            NextPlayCueChanged();
+        }
+
         private PlayStrip InsertPlaystrip(SFX sfx, int cueIndex)
         {
             PlayStrip ps;
@@ -846,6 +865,7 @@ namespace SFXPlayer
             {
                 removedPs.Stop();
                 removedPs.ReportStatus -= Ps_ReportStatus;
+                removedPs.DeleteCue -= Ps_DeleteCue;
                 FocusUntrackLowestControls(removedPs);
             }
             CueList.Controls.Remove(CueList.GetControlFromPosition(0, rowIndex));

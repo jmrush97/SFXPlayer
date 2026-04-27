@@ -40,6 +40,7 @@ namespace SFXPlayer
         public event EventHandler StopAll;
         public event EventHandler<StatusEventArgs> ReportStatus;
         public event EventHandler<int> AutoPlayNext;
+        public event EventHandler DeleteCue;
         int prevPct = -1;
 
         #region Initialisation
@@ -106,6 +107,10 @@ namespace SFXPlayer
                 _SFX = value;
                 tbDescription.Text = SFX.Description;
                 bnStopAll.Checked = SFX.StopOthers;
+                cbAutoPlay.Checked = SFX.AutoPlay;
+                nudPauseMs.Value = Math.Min(nudPauseMs.Maximum, Math.Max(0, SFX.AutoPlayPauseMs));
+                nudPauseMs.Enabled = SFX.AutoPlay;
+                lblPauseMs.Enabled = SFX.AutoPlay;
                 UpdatePlayerState(PlayerState);
             }
         }
@@ -118,6 +123,23 @@ namespace SFXPlayer
         private void bnStopAll_CheckedChanged(object sender, EventArgs e)
         {
             SFX.StopOthers = bnStopAll.Checked;
+        }
+
+        private void cbAutoPlay_CheckedChanged(object sender, EventArgs e)
+        {
+            SFX.AutoPlay = cbAutoPlay.Checked;
+            nudPauseMs.Enabled = cbAutoPlay.Checked;
+            lblPauseMs.Enabled = cbAutoPlay.Checked;
+        }
+
+        private void nudPauseMs_ValueChanged(object sender, EventArgs e)
+        {
+            SFX.AutoPlayPauseMs = (int)nudPauseMs.Value;
+        }
+
+        private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            DeleteCue?.Invoke(this, EventArgs.Empty);
         }
 
         #endregion

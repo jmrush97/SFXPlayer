@@ -838,6 +838,7 @@ namespace SFXPlayer
 
         private void cbPreview_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (InitialisingDevices) return;
             if (CurrentPreviewDeviceIdx != cbPreview.SelectedIndex)
             {
                 if (cbPreview.SelectedIndex != -1)
@@ -858,6 +859,7 @@ namespace SFXPlayer
 
         private void cbPlayback_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (InitialisingDevices) return;
             if (CurrentPlaybackDeviceIdx != cbPlayback.SelectedIndex)
             {
                 if (cbPlayback.SelectedIndex != -1)
@@ -878,6 +880,7 @@ namespace SFXPlayer
 
         private void cbMIDI_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (InitialisingDevices) return;
             if (CurrentMIDIDeviceIdx != cbMIDI.SelectedIndex)
             {
                 if (cbMIDI.SelectedIndex != -1)

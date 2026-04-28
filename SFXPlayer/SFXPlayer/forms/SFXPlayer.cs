@@ -376,6 +376,7 @@ namespace SFXPlayer
         {
             //something changed, so get a new list of devices
             //check whether output audio device is still in the list
+            InitialisingDevices = true;
 
             //WaveOut gives us truncated names but the index we need to open the device
             //combine these with the full names from mmdevices to populate the device list

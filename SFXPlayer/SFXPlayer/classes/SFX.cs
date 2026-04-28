@@ -40,6 +40,8 @@ namespace SFXPlayer.classes {
         private int _DebounceStartMs = 0;
         private int _DebounceEndMs = 0;
 
+        private bool _Skipped = false;
+        [DefaultValue(false)] public bool Skipped { get { return _Skipped; } set { _Skipped = value; SFXBecameDirty?.Invoke(); } }
         [DefaultValue(false)] public bool AutoPlay { get { return _AutoPlay; } set { _AutoPlay = value; SFXBecameDirty?.Invoke(); } }
         [DefaultValue(0)] public int AutoPlayPauseMs { get { return _AutoPlayPauseMs; } set { _AutoPlayPauseMs = value; SFXBecameDirty?.Invoke(); } }
         [DefaultValue(0)] public int DebounceStartMs { get { return _DebounceStartMs; } set { _DebounceStartMs = value; SFXBecameDirty?.Invoke(); } }

@@ -33,6 +33,11 @@ namespace SFXPlayer
         private XMLFileHandler<Show> ShowFileHandler = new XMLFileHandler<Show>();
         private const int WM_DEVICECHANGE = 0x0219;
         private readonly ConcurrentQueue<Action> _commandQueue = new ConcurrentQueue<Action>();
+        /// <summary>
+        /// Tracks all PlayStrip instances that are currently playing.
+        /// Updated via PlayingStateChanged events so StopAll can stop them efficiently.
+        /// </summary>
+        private readonly HashSet<PlayStrip> _playingSounds = new HashSet<PlayStrip>();
 
         protected override void WndProc(ref Message m)
         {
@@ -805,10 +810,17 @@ namespace SFXPlayer
         /// <param name="rowIndex">sfx Index or TOPPLACEHOLDER or BOTTOMPLACEHOLDER</param>
         private void SubscribePlaystripEvents(PlayStrip ps)
         {
-            ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
+            ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAllPlayingSounds(s as PlayStrip));
             ps.ReportStatus += Ps_ReportStatus;
             ps.DeleteCue += Ps_DeleteCue;
             ps.AddCueBefore += Ps_AddCueBefore;
+            ps.PlayingStateChanged += (s, isPlaying) =>
+            {
+                var strip = s as PlayStrip;
+                if (strip == null) return;
+                if (isPlaying) _playingSounds.Add(strip);
+                else _playingSounds.Remove(strip);
+            };
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
             {
                 if (pauseMs > 0)
@@ -919,6 +931,7 @@ namespace SFXPlayer
             if (removedPs != null)
             {
                 removedPs.Stop();
+                _playingSounds.Remove(removedPs);
                 removedPs.ReportStatus -= Ps_ReportStatus;
                 removedPs.DeleteCue -= Ps_DeleteCue;
                 removedPs.AddCueBefore -= Ps_AddCueBefore;
@@ -952,6 +965,20 @@ namespace SFXPlayer
             foreach (PlayStrip Player in CueList.Controls.OfType<PlayStrip>())
             {
                 Player.StopOthers(sender, e);
+            }
+        }
+
+        /// <summary>
+        /// Stop all currently playing sounds except the one that requested the stop.
+        /// Uses the tracked _playingSounds set for efficiency.
+        /// </summary>
+        private void StopAllPlayingSounds(PlayStrip except)
+        {
+            // Snapshot the set to avoid modifying it while iterating
+            var toStop = _playingSounds.Where(ps => ps != except && !ps.IsDisposed).ToList();
+            foreach (var ps in toStop)
+            {
+                ps.Stop();
             }
         }
 
@@ -1180,10 +1207,9 @@ namespace SFXPlayer
 
         private void bnPlayNext_Click(object sender, EventArgs e)
         {
-            if (PrevPlayCue!=null)
-            {
-                PrevPlayCue.Stop();
-            }
+            // Stop all currently playing sounds (not just the visual "previous" cue —
+            // the cue order may have changed while sounds were playing)
+            StopAllPlayingSounds(null);
             if (NextPlayCue != null)
             {
                 NextPlayCue.Play();

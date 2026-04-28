@@ -42,6 +42,8 @@ namespace SFXPlayer
         public event EventHandler<int> AutoPlayNext;
         public event EventHandler DeleteCue;
         public event EventHandler AddCueBefore;
+        /// <summary>Fired when this strip starts or stops playing. Arg = true if now playing.</summary>
+        public event EventHandler<bool> PlayingStateChanged;
         int prevPct = -1;
 
         #region Initialisation
@@ -110,6 +112,7 @@ namespace SFXPlayer
                 bnStopAll.Checked = SFX.StopOthers;
                 UpdatePlayerState(PlayerState);
                 UpdateAutoPlayLabel();
+                UpdateWaveformBackground();
             }
         }
 
@@ -128,6 +131,12 @@ namespace SFXPlayer
             autoRunToolStripMenuItem.Checked = SFX.AutoPlay;
             setPauseToolStripMenuItem.Text = string.Format("Set Auto-run Pause ({0:0.0}s)...",
                 SFX.AutoPlayPauseMs / 1000.0);
+
+            // Update cue-state radio indicators
+            bool hasFile = !string.IsNullOrEmpty(SFX.FileName);
+            cueStateNormalMenuItem.Text = (hasFile && !SFX.Skipped && !SFX.AutoPlay) ? "✔ Normal (Yellow)" : "○ Normal (Yellow)";
+            cueStateAutoRunMenuItem.Text = (hasFile && !SFX.Skipped && SFX.AutoPlay) ? "✔ Auto-run (Green)" : "○ Auto-run (Green)";
+            cueStateSkipMenuItem.Text = (SFX.Skipped || !hasFile) ? "✔ Skip / Not Run (White)" : "○ Skip / Not Run (White)";
         }
 
         private void addCueToolStripMenuItem_Click(object sender, EventArgs e)
@@ -135,9 +144,34 @@ namespace SFXPlayer
             AddCueBefore?.Invoke(this, EventArgs.Empty);
         }
 
+        private void cueStateNormalMenuItem_Click(object sender, EventArgs e)
+        {
+            SFX.Skipped = false;
+            SFX.AutoPlay = false;
+            UpdateStripBackColor();
+            UpdateAutoPlayLabel();
+        }
+
+        private void cueStateAutoRunMenuItem_Click(object sender, EventArgs e)
+        {
+            SFX.Skipped = false;
+            SFX.AutoPlay = true;
+            UpdateStripBackColor();
+            UpdateAutoPlayLabel();
+        }
+
+        private void cueStateSkipMenuItem_Click(object sender, EventArgs e)
+        {
+            SFX.Skipped = true;
+            UpdateStripBackColor();
+            UpdateAutoPlayLabel();
+        }
+
         private void autoRunToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SFX.AutoPlay = autoRunToolStripMenuItem.Checked;
+            if (SFX.AutoPlay) SFX.Skipped = false;
+            UpdateStripBackColor();
             UpdateAutoPlayLabel();
         }
 
@@ -161,7 +195,7 @@ namespace SFXPlayer
 
         private void UpdateAutoPlayLabel()
         {
-            if (SFX == null || !SFX.AutoPlay)
+            if (SFX == null || !SFX.AutoPlay || SFX.Skipped)
             {
                 lbAutoPlay.Visible = false;
                 return;
@@ -172,6 +206,29 @@ namespace SFXPlayer
             else
                 lbAutoPlay.Text = "⏩ Auto-run (no pause)";
             lbAutoPlay.Visible = true;
+        }
+
+        /// <summary>
+        /// Returns the loaded-state background color based on cue state:
+        /// White = no file or skipped, Yellow = normal, Green = auto-run
+        /// </summary>
+        private Color GetCueStateColor()
+        {
+            if (SFX == null || string.IsNullOrEmpty(SFX.FileName) || SFX.Skipped)
+                return Color.White;
+            return SFX.AutoPlay ? Color.LightGreen : Color.LightYellow;
+        }
+
+        /// <summary>
+        /// Apply the cue-state colour to the strip background when in a
+        /// non-transient state (loaded / uninitialised).
+        /// </summary>
+        private void UpdateStripBackColor()
+        {
+            if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.uninitialised)
+            {
+                BackColor = GetCueStateColor();
+            }
         }
 
         private static string ShowInputDialog(string prompt, string title, string defaultValue)
@@ -213,20 +270,13 @@ namespace SFXPlayer
             switch (newstate)
             {
                 case PlayerState.uninitialised:
-                    if (string.IsNullOrEmpty(SFX.FileName))
-                    {
-                        BackColor = SystemColors.Control;
-                    }
-                    else
-                    {
-                        BackColor = Settings.Default.ColourPlayerIdle;
-                    }
+                    BackColor = GetCueStateColor();
                     break;
                 case PlayerState.loading:
                     BackColor = Settings.Default.ColourPlayerLoading;
                     break;
                 case PlayerState.loaded:
-                    BackColor = Settings.Default.ColourPlayerLoaded;
+                    BackColor = GetCueStateColor();
                     break;
                 case PlayerState.play:
                     //BackColor = Settings.Default.ColourPlayerPlay;
@@ -239,7 +289,7 @@ namespace SFXPlayer
                     BackColor = Color.Red;
                     break;
                 default:
-                    BackColor = Settings.Default.ColourPlayerIdle;
+                    BackColor = GetCueStateColor();
                     break;
             }
             prevPct = -1;
@@ -380,6 +430,7 @@ namespace SFXPlayer
                 if (tbDescription.Text == SFX.ShortFileNameOnly) tbDescription.Text = "";
                 SFX.FileName = "";
                 PlayerState = PlayerState.uninitialised;
+                UpdateWaveformBackground();
             }
             UpdateButtons();
         }
@@ -428,6 +479,7 @@ namespace SFXPlayer
             PlayerState = PlayerState.uninitialised;
             UpdateButtons();
             PreloadFile();
+            UpdateWaveformBackground();
         }
 
         internal void PreloadFile()
@@ -459,6 +511,91 @@ namespace SFXPlayer
             _musicPlayer.Volume = SFX.Volume;
             PlayerState = PlayerState.loaded;
             AppLogger.Info($"PlayStrip.LoadFile: loaded \"{SFX.FileName}\" | duration: {_musicPlayer.Length}");
+        }
+
+        /// <summary>
+        /// Generate a mini waveform bitmap and display it as the background of the
+        /// description text box so the user can see a representation of the audio.
+        /// </summary>
+        private void UpdateWaveformBackground()
+        {
+            // Clear first
+            var old = tbDescription.BackgroundImage;
+            tbDescription.BackgroundImage = null;
+            old?.Dispose();
+
+            if (string.IsNullOrEmpty(SFX.FileName) || !File.Exists(SFX.FileName)) return;
+            try
+            {
+                int w = Math.Max(tbDescription.Width, 1);
+                int h = Math.Max(tbDescription.Height, 1);
+                var bmp = GenerateWaveformBitmap(SFX.FileName, w, h);
+                if (bmp != null)
+                {
+                    tbDescription.BackgroundImage = bmp;
+                    tbDescription.BackgroundImageLayout = ImageLayout.Stretch;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"PlayStrip.UpdateWaveformBackground: {ex.Message}");
+            }
+        }
+
+        private static Bitmap GenerateWaveformBitmap(string fileName, int width, int height)
+        {
+            const int sampleCount = 200; // number of x-buckets
+            float[] peaks = new float[sampleCount];
+            float maxPeak = 0;
+
+            try
+            {
+                using var reader = new NAudio.Wave.AudioFileReader(fileName);
+                long totalSamples = reader.Length / (reader.WaveFormat.BitsPerSample / 8);
+                long samplesPerBucket = Math.Max(1, totalSamples / sampleCount);
+                float[] buffer = new float[4096];
+                int bucket = 0;
+                float bucketMax = 0;
+                long bucketFilled = 0;
+                int read;
+                while (bucket < sampleCount && (read = reader.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    for (int i = 0; i < read && bucket < sampleCount; i++)
+                    {
+                        float abs = Math.Abs(buffer[i]);
+                        if (abs > bucketMax) bucketMax = abs;
+                        bucketFilled++;
+                        if (bucketFilled >= samplesPerBucket)
+                        {
+                            peaks[bucket++] = bucketMax;
+                            bucketFilled = 0;
+                            bucketMax = 0;
+                        }
+                    }
+                }
+                foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
+            }
+            catch
+            {
+                return null;
+            }
+
+            if (maxPeak < 0.0001f) return null;
+
+            var bitmap = new Bitmap(width, height);
+            using var g = Graphics.FromImage(bitmap);
+            g.Clear(Color.Transparent);
+            using var pen = new Pen(Color.FromArgb(80, 100, 160, 100), 1f);
+            float scaleX = (float)width / sampleCount;
+            float mid = height / 2f;
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float normalised = peaks[i] / maxPeak;
+                float halfH = normalised * mid * 0.9f;
+                float x = i * scaleX + scaleX / 2f;
+                g.DrawLine(pen, x, mid - halfH, x, mid + halfH);
+            }
+            return bitmap;
         }
 
         #endregion
@@ -536,6 +673,11 @@ namespace SFXPlayer
         public void Play()
         {
             AppLogger.Info($"PlayStrip.Play: \"{SFX.FileName}\" | description: \"{SFX.Description}\"");
+            if (SFX.Skipped)
+            {
+                AppLogger.Info($"PlayStrip.Play: cue is skipped, not playing");
+                return;
+            }
             if (PlayerState == PlayerState.uninitialised)
             {
                 LoadFile();
@@ -578,6 +720,7 @@ namespace SFXPlayer
             if (SFX.DebounceStartMs > 0)
             {
                 PlayerState = PlayerState.play;
+                PlayingStateChanged?.Invoke(this, true);
                 UpdatePlayButton();
                 System.Threading.Tasks.Task.Delay(SFX.DebounceStartMs).ContinueWith(_ =>
                 {
@@ -597,6 +740,7 @@ namespace SFXPlayer
             {
                 _musicPlayer.Play();
                 PlayerState = PlayerState.play;
+                PlayingStateChanged?.Invoke(this, true);
                 UpdatePlayButton();
             }
             if (SFX.Triggers.Any()) { timer1.Start(); LastTrigger = 0; }
@@ -616,7 +760,6 @@ namespace SFXPlayer
             AppLogger.Info($"PlayStrip.UnPause: \"{SFX.FileName}\"");
             _musicPlayer.Resume();
             PlayerState = PlayerState.play;
-            ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly));
             UpdatePlayButton();
         }
 
@@ -630,6 +773,7 @@ namespace SFXPlayer
                 _musicPlayer.Stop();
                 //_musicPlayer.Volume = SFX.Volume;
                 PlayerState = PlayerState.loaded;
+                PlayingStateChanged?.Invoke(this, false);
                 UpdatePlayButton();
             }
         }
@@ -637,6 +781,7 @@ namespace SFXPlayer
         private void _musicPlayer_PlaybackStopped(object sender, StoppedEventArgs e)
         {
             PlayerState = PlayerState.loaded;
+            PlayingStateChanged?.Invoke(this, false);
             UpdatePlayButton();
             try
             {

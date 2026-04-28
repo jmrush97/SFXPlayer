@@ -42,6 +42,10 @@
             Delete = new System.Windows.Forms.ContextMenuStrip(components);
             addCueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             contextMenuSeparator0 = new System.Windows.Forms.ToolStripSeparator();
+            cueStateNormalMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            cueStateAutoRunMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            cueStateSkipMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            contextMenuSeparatorCueState = new System.Windows.Forms.ToolStripSeparator();
             autoRunToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             setPauseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             contextMenuSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -219,12 +223,16 @@
             Delete.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 addCueToolStripMenuItem,
                 contextMenuSeparator0,
+                cueStateNormalMenuItem,
+                cueStateAutoRunMenuItem,
+                cueStateSkipMenuItem,
+                contextMenuSeparatorCueState,
                 autoRunToolStripMenuItem,
                 setPauseToolStripMenuItem,
                 contextMenuSeparator1,
                 deleteToolStripMenuItem });
             Delete.Name = "Delete";
-            Delete.Size = new System.Drawing.Size(201, 118);
+            Delete.Size = new System.Drawing.Size(201, 162);
             Delete.Opening += new System.ComponentModel.CancelEventHandler(this.Delete_Opening);
             // 
             // addCueToolStripMenuItem
@@ -238,6 +246,32 @@
             // 
             contextMenuSeparator0.Name = "contextMenuSeparator0";
             contextMenuSeparator0.Size = new System.Drawing.Size(197, 6);
+            // 
+            // cueStateNormalMenuItem
+            // 
+            cueStateNormalMenuItem.Name = "cueStateNormalMenuItem";
+            cueStateNormalMenuItem.Size = new System.Drawing.Size(200, 22);
+            cueStateNormalMenuItem.Text = "● Normal (Yellow)";
+            cueStateNormalMenuItem.Click += new System.EventHandler(this.cueStateNormalMenuItem_Click);
+            // 
+            // cueStateAutoRunMenuItem
+            // 
+            cueStateAutoRunMenuItem.Name = "cueStateAutoRunMenuItem";
+            cueStateAutoRunMenuItem.Size = new System.Drawing.Size(200, 22);
+            cueStateAutoRunMenuItem.Text = "● Auto-run (Green)";
+            cueStateAutoRunMenuItem.Click += new System.EventHandler(this.cueStateAutoRunMenuItem_Click);
+            // 
+            // cueStateSkipMenuItem
+            // 
+            cueStateSkipMenuItem.Name = "cueStateSkipMenuItem";
+            cueStateSkipMenuItem.Size = new System.Drawing.Size(200, 22);
+            cueStateSkipMenuItem.Text = "● Skip / Not Run (White)";
+            cueStateSkipMenuItem.Click += new System.EventHandler(this.cueStateSkipMenuItem_Click);
+            // 
+            // contextMenuSeparatorCueState
+            // 
+            contextMenuSeparatorCueState.Name = "contextMenuSeparatorCueState";
+            contextMenuSeparatorCueState.Size = new System.Drawing.Size(197, 6);
             // 
             // autoRunToolStripMenuItem
             // 
@@ -309,6 +343,10 @@
         private System.Windows.Forms.ContextMenuStrip Delete;
         private System.Windows.Forms.ToolStripMenuItem addCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator contextMenuSeparator0;
+        private System.Windows.Forms.ToolStripMenuItem cueStateNormalMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem cueStateAutoRunMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem cueStateSkipMenuItem;
+        private System.Windows.Forms.ToolStripSeparator contextMenuSeparatorCueState;
         private System.Windows.Forms.ToolStripMenuItem autoRunToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem setPauseToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator contextMenuSeparator1;

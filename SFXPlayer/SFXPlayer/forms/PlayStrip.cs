@@ -164,7 +164,6 @@ namespace SFXPlayer
             if (SFX == null || !SFX.AutoPlay)
             {
                 lbAutoPlay.Visible = false;
-                lbAutoPlay.Text = "";
                 return;
             }
             double pauseSecs = SFX.AutoPlayPauseMs / 1000.0;

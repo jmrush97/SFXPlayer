@@ -57,6 +57,7 @@
             ((System.ComponentModel.ISupportInitialize)bnVolume).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnPreview).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnEdit).BeginInit();
+            Delete.SuspendLayout();
             SuspendLayout();
             // 
             // bnStopAll
@@ -73,7 +74,7 @@
             // bnFile
             // 
             bnFile.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            bnFile.Image = Properties.Resources.SoundFile2_18;
+            bnFile.Image = SFXPlayer.Properties.Resources.SoundFile2_18;
             bnFile.Location = new System.Drawing.Point(378, 6);
             bnFile.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnFile.Name = "bnFile";
@@ -102,7 +103,7 @@
             tableLayoutPanel2.RowCount = 2;
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 52F));
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 15F));
-            tableLayoutPanel2.Size = new System.Drawing.Size(643, 67);
+            tableLayoutPanel2.Size = new System.Drawing.Size(643, 95);
             tableLayoutPanel2.TabIndex = 1;
             // 
             // tableLayoutPanel1
@@ -158,7 +159,7 @@
             // bnPlay
             // 
             bnPlay.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            bnPlay.Image = Properties.Resources.Play2_18;
+            bnPlay.Image = SFXPlayer.Properties.Resources.Play2_18;
             bnPlay.Location = new System.Drawing.Point(468, 6);
             bnPlay.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnPlay.Name = "bnPlay";
@@ -183,7 +184,7 @@
             // bnPreview
             // 
             bnPreview.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            bnPreview.Image = Properties.Resources.Headphones2_18;
+            bnPreview.Image = SFXPlayer.Properties.Resources.Headphones2_18;
             bnPreview.Location = new System.Drawing.Point(423, 6);
             bnPreview.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnPreview.Name = "bnPreview";
@@ -209,10 +210,10 @@
             lbAutoPlay.Dock = System.Windows.Forms.DockStyle.Fill;
             lbAutoPlay.Font = new System.Drawing.Font("Microsoft Sans Serif", 7F);
             lbAutoPlay.ForeColor = System.Drawing.Color.DarkGreen;
-            lbAutoPlay.Location = new System.Drawing.Point(0, 52);
+            lbAutoPlay.Location = new System.Drawing.Point(2, 52);
             lbAutoPlay.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             lbAutoPlay.Name = "lbAutoPlay";
-            lbAutoPlay.Size = new System.Drawing.Size(643, 15);
+            lbAutoPlay.Size = new System.Drawing.Size(639, 43);
             lbAutoPlay.TabIndex = 9;
             lbAutoPlay.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             lbAutoPlay.Visible = false;
@@ -220,85 +221,75 @@
             // Delete
             // 
             Delete.ImageScalingSize = new System.Drawing.Size(24, 24);
-            Delete.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-                addCueToolStripMenuItem,
-                contextMenuSeparator0,
-                cueStateNormalMenuItem,
-                cueStateAutoRunMenuItem,
-                cueStateSkipMenuItem,
-                contextMenuSeparatorCueState,
-                autoRunToolStripMenuItem,
-                setPauseToolStripMenuItem,
-                contextMenuSeparator1,
-                deleteToolStripMenuItem });
+            Delete.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { addCueToolStripMenuItem, contextMenuSeparator0, cueStateNormalMenuItem, cueStateAutoRunMenuItem, cueStateSkipMenuItem, contextMenuSeparatorCueState, autoRunToolStripMenuItem, setPauseToolStripMenuItem, contextMenuSeparator1, deleteToolStripMenuItem });
             Delete.Name = "Delete";
-            Delete.Size = new System.Drawing.Size(201, 162);
-            Delete.Opening += new System.ComponentModel.CancelEventHandler(this.Delete_Opening);
+            Delete.Size = new System.Drawing.Size(279, 246);
+            Delete.Opening += Delete_Opening;
             // 
             // addCueToolStripMenuItem
             // 
             addCueToolStripMenuItem.Name = "addCueToolStripMenuItem";
-            addCueToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            addCueToolStripMenuItem.Size = new System.Drawing.Size(278, 32);
             addCueToolStripMenuItem.Text = "Add Blank Cue Here";
-            addCueToolStripMenuItem.Click += new System.EventHandler(this.addCueToolStripMenuItem_Click);
+            addCueToolStripMenuItem.Click += addCueToolStripMenuItem_Click;
             // 
             // contextMenuSeparator0
             // 
             contextMenuSeparator0.Name = "contextMenuSeparator0";
-            contextMenuSeparator0.Size = new System.Drawing.Size(197, 6);
+            contextMenuSeparator0.Size = new System.Drawing.Size(275, 6);
             // 
             // cueStateNormalMenuItem
             // 
             cueStateNormalMenuItem.Name = "cueStateNormalMenuItem";
-            cueStateNormalMenuItem.Size = new System.Drawing.Size(200, 22);
+            cueStateNormalMenuItem.Size = new System.Drawing.Size(278, 32);
             cueStateNormalMenuItem.Text = "● Normal (Yellow)";
-            cueStateNormalMenuItem.Click += new System.EventHandler(this.cueStateNormalMenuItem_Click);
+            cueStateNormalMenuItem.Click += cueStateNormalMenuItem_Click;
             // 
             // cueStateAutoRunMenuItem
             // 
             cueStateAutoRunMenuItem.Name = "cueStateAutoRunMenuItem";
-            cueStateAutoRunMenuItem.Size = new System.Drawing.Size(200, 22);
+            cueStateAutoRunMenuItem.Size = new System.Drawing.Size(278, 32);
             cueStateAutoRunMenuItem.Text = "● Auto-run (Green)";
-            cueStateAutoRunMenuItem.Click += new System.EventHandler(this.cueStateAutoRunMenuItem_Click);
+            cueStateAutoRunMenuItem.Click += cueStateAutoRunMenuItem_Click;
             // 
             // cueStateSkipMenuItem
             // 
             cueStateSkipMenuItem.Name = "cueStateSkipMenuItem";
-            cueStateSkipMenuItem.Size = new System.Drawing.Size(200, 22);
+            cueStateSkipMenuItem.Size = new System.Drawing.Size(278, 32);
             cueStateSkipMenuItem.Text = "● Skip / Not Run (White)";
-            cueStateSkipMenuItem.Click += new System.EventHandler(this.cueStateSkipMenuItem_Click);
+            cueStateSkipMenuItem.Click += cueStateSkipMenuItem_Click;
             // 
             // contextMenuSeparatorCueState
             // 
             contextMenuSeparatorCueState.Name = "contextMenuSeparatorCueState";
-            contextMenuSeparatorCueState.Size = new System.Drawing.Size(197, 6);
+            contextMenuSeparatorCueState.Size = new System.Drawing.Size(275, 6);
             // 
             // autoRunToolStripMenuItem
             // 
             autoRunToolStripMenuItem.CheckOnClick = true;
             autoRunToolStripMenuItem.Name = "autoRunToolStripMenuItem";
-            autoRunToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            autoRunToolStripMenuItem.Size = new System.Drawing.Size(278, 32);
             autoRunToolStripMenuItem.Text = "Auto-run to next cue";
-            autoRunToolStripMenuItem.Click += new System.EventHandler(this.autoRunToolStripMenuItem_Click);
+            autoRunToolStripMenuItem.Click += autoRunToolStripMenuItem_Click;
             // 
             // setPauseToolStripMenuItem
             // 
             setPauseToolStripMenuItem.Name = "setPauseToolStripMenuItem";
-            setPauseToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            setPauseToolStripMenuItem.Size = new System.Drawing.Size(278, 32);
             setPauseToolStripMenuItem.Text = "Set Auto-run Pause...";
-            setPauseToolStripMenuItem.Click += new System.EventHandler(this.setPauseToolStripMenuItem_Click);
+            setPauseToolStripMenuItem.Click += setPauseToolStripMenuItem_Click;
             // 
             // contextMenuSeparator1
             // 
             contextMenuSeparator1.Name = "contextMenuSeparator1";
-            contextMenuSeparator1.Size = new System.Drawing.Size(197, 6);
+            contextMenuSeparator1.Size = new System.Drawing.Size(275, 6);
             // 
             // deleteToolStripMenuItem
             // 
             deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
-            deleteToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            deleteToolStripMenuItem.Size = new System.Drawing.Size(278, 32);
             deleteToolStripMenuItem.Text = "Delete Cue";
-            deleteToolStripMenuItem.Click += new System.EventHandler(this.deleteToolStripMenuItem_Click);
+            deleteToolStripMenuItem.Click += deleteToolStripMenuItem_Click;
             // 
             // PlayStrip
             // 
@@ -310,7 +301,7 @@
             DoubleBuffered = true;
             Margin = new System.Windows.Forms.Padding(0);
             Name = "PlayStrip";
-            Size = new System.Drawing.Size(643, 67);
+            Size = new System.Drawing.Size(643, 95);
             Load += PlayStrip_Load;
             MouseDown += MouseDownHandler;
             Resize += PlayStrip_Resize;
@@ -322,6 +313,7 @@
             ((System.ComponentModel.ISupportInitialize)bnVolume).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnPreview).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnEdit).EndInit();
+            Delete.ResumeLayout(false);
             ResumeLayout(false);
 
         }

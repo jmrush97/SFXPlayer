@@ -32,6 +32,8 @@ namespace SFXPlayer
 
     public partial class PlayStrip : UserControl
     {
+        /// <summary>Threshold below which speed is considered equal to 1.0x for display purposes.</summary>
+        private const float SpeedDisplayThreshold = 0.01f;
 
         private Bitmap graph;
         private readonly MusicPlayer _musicPlayer = new MusicPlayer();
@@ -987,7 +989,7 @@ namespace SFXPlayer
         {
             if (SFX == null) return;
             float spd = SFX.Speed;
-            string tip = Math.Abs(spd - 1.0f) > 0.01f
+            string tip = Math.Abs(spd - 1.0f) > SpeedDisplayThreshold
                 ? $"Speed={spd:0.00}x"
                 : "Speed (1.00x)";
             toolTip1.SetToolTip(bnSpeed, tip);

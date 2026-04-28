@@ -1167,7 +1167,7 @@ namespace SFXPlayer
             string filePath = cue.SFX.FileName;
             double dur = cue.PlaybackLength.TotalSeconds;
             string durStr = dur > 0 ? FormatTime(dur) : "?";
-            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.0}x" : "";
+            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.00}x" : "";
             trackInfoLabel.Text = string.Format("{0} | {1}{2}", Path.GetFileName(filePath), durStr, speedStr);
             trackInfoLabel.ToolTipText = filePath;
         }
@@ -1182,7 +1182,7 @@ namespace SFXPlayer
                 return "";
             double dur = cue.PlaybackLength.TotalSeconds;
             string durStr = dur > 0 ? FormatTime(dur) : "?";
-            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.0}x" : "";
+            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.00}x" : "";
             return $"{Path.GetFileName(cue.SFX.FileName)} | {durStr}{speedStr}";
         }
 

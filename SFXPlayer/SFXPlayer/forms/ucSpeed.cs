@@ -43,7 +43,8 @@ namespace SFXPlayer
 
         private void tbSpeed_Enter(object sender, EventArgs e)
         {
-            ((SFXPlayer)TopLevelControl).ScrollTimer.Enabled = true;
+            if (TopLevelControl is SFXPlayer mainForm)
+                mainForm.ScrollTimer.Enabled = true;
         }
     }
 }

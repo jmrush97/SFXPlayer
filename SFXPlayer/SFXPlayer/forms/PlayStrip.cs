@@ -132,11 +132,14 @@ namespace SFXPlayer
             setPauseToolStripMenuItem.Text = string.Format("Set Auto-run Pause ({0:0.0}s)...",
                 SFX.AutoPlayPauseMs / 1000.0);
 
-            // Update cue-state radio indicators
+            // Update cue-state radio indicators using shared label constants
             bool hasFile = !string.IsNullOrEmpty(SFX.FileName);
-            cueStateNormalMenuItem.Text = (hasFile && !SFX.Skipped && !SFX.AutoPlay) ? "✔ Normal (Yellow)" : "○ Normal (Yellow)";
-            cueStateAutoRunMenuItem.Text = (hasFile && !SFX.Skipped && SFX.AutoPlay) ? "✔ Auto-run (Green)" : "○ Auto-run (Green)";
-            cueStateSkipMenuItem.Text = (SFX.Skipped || !hasFile) ? "✔ Skip / Not Run (White)" : "○ Skip / Not Run (White)";
+            const string labelNormal  = "Normal (Yellow)";
+            const string labelAutoRun = "Auto-run (Green)";
+            const string labelSkip    = "Skip / Not Run (White)";
+            cueStateNormalMenuItem.Text  = (hasFile && !SFX.Skipped && !SFX.AutoPlay) ? $"✔ {labelNormal}"  : $"○ {labelNormal}";
+            cueStateAutoRunMenuItem.Text = (hasFile && !SFX.Skipped &&  SFX.AutoPlay) ? $"✔ {labelAutoRun}" : $"○ {labelAutoRun}";
+            cueStateSkipMenuItem.Text    = (SFX.Skipped || !hasFile)                  ? $"✔ {labelSkip}"    : $"○ {labelSkip}";
         }
 
         private void addCueToolStripMenuItem_Click(object sender, EventArgs e)
@@ -551,8 +554,9 @@ namespace SFXPlayer
             try
             {
                 using var reader = new NAudio.Wave.AudioFileReader(fileName);
-                long totalSamples = reader.Length / (reader.WaveFormat.BitsPerSample / 8);
-                long samplesPerBucket = Math.Max(1, totalSamples / sampleCount);
+                // Use BlockAlign (bytes per sample frame across all channels) for correct frame count
+                long totalFrames = reader.Length / reader.WaveFormat.BlockAlign;
+                long framesPerBucket = Math.Max(1, totalFrames / sampleCount);
                 float[] buffer = new float[4096];
                 int bucket = 0;
                 float bucketMax = 0;
@@ -564,19 +568,24 @@ namespace SFXPlayer
                     {
                         float abs = Math.Abs(buffer[i]);
                         if (abs > bucketMax) bucketMax = abs;
-                        bucketFilled++;
-                        if (bucketFilled >= samplesPerBucket)
+                        // Count in mono-equivalent frames (divide by channel count)
+                        if (i % reader.WaveFormat.Channels == reader.WaveFormat.Channels - 1)
                         {
-                            peaks[bucket++] = bucketMax;
-                            bucketFilled = 0;
-                            bucketMax = 0;
+                            bucketFilled++;
+                            if (bucketFilled >= framesPerBucket)
+                            {
+                                peaks[bucket++] = bucketMax;
+                                bucketFilled = 0;
+                                bucketMax = 0;
+                            }
                         }
                     }
                 }
                 foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"GenerateWaveformBitmap error: {ex.Message}");
                 return null;
             }
 

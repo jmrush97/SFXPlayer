@@ -503,7 +503,7 @@ namespace SFXPlayer
 
         /// <summary>
         /// Attempts to read title/artist from media file tags.
-        /// Returns "&lt;title&gt; - &lt;artist&gt;" or just title, or null if no tag information is available.
+        /// Returns "<title> - <artist>" or just title, or null if no tag information is available.
         /// </summary>
         private static string TryReadMediaDescription(string fileName)
         {

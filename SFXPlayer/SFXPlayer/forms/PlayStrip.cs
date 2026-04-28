@@ -896,17 +896,40 @@ namespace SFXPlayer
         private Rectangle DrawGraph(int pct)
         {
             pct = Math.Max(0, Math.Min(Width, pct));
-            Graphics graphGraphics = Graphics.FromImage(graph);
-            SolidBrush brush = new SolidBrush(Settings.Default.ColourPlayerPlay);
-            if (pct > 0)
+            Graphics g = Graphics.FromImage(graph);
+
+            // Main progress fill
+            using (SolidBrush brush = new SolidBrush(Settings.Default.ColourPlayerPlay))
+                if (pct > 0)
+                    g.FillRectangle(brush, 0, 0, pct, Height);
+
+            using (SolidBrush brush = new SolidBrush(Settings.Default.ColourPlayerLoaded))
+                if (pct < Width)
+                    g.FillRectangle(brush, pct, 0, Width - pct, Height);
+
+            // Volume level indicator — a thin bar at the bottom showing effective volume
+            // Height of bar is proportional to current volume × fade gain
+            float fadeGain = PlayerState == PlayerState.play ? _musicPlayer.CurrentFadeGain : 1.0f;
+            int volPct = SFX?.Volume ?? 50;  // 0–100
+            float effectiveVol = (volPct / 100f) * fadeGain;  // 0–1
+            const float VolBarHeightFraction = 0.18f;   // fraction of strip height used for the volume bar
+            const float VolMidThreshold     = 0.5f;     // above this, interpolate green → yellow; below, yellow → red
+            int barH = Math.Max(2, (int)(Height * VolBarHeightFraction));
+            int barW = (int)(Width * effectiveVol);
+            if (barW > 0)
             {
-                graphGraphics.FillRectangle(brush, 0, 0, pct, Height);
+                // Color: green at full volume, yellow at mid, red at silence
+                int r = effectiveVol >= VolMidThreshold
+                    ? (int)(255 * (1f - effectiveVol) * 2f)   // full→mid: 0→255 red
+                    : 255;                                      // mid→silence: always 255 red
+                int grn = effectiveVol >= VolMidThreshold
+                    ? 200                                       // full→mid: fixed green
+                    : (int)(255 * effectiveVol * 2f);          // mid→silence: 255→0 green
+                Color volColor = Color.FromArgb(180, Math.Max(0, Math.Min(255, r)), Math.Max(0, Math.Min(255, grn)), 0);
+                using (SolidBrush brush = new SolidBrush(volColor))
+                    g.FillRectangle(brush, 0, Height - barH, barW, barH);
             }
-            brush = new SolidBrush(Settings.Default.ColourPlayerLoaded);
-            if (pct < Width)
-            {
-                graphGraphics.FillRectangle(brush, pct, 0, Width - pct, Height);
-            }
+
             if (prevPct == -1)
             {
                 prevPct = pct;

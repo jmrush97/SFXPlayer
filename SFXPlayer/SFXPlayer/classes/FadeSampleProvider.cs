@@ -46,6 +46,12 @@ namespace SFXPlayer.classes
 
         public WaveFormat WaveFormat => _source.WaveFormat;
 
+        /// <summary>
+        /// The gain multiplier most recently applied to a sample (updated on each Read call).
+        /// Ranges 0.0–1.0; can be used by UI to show the effective volume during fades.
+        /// </summary>
+        public float CurrentGain { get; private set; } = 1.0f;
+
         public int Read(float[] buffer, int offset, int count)
         {
             int samplesRead = _source.Read(buffer, offset, count);
@@ -55,6 +61,7 @@ namespace SFXPlayer.classes
                 float gain = ComputeGain(_samplePosition);
                 buffer[offset + i] *= gain;
                 _samplePosition++;
+                CurrentGain = gain;
             }
 
             return samplesRead;

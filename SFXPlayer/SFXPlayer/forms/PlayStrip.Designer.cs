@@ -38,7 +38,10 @@
             bnVolume = new System.Windows.Forms.PictureBox();
             bnPreview = new System.Windows.Forms.PictureBox();
             bnEdit = new System.Windows.Forms.PictureBox();
+            lbAutoPlay = new System.Windows.Forms.Label();
             Delete = new System.Windows.Forms.ContextMenuStrip(components);
+            addCueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            contextMenuSeparator0 = new System.Windows.Forms.ToolStripSeparator();
             autoRunToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             setPauseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             contextMenuSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -87,12 +90,14 @@
             tableLayoutPanel2.ColumnCount = 1;
             tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             tableLayoutPanel2.Controls.Add(tableLayoutPanel1, 0, 0);
+            tableLayoutPanel2.Controls.Add(lbAutoPlay, 0, 1);
             tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
             tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
-            tableLayoutPanel2.RowCount = 1;
-            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel2.RowCount = 2;
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 52F));
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 15F));
             tableLayoutPanel2.Size = new System.Drawing.Size(643, 67);
             tableLayoutPanel2.TabIndex = 1;
             // 
@@ -195,17 +200,44 @@
             bnEdit.TabStop = false;
             bnEdit.Click += bnEdit_Click;
             // 
+            // lbAutoPlay
+            // 
+            lbAutoPlay.Dock = System.Windows.Forms.DockStyle.Fill;
+            lbAutoPlay.Font = new System.Drawing.Font("Microsoft Sans Serif", 7F);
+            lbAutoPlay.ForeColor = System.Drawing.Color.DarkGreen;
+            lbAutoPlay.Location = new System.Drawing.Point(0, 52);
+            lbAutoPlay.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            lbAutoPlay.Name = "lbAutoPlay";
+            lbAutoPlay.Size = new System.Drawing.Size(643, 15);
+            lbAutoPlay.TabIndex = 9;
+            lbAutoPlay.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            lbAutoPlay.Visible = false;
+            // 
             // Delete
             // 
             Delete.ImageScalingSize = new System.Drawing.Size(24, 24);
             Delete.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+                addCueToolStripMenuItem,
+                contextMenuSeparator0,
                 autoRunToolStripMenuItem,
                 setPauseToolStripMenuItem,
                 contextMenuSeparator1,
                 deleteToolStripMenuItem });
             Delete.Name = "Delete";
-            Delete.Size = new System.Drawing.Size(201, 96);
+            Delete.Size = new System.Drawing.Size(201, 118);
             Delete.Opening += new System.ComponentModel.CancelEventHandler(this.Delete_Opening);
+            // 
+            // addCueToolStripMenuItem
+            // 
+            addCueToolStripMenuItem.Name = "addCueToolStripMenuItem";
+            addCueToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            addCueToolStripMenuItem.Text = "Add Blank Cue Here";
+            addCueToolStripMenuItem.Click += new System.EventHandler(this.addCueToolStripMenuItem_Click);
+            // 
+            // contextMenuSeparator0
+            // 
+            contextMenuSeparator0.Name = "contextMenuSeparator0";
+            contextMenuSeparator0.Size = new System.Drawing.Size(197, 6);
             // 
             // autoRunToolStripMenuItem
             // 
@@ -273,7 +305,10 @@
         private System.Windows.Forms.PictureBox bnVolume;
         private System.Windows.Forms.PictureBox bnPreview;
         private System.Windows.Forms.PictureBox bnEdit;
+        private System.Windows.Forms.Label lbAutoPlay;
         private System.Windows.Forms.ContextMenuStrip Delete;
+        private System.Windows.Forms.ToolStripMenuItem addCueToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator contextMenuSeparator0;
         private System.Windows.Forms.ToolStripMenuItem autoRunToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem setPauseToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator contextMenuSeparator1;

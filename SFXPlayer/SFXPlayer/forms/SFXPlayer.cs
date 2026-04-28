@@ -808,6 +808,7 @@ namespace SFXPlayer
             ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
             ps.ReportStatus += Ps_ReportStatus;
             ps.DeleteCue += Ps_DeleteCue;
+            ps.AddCueBefore += Ps_AddCueBefore;
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
             {
                 if (pauseMs > 0)
@@ -869,6 +870,18 @@ namespace SFXPlayer
             NextPlayCueChanged();
         }
 
+        private void Ps_AddCueBefore(object sender, EventArgs e)
+        {
+            PlayStrip ps = sender as PlayStrip;
+            if (ps == null) return;
+            int insertAt = ps.PlayStripIndex;
+            SFX sfx = new SFX();
+            InsertPlaystrip(sfx, insertAt);
+            PadCueList();
+            CurrentShow.AddCue(sfx, insertAt);
+            NextPlayCueChanged();
+        }
+
         private PlayStrip InsertPlaystrip(SFX sfx, int cueIndex)
         {
             PlayStrip ps;
@@ -891,6 +904,7 @@ namespace SFXPlayer
             SubscribePlaystripEvents(ps);
             FocusTrackLowestControls(ps);
             Spacer sp = new Spacer { Width = CueList.ClientSize.Width };
+            sp.Paint += Highlight_Paint;
             CueList.Controls.Add(ps, 0, rowIndex);
             CueList.Controls.Add(sp, 0, rowIndex + 1);
             CueList.ResumeLayout();
@@ -907,6 +921,7 @@ namespace SFXPlayer
                 removedPs.Stop();
                 removedPs.ReportStatus -= Ps_ReportStatus;
                 removedPs.DeleteCue -= Ps_DeleteCue;
+                removedPs.AddCueBefore -= Ps_AddCueBefore;
                 FocusUntrackLowestControls(removedPs);
             }
             CueList.Controls.Remove(CueList.GetControlFromPosition(0, rowIndex));

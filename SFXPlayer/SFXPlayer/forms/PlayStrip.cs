@@ -41,6 +41,7 @@ namespace SFXPlayer
         public event EventHandler<StatusEventArgs> ReportStatus;
         public event EventHandler<int> AutoPlayNext;
         public event EventHandler DeleteCue;
+        public event EventHandler AddCueBefore;
         int prevPct = -1;
 
         #region Initialisation
@@ -108,6 +109,7 @@ namespace SFXPlayer
                 tbDescription.Text = SFX.Description;
                 bnStopAll.Checked = SFX.StopOthers;
                 UpdatePlayerState(PlayerState);
+                UpdateAutoPlayLabel();
             }
         }
 
@@ -128,9 +130,15 @@ namespace SFXPlayer
                 SFX.AutoPlayPauseMs / 1000.0);
         }
 
+        private void addCueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AddCueBefore?.Invoke(this, EventArgs.Empty);
+        }
+
         private void autoRunToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SFX.AutoPlay = autoRunToolStripMenuItem.Checked;
+            UpdateAutoPlayLabel();
         }
 
         private void setPauseToolStripMenuItem_Click(object sender, EventArgs e)
@@ -147,7 +155,24 @@ namespace SFXPlayer
                 out double secs))
             {
                 SFX.AutoPlayPauseMs = (int)Math.Round(Math.Max(0, Math.Min(60, secs)) * 1000);
+                UpdateAutoPlayLabel();
             }
+        }
+
+        private void UpdateAutoPlayLabel()
+        {
+            if (SFX == null || !SFX.AutoPlay)
+            {
+                lbAutoPlay.Visible = false;
+                lbAutoPlay.Text = "";
+                return;
+            }
+            double pauseSecs = SFX.AutoPlayPauseMs / 1000.0;
+            if (pauseSecs > 0)
+                lbAutoPlay.Text = string.Format("⏩ Auto-run  +{0:0.0}s pause", pauseSecs);
+            else
+                lbAutoPlay.Text = "⏩ Auto-run (no pause)";
+            lbAutoPlay.Visible = true;
         }
 
         private static string ShowInputDialog(string prompt, string title, string defaultValue)
@@ -807,6 +832,12 @@ namespace SFXPlayer
 
         private void bnEdit_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrEmpty(SFX.FileName) || !File.Exists(SFX.FileName))
+            {
+                MessageBox.Show("Please select an audio file before adding event triggers.",
+                    "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
             Cursor cursor = Cursor.Current;
             Cursor = Cursors.WaitCursor;
             TimeStamper timeStamper = new TimeStamper();

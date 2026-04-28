@@ -707,6 +707,11 @@ namespace SFXPlayer
                 PlayFromStart();
                 ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly));
             }
+            else if (string.IsNullOrEmpty(SFX.FileName) && SFX.AutoPlay)
+            {
+                // Blank cue (no audio file): completes instantly; trigger auto-follow immediately.
+                TriggerAutoPlay();
+            }
         }
 
         internal void StopOthers(object sender, EventArgs e)

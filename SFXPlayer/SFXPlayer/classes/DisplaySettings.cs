@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SFXPlayer.classes;
 
 namespace SFXPlayer.classes
 {
@@ -41,6 +42,14 @@ namespace SFXPlayer.classes
         public bool CueAutoRun = false;
         [DefaultValue(0.0)]
         public double CuePauseSeconds = 0.0;
+
+        // Fade settings for the current (next) cue
+        [DefaultValue(0)]
+        public int CueFadeInMs = 0;
+        [DefaultValue(0)]
+        public int CueFadeOutMs = 0;
+        [DefaultValue("Linear")]
+        public string CueFadeCurve = "Linear";
 
         // Previous cue details
         [DefaultValue("")]

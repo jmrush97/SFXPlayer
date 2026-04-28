@@ -246,6 +246,9 @@ namespace SFXPlayer
                 CueFileName = Path.GetFileName(next?.SFX.FileName ?? ""),
                 CueAutoRun = next?.SFX.AutoPlay ?? false,
                 CuePauseSeconds = (next?.SFX.AutoPlayPauseMs ?? 0) / 1000.0,
+                CueFadeInMs = next?.SFX.FadeInDurationMs ?? 0,
+                CueFadeOutMs = next?.SFX.FadeOutDurationMs ?? 0,
+                CueFadeCurve = (next?.SFX.FadeCurve ?? classes.FadeCurve.Linear) == classes.FadeCurve.Logarithmic ? "Logarithmic" : "Linear",
                 PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
                 PrevCueDescription = prev?.SFX.Description ?? "",
                 PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? "")
@@ -1214,6 +1217,9 @@ namespace SFXPlayer
                 CueFileName = Path.GetFileName(next?.SFX.FileName ?? ""),
                 CueAutoRun = next?.SFX.AutoPlay ?? false,
                 CuePauseSeconds = (next?.SFX.AutoPlayPauseMs ?? 0) / 1000.0,
+                CueFadeInMs = next?.SFX.FadeInDurationMs ?? 0,
+                CueFadeOutMs = next?.SFX.FadeOutDurationMs ?? 0,
+                CueFadeCurve = (next?.SFX.FadeCurve ?? classes.FadeCurve.Linear) == classes.FadeCurve.Logarithmic ? "Logarithmic" : "Linear",
                 PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
                 PrevCueDescription = prev?.SFX.Description ?? "",
                 PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? "")
@@ -1576,6 +1582,44 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.AutoPlayPauseMs = (int)Math.Round(Math.Max(0, Math.Min(60, seconds)) * 1000);
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetNextCueFadeIn(int ms)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.FadeInDurationMs = Math.Max(0, ms);
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetNextCueFadeOut(int ms)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.FadeOutDurationMs = Math.Max(0, ms);
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetNextCueFadeCurve(string curve)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.FadeCurve = string.Equals(curve, "log", StringComparison.OrdinalIgnoreCase)
+                        ? classes.FadeCurve.Logarithmic
+                        : classes.FadeCurve.Linear;
                     UpdateWebApp();
                 }
             });

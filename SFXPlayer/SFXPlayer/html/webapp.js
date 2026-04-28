@@ -54,6 +54,17 @@ var WebApp = function () {
                                 if (detail && window._cueAutoRun && ps > 0) {
                                     detail.textContent = "\u21B7 Auto +" + ps.toFixed(1) + "s";
                                 }
+                            } else if (nodeName === "CueFadeInMs") {
+                                var fi = parseInt(nodeValue) || 0;
+                                var fiInput = document.getElementById("fadeInInput");
+                                if (fiInput) fiInput.value = fi;
+                            } else if (nodeName === "CueFadeOutMs") {
+                                var fo = parseInt(nodeValue) || 0;
+                                var foInput = document.getElementById("fadeOutInput");
+                                if (foInput) foInput.value = fo;
+                            } else if (nodeName === "CueFadeCurve") {
+                                var cs = document.getElementById("fadeCurveSelect");
+                                if (cs) cs.value = (nodeValue === "Logarithmic") ? "log" : "linear";
                             } else {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {
@@ -92,6 +103,18 @@ function setPause() {
     var pi = document.getElementById("pauseInput");
     var secs = parseFloat(pi ? pi.value : "0") || 0;
     webapp.sendCommand("pause:" + secs.toFixed(1));
+}
+
+function setFade() {
+    var fiInput = document.getElementById("fadeInInput");
+    var foInput = document.getElementById("fadeOutInput");
+    var csInput = document.getElementById("fadeCurveSelect");
+    var fadeIn  = parseInt(fiInput  ? fiInput.value  : "0") || 0;
+    var fadeOut = parseInt(foInput  ? foInput.value  : "0") || 0;
+    var curve   = csInput ? csInput.value : "linear";
+    webapp.sendCommand("fadein:"    + fadeIn);
+    webapp.sendCommand("fadeout:"   + fadeOut);
+    webapp.sendCommand("fadecurve:" + curve);
 }
 
 function deleteCue() {

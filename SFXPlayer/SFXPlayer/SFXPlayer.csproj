@@ -51,6 +51,7 @@
     <PackageReference Include="System.Security.AccessControl" Version="6.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="2.3.0" />
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="classes\MusicPlayer.cs">
@@ -144,6 +145,7 @@
     <EmbeddedResource Include="Resources\stopwatch-fill.svg" />
     <EmbeddedResource Include="Resources\stopwatch.svg" />
     <EmbeddedResource Include="Resources\speed-gauge.svg" />
+    <EmbeddedResource Include="Resources\music-note-beamed.svg" />
     <Content Include="Resources\SFXPlayer282.png" />
     <Content Include="Resources\Stop.png" />
     <Content Include="Resources\SFXPlayer.PNG" />

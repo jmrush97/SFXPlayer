@@ -118,6 +118,7 @@ namespace SFXPlayer
                 UpdatePlayerState(PlayerState);
                 UpdateAutoPlayLabel();
                 UpdateSpeedTooltip();
+                UpdateFadeTooltip();
                 UpdateWaveformBackground();
             }
         }
@@ -324,6 +325,7 @@ namespace SFXPlayer
         {
             UpdateButtonImage(bnVolume, "volume-up-fill.svg");
             UpdateButtonImage(bnSpeed, "speed-gauge.svg");
+            UpdateButtonImage(bnFade, "music-note-beamed.svg");
             UpdateButtonImage(bnPreview, "headphones.svg");
             UpdateButtonImage(bnPlay, "play-fill.svg");
             UpdateButtonImage(bnEdit, "blank.svg");
@@ -485,11 +487,38 @@ namespace SFXPlayer
             Settings.Default.LastAudioFolder = Path.GetDirectoryName(FileName); Settings.Default.Save();
             if (tbDescription.Text == SFX.ShortFileNameOnly) tbDescription.Text = "";
             SFX.FileName = FileName;
-            if (tbDescription.Text == "") tbDescription.Text = SFX.ShortFileNameOnly;
+            if (tbDescription.Text == "")
+            {
+                // Try to read media metadata tags (mp3, wma, mp4, etc.)
+                string metaDescription = TryReadMediaDescription(FileName);
+                tbDescription.Text = !string.IsNullOrWhiteSpace(metaDescription)
+                    ? metaDescription
+                    : SFX.ShortFileNameOnly;
+            }
             PlayerState = PlayerState.uninitialised;
             UpdateButtons();
             PreloadFile();
             UpdateWaveformBackground();
+        }
+
+        /// <summary>
+        /// Attempts to read title/artist from media file tags.
+        /// Returns "&lt;title&gt; - &lt;artist&gt;" or just title, or null if no tag information is available.
+        /// </summary>
+        private static string TryReadMediaDescription(string fileName)
+        {
+            try
+            {
+                using var tagFile = TagLib.File.Create(fileName);
+                string title  = tagFile.Tag?.Title?.Trim() ?? "";
+                string artist = (tagFile.Tag?.FirstPerformer ?? tagFile.Tag?.AlbumArtists?.FirstOrDefault() ?? "").Trim();
+                if (string.IsNullOrEmpty(title)) return null;
+                return string.IsNullOrEmpty(artist) ? title : $"{title} - {artist}";
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         internal void PreloadFile()
@@ -517,7 +546,8 @@ namespace SFXPlayer
             AppLogger.Info($"PlayStrip.LoadFile: loading \"{SFX.FileName}\" | description: \"{SFX.Description}\"");
             PlayerState = PlayerState.loading;
             UpdatePlayerState(PlayerState);
-            _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed);
+            _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
             _musicPlayer.Volume = SFX.Volume;
             PlayerState = PlayerState.loaded;
             AppLogger.Info($"PlayStrip.LoadFile: loaded \"{SFX.FileName}\" | duration: {_musicPlayer.Length}");
@@ -1013,7 +1043,8 @@ namespace SFXPlayer
                 if (wasPlaying) _musicPlayer.Stop();
                 if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
                 {
-                    _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed);
+                    _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                        SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
                     _musicPlayer.Volume = SFX.Volume;
                     PlayerState = PlayerState.loaded;
                     if (wasPlaying)
@@ -1036,6 +1067,118 @@ namespace SFXPlayer
                 Parent.Parent.Controls.Remove(speedControl);
             }
             UpdatePlayerState(PlayerState);
+        }
+
+        #endregion
+
+        #region Fade
+
+        bool justHiddenFade = false;
+
+        private void bnFade_Enter(object sender, EventArgs e)
+        {
+            justHiddenFade = false;
+        }
+
+        private void bnFade_Click(object sender, EventArgs e)
+        {
+            if (justHiddenFade)
+            {
+                justHiddenFade = false;
+                return;
+            }
+            ShowFadeDialog();
+        }
+
+        private void ShowFadeDialog()
+        {
+            using Form dialog = new Form();
+            dialog.Text = "Fade Settings";
+            dialog.ClientSize = new System.Drawing.Size(300, 175);
+            dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+            dialog.StartPosition = FormStartPosition.CenterParent;
+            dialog.MaximizeBox = false;
+            dialog.MinimizeBox = false;
+
+            Label lblIn = new Label { Text = "Fade In (ms):", Location = new System.Drawing.Point(10, 12), AutoSize = true };
+            NumericUpDown nudIn = new NumericUpDown
+            {
+                Location = new System.Drawing.Point(130, 10),
+                Width = 100,
+                Minimum = 0,
+                Maximum = 300000,
+                Value = Math.Max(0, Math.Min(300000, SFX.FadeInDurationMs)),
+                DecimalPlaces = 0
+            };
+
+            Label lblOut = new Label { Text = "Fade Out (ms):", Location = new System.Drawing.Point(10, 52), AutoSize = true };
+            NumericUpDown nudOut = new NumericUpDown
+            {
+                Location = new System.Drawing.Point(130, 50),
+                Width = 100,
+                Minimum = 0,
+                Maximum = 300000,
+                Value = Math.Max(0, Math.Min(300000, SFX.FadeOutDurationMs)),
+                DecimalPlaces = 0
+            };
+
+            Label lblCurve = new Label { Text = "Curve:", Location = new System.Drawing.Point(10, 92), AutoSize = true };
+            ComboBox cbCurve = new ComboBox
+            {
+                Location = new System.Drawing.Point(130, 90),
+                Width = 100,
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            cbCurve.Items.AddRange(new object[] { "Linear", "Logarithmic" });
+            cbCurve.SelectedIndex = (SFX.FadeCurve == classes.FadeCurve.Logarithmic) ? 1 : 0;
+
+            Button btnOK = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new System.Drawing.Point(120, 135), Width = 75 };
+            Button btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new System.Drawing.Point(205, 135), Width = 75 };
+            dialog.Controls.AddRange(new Control[] { lblIn, nudIn, lblOut, nudOut, lblCurve, cbCurve, btnOK, btnCancel });
+            dialog.AcceptButton = btnOK;
+            dialog.CancelButton = btnCancel;
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                SFX.FadeInDurationMs = (int)nudIn.Value;
+                SFX.FadeOutDurationMs = (int)nudOut.Value;
+                SFX.FadeCurve = cbCurve.SelectedIndex == 1 ? classes.FadeCurve.Logarithmic : classes.FadeCurve.Linear;
+                UpdateFadeTooltip();
+
+                // Reload so the new fade chain takes effect immediately
+                if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play)
+                {
+                    bool wasPlaying = PlayerState == PlayerState.play;
+                    if (wasPlaying) _musicPlayer.Stop();
+                    if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+                    {
+                        _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                            SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
+                        _musicPlayer.Volume = SFX.Volume;
+                        PlayerState = PlayerState.loaded;
+                        if (wasPlaying)
+                        {
+                            _musicPlayer.Play();
+                            PlayerState = PlayerState.play;
+                            PlayingStateChanged?.Invoke(this, true);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void UpdateFadeTooltip()
+        {
+            if (SFX == null) return;
+            string tip;
+            if (SFX.FadeInDurationMs == 0 && SFX.FadeOutDurationMs == 0)
+                tip = "Fade (none)";
+            else
+            {
+                string curveLabel = SFX.FadeCurve == classes.FadeCurve.Logarithmic ? "Log" : "Lin";
+                tip = $"Fade In={SFX.FadeInDurationMs}ms  Out={SFX.FadeOutDurationMs}ms  [{curveLabel}]";
+            }
+            toolTip1.SetToolTip(bnFade, tip);
         }
 
         #endregion

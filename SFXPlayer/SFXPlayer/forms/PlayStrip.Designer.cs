@@ -37,6 +37,7 @@
             bnPlay = new System.Windows.Forms.PictureBox();
             bnSpeed = new System.Windows.Forms.PictureBox();
             bnVolume = new System.Windows.Forms.PictureBox();
+            bnFade = new System.Windows.Forms.PictureBox();
             bnPreview = new System.Windows.Forms.PictureBox();
             bnEdit = new System.Windows.Forms.PictureBox();
             lbAutoPlay = new System.Windows.Forms.Label();
@@ -57,6 +58,7 @@
             ((System.ComponentModel.ISupportInitialize)bnPlay).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnSpeed).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnVolume).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)bnFade).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnPreview).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnEdit).BeginInit();
             Delete.SuspendLayout();
@@ -110,9 +112,10 @@
             // 
             // tableLayoutPanel1
             // 
-            tableLayoutPanel1.ColumnCount = 9;
+            tableLayoutPanel1.ColumnCount = 10;
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
@@ -127,7 +130,8 @@
             tableLayoutPanel1.Controls.Add(bnFile, 2, 0);
             tableLayoutPanel1.Controls.Add(bnSpeed, 6, 0);
             tableLayoutPanel1.Controls.Add(bnEdit, 7, 0);
-            tableLayoutPanel1.Controls.Add(bnVolume, 8, 0);
+            tableLayoutPanel1.Controls.Add(bnFade, 8, 0);
+            tableLayoutPanel1.Controls.Add(bnVolume, 9, 0);
             tableLayoutPanel1.Controls.Add(bnPreview, 3, 0);
             tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
@@ -222,6 +226,20 @@
             bnEdit.TabIndex = 8;
             bnEdit.TabStop = false;
             bnEdit.Click += bnEdit_Click;
+            // 
+            // bnFade
+            // 
+            bnFade.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+            bnFade.Location = new System.Drawing.Point(603, 6);
+            bnFade.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            bnFade.Name = "bnFade";
+            bnFade.Size = new System.Drawing.Size(33, 38);
+            bnFade.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            bnFade.TabIndex = 11;
+            bnFade.TabStop = false;
+            bnFade.Text = "Fade";
+            bnFade.Click += bnFade_Click;
+            bnFade.Enter += bnFade_Enter;
             // 
             // lbAutoPlay
             // 
@@ -330,6 +348,7 @@
             ((System.ComponentModel.ISupportInitialize)bnPlay).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnSpeed).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnVolume).EndInit();
+            ((System.ComponentModel.ISupportInitialize)bnFade).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnPreview).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnEdit).EndInit();
             Delete.ResumeLayout(false);
@@ -349,6 +368,7 @@
         private System.Windows.Forms.CheckBox bnStopAll;
         private System.Windows.Forms.PictureBox bnFile;
         private System.Windows.Forms.PictureBox bnVolume;
+        private System.Windows.Forms.PictureBox bnFade;
         private System.Windows.Forms.PictureBox bnPreview;
         private System.Windows.Forms.PictureBox bnEdit;
         private System.Windows.Forms.Label lbAutoPlay;

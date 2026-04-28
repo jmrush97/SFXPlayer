@@ -395,6 +395,20 @@ namespace SFXPlayer.classes
                                         {
                                             Program.mainForm.SetNextCuePauseSeconds(pauseSecs);
                                         }
+                                        else if (command.StartsWith("fadein:") &&
+                                            int.TryParse(command.Substring(7), out int fadeInMs))
+                                        {
+                                            Program.mainForm.SetNextCueFadeIn(fadeInMs);
+                                        }
+                                        else if (command.StartsWith("fadeout:") &&
+                                            int.TryParse(command.Substring(8), out int fadeOutMs))
+                                        {
+                                            Program.mainForm.SetNextCueFadeOut(fadeOutMs);
+                                        }
+                                        else if (command.StartsWith("fadecurve:"))
+                                        {
+                                            Program.mainForm.SetNextCueFadeCurve(command.Substring(10));
+                                        }
                                         break;
                                 }
                             }

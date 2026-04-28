@@ -130,6 +130,23 @@
                 <span id="CurrentSpeed">1.00</span>
             </td>
         </tr>
+        <tr style="height: 5%;">
+            <td colspan="4" style="padding: 2px 8px; font-size: 0.8em;">
+                <label>Fade In(ms):</label>
+                <input id="fadeInInput" type="number" min="0" max="300000" step="100" value="0" style="width:60px;" />
+                <label style="margin-left:6px;">Out(ms):</label>
+                <input id="fadeOutInput" type="number" min="0" max="300000" step="100" value="0" style="width:60px;" />
+                <label style="margin-left:6px;">Curve:</label>
+                <select id="fadeCurveSelect" style="font-size:0.9em;">
+                    <option value="linear">Linear</option>
+                    <option value="log">Logarithmic</option>
+                </select>
+                <button onclick="setFade()" style="font-size:0.75em;padding:2px 8px;margin-left:4px;">Set Fade</button>
+                <span id="CueFadeInMs" style="display:none;"></span>
+                <span id="CueFadeOutMs" style="display:none;"></span>
+                <span id="CueFadeCurve" style="display:none;"></span>
+            </td>
+        </tr>
     </table>
 </body>
 </html>

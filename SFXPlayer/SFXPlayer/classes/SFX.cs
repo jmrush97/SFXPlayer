@@ -8,6 +8,13 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace SFXPlayer.classes {
+
+    public enum FadeCurve
+    {
+        Linear,
+        Logarithmic
+    }
+
     [Serializable]
     [XmlInclude(typeof(MSCEvent))]
     public class SFX {
@@ -34,6 +41,14 @@ namespace SFXPlayer.classes {
         [DefaultValue("")] public string MainText { get { return _MainText; } set { _MainText = value; SFXBecameDirty?.Invoke(); } }
         [DefaultValue(50)] public int Volume { get { return _Volume; } set { _Volume = value; SFXBecameDirty?.Invoke(); } }
         [DefaultValue(1.0f)] public float Speed { get { return _Speed; } set { _Speed = value; SFXBecameDirty?.Invoke(); } }
+
+        private int _FadeInDurationMs = 0;
+        private int _FadeOutDurationMs = 0;
+        private FadeCurve _FadeCurve = FadeCurve.Linear;
+
+        [DefaultValue(0)] public int FadeInDurationMs { get { return _FadeInDurationMs; } set { _FadeInDurationMs = value; SFXBecameDirty?.Invoke(); } }
+        [DefaultValue(0)] public int FadeOutDurationMs { get { return _FadeOutDurationMs; } set { _FadeOutDurationMs = value; SFXBecameDirty?.Invoke(); } }
+        [DefaultValue(FadeCurve.Linear)] public FadeCurve FadeCurve { get { return _FadeCurve; } set { _FadeCurve = value; SFXBecameDirty?.Invoke(); } }
 
         private bool _AutoPlay = false;
         private int _AutoPlayPauseMs = 0;

@@ -77,24 +77,37 @@ namespace SFXPlayer.classes
             }
         }
 
-        public void Open(string filename, int deviceNumber, float speed = 1.0f)
+        public void Open(string filename, int deviceNumber, float speed = 1.0f,
+            int fadeInMs = 0, int fadeOutMs = 0, FadeCurve fadeCurve = FadeCurve.Linear)
         {
             CleanupPlayback();
-            AppLogger.Info($"MusicPlayer.Open: file=\"{filename}\", device={deviceNumber}, speed={speed}");
+            AppLogger.Info($"MusicPlayer.Open: file=\"{filename}\", device={deviceNumber}, speed={speed}, fadeIn={fadeInMs}ms, fadeOut={fadeOutMs}ms, curve={fadeCurve}");
             _waveSource = new AudioFileReader(filename);
             _soundOut = new WaveOutEvent();
             _soundOut.DeviceNumber = deviceNumber;
             _speed = speed;
+
+            ISampleProvider chain = (ISampleProvider)_waveSource;
+
             if (Math.Abs(speed - 1.0f) > 0.001f)
             {
-                _speedProvider = new SpeedSampleProvider((ISampleProvider)_waveSource, speed);
-                _soundOut.Init(new SampleToWaveProvider(_speedProvider));
+                _speedProvider = new SpeedSampleProvider(chain, speed);
+                chain = _speedProvider;
             }
             else
             {
                 _speedProvider = null;
-                _soundOut.Init(_waveSource);
             }
+
+            // Apply fade envelope if requested
+            if (fadeInMs > 0 || fadeOutMs > 0)
+            {
+                double totalSeconds = _waveSource.TotalTime.TotalSeconds;
+                chain = new FadeSampleProvider(chain, fadeInMs, fadeOutMs, totalSeconds, fadeCurve);
+            }
+
+            _soundOut.Init(new SampleToWaveProvider(chain));
+
             if (PlaybackStopped != null) _soundOut.PlaybackStopped += PlaybackStopped;
         }
 

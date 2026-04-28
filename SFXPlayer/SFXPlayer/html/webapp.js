@@ -28,6 +28,8 @@ var WebApp = function () {
                                 if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
                                 var volSpan = document.getElementById("CurrentVolume");
                                 if (volSpan) volSpan.textContent = nodeValue;
+                                var cueVolSpan = document.getElementById("CueVolume");
+                                if (cueVolSpan) cueVolSpan.textContent = "Vol: " + nodeValue;
                             } else if (nodeName === "CurrentSpeed") {
                                 var spd = parseFloat(nodeValue) || 1.0;
                                 var spdSlider = document.getElementById("speedSlider");

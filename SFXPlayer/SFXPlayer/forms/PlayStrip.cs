@@ -35,6 +35,8 @@ namespace SFXPlayer
         /// <summary>Threshold below which speed is considered equal to 1.0x for display purposes.</summary>
         private const float SpeedDisplayThreshold = 0.01f;
 
+        private static readonly Font _volumeLabelFont = new Font("Arial", 6.5f, FontStyle.Regular);
+
         private Bitmap graph;
         private readonly MusicPlayer _musicPlayer = new MusicPlayer();
         private readonly MusicPlayer _PreviewPlayer = new MusicPlayer();
@@ -82,6 +84,7 @@ namespace SFXPlayer
             _PreviewPlayer.PlaybackStopped += _PreviewPlayer_PlaybackStopped;
             volume.VolumeChanged += Volume_VolumeChanged;
             volume.Done += Volume_Done;
+            bnVolume.Paint += BnVolume_Paint;
             speedControl.SpeedChanged += SpeedControl_SpeedChanged;
             speedControl.Done += SpeedControl_Done;
 
@@ -118,6 +121,7 @@ namespace SFXPlayer
                 UpdatePlayerState(PlayerState);
                 UpdateAutoPlayLabel();
                 UpdateSpeedTooltip();
+                UpdateVolumeTooltip();
                 UpdateFadeTooltip();
                 UpdateWaveformBackground();
             }
@@ -990,7 +994,24 @@ namespace SFXPlayer
         {
             SFX.Volume = volume.Volume;
             _musicPlayer.Volume = SFX.Volume;
-            toolTip1.SetToolTip(bnVolume, "Vol=" + SFX.Volume.ToString());
+            UpdateVolumeTooltip();
+            bnVolume.Invalidate();
+        }
+
+        private void UpdateVolumeTooltip()
+        {
+            if (SFX == null) return;
+            toolTip1.SetToolTip(bnVolume, $"Vol={SFX.Volume}");
+        }
+
+        private void BnVolume_Paint(object sender, PaintEventArgs e)
+        {
+            if (SFX == null) return;
+            string volText = SFX.Volume.ToString();
+            SizeF textSize = e.Graphics.MeasureString(volText, _volumeLabelFont);
+            float x = (bnVolume.Width - textSize.Width) / 2f;
+            float y = bnVolume.Height - textSize.Height - 1;
+            e.Graphics.DrawString(volText, _volumeLabelFont, Brushes.Black, x, y);
         }
 
         private void Volume_Done(object sender, EventArgs e)

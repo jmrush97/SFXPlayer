@@ -65,6 +65,9 @@
     <Compile Update="forms\ucVolume.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Update="forms\ucSpeed.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <None Include="..\..\LICENSE.md">
       <Link>LICENSE.md</Link>
     </None>
@@ -100,6 +103,7 @@
     <EmbeddedResource Include="Resources\volume-up-fill.svg" />
     <EmbeddedResource Include="Resources\stopwatch-fill.svg" />
     <EmbeddedResource Include="Resources\stopwatch.svg" />
+    <EmbeddedResource Include="Resources\speed-gauge.svg" />
     <Content Include="Resources\SFXPlayer282.png" />
     <Content Include="Resources\Stop.png" />
     <Content Include="Resources\SFXPlayer.PNG" />

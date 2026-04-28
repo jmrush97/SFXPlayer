@@ -35,6 +35,7 @@
             lbIndex = new System.Windows.Forms.Label();
             tbDescription = new System.Windows.Forms.TextBox();
             bnPlay = new System.Windows.Forms.PictureBox();
+            bnSpeed = new System.Windows.Forms.PictureBox();
             bnVolume = new System.Windows.Forms.PictureBox();
             bnPreview = new System.Windows.Forms.PictureBox();
             bnEdit = new System.Windows.Forms.PictureBox();
@@ -54,6 +55,7 @@
             tableLayoutPanel2.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)bnPlay).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)bnSpeed).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnVolume).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnPreview).BeginInit();
             ((System.ComponentModel.ISupportInitialize)bnEdit).BeginInit();
@@ -74,7 +76,7 @@
             // bnFile
             // 
             bnFile.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            bnFile.Image = SFXPlayer.Properties.Resources.SoundFile2_18;
+            bnFile.Image = global::SFXPlayer.Properties.Resources.SoundFile2_18;
             bnFile.Location = new System.Drawing.Point(378, 6);
             bnFile.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnFile.Name = "bnFile";
@@ -108,9 +110,10 @@
             // 
             // tableLayoutPanel1
             // 
-            tableLayoutPanel1.ColumnCount = 8;
+            tableLayoutPanel1.ColumnCount = 9;
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
             tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 45F));
@@ -122,9 +125,10 @@
             tableLayoutPanel1.Controls.Add(bnPlay, 4, 0);
             tableLayoutPanel1.Controls.Add(bnStopAll, 5, 0);
             tableLayoutPanel1.Controls.Add(bnFile, 2, 0);
-            tableLayoutPanel1.Controls.Add(bnVolume, 7, 0);
+            tableLayoutPanel1.Controls.Add(bnSpeed, 6, 0);
+            tableLayoutPanel1.Controls.Add(bnEdit, 7, 0);
+            tableLayoutPanel1.Controls.Add(bnVolume, 8, 0);
             tableLayoutPanel1.Controls.Add(bnPreview, 3, 0);
-            tableLayoutPanel1.Controls.Add(bnEdit, 6, 0);
             tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
             tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
@@ -153,13 +157,13 @@
             tbDescription.Location = new System.Drawing.Point(57, 6);
             tbDescription.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             tbDescription.Name = "tbDescription";
-            tbDescription.Size = new System.Drawing.Size(311, 31);
+            tbDescription.Size = new System.Drawing.Size(266, 31);
             tbDescription.TabIndex = 1;
             // 
             // bnPlay
             // 
             bnPlay.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            bnPlay.Image = SFXPlayer.Properties.Resources.Play2_18;
+            bnPlay.Image = global::SFXPlayer.Properties.Resources.Play2_18;
             bnPlay.Location = new System.Drawing.Point(468, 6);
             bnPlay.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnPlay.Name = "bnPlay";
@@ -169,10 +173,24 @@
             bnPlay.TabStop = false;
             bnPlay.Click += bnPlay_Click;
             // 
+            // bnSpeed
+            // 
+            bnSpeed.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+            bnSpeed.Location = new System.Drawing.Point(513, 6);
+            bnSpeed.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            bnSpeed.Name = "bnSpeed";
+            bnSpeed.Size = new System.Drawing.Size(33, 38);
+            bnSpeed.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
+            bnSpeed.TabIndex = 10;
+            bnSpeed.TabStop = false;
+            bnSpeed.Text = "Speed";
+            bnSpeed.Click += bnSpeed_Click;
+            bnSpeed.Enter += bnSpeed_Enter;
+            // 
             // bnVolume
             // 
             bnVolume.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            bnVolume.Location = new System.Drawing.Point(603, 6);
+            bnVolume.Location = new System.Drawing.Point(648, 6);
             bnVolume.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnVolume.Name = "bnVolume";
             bnVolume.Size = new System.Drawing.Size(33, 38);
@@ -184,7 +202,7 @@
             // bnPreview
             // 
             bnPreview.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            bnPreview.Image = SFXPlayer.Properties.Resources.Headphones2_18;
+            bnPreview.Image = global::SFXPlayer.Properties.Resources.Headphones2_18;
             bnPreview.Location = new System.Drawing.Point(423, 6);
             bnPreview.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             bnPreview.Name = "bnPreview";
@@ -310,6 +328,7 @@
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)bnPlay).EndInit();
+            ((System.ComponentModel.ISupportInitialize)bnSpeed).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnVolume).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnPreview).EndInit();
             ((System.ComponentModel.ISupportInitialize)bnEdit).EndInit();
@@ -326,6 +345,7 @@
         private System.Windows.Forms.Label lbIndex;
         private System.Windows.Forms.TextBox tbDescription;
         private System.Windows.Forms.PictureBox bnPlay;
+        private System.Windows.Forms.PictureBox bnSpeed;
         private System.Windows.Forms.CheckBox bnStopAll;
         private System.Windows.Forms.PictureBox bnFile;
         private System.Windows.Forms.PictureBox bnVolume;

@@ -237,6 +237,7 @@ namespace SFXPlayer
                 PrevMainText = rtPrevMainText.Text,
                 MainText = rtMainText.Text,
                 TrackName = Path.GetFileName(next?.SFX.FileName),
+                TrackInfo = BuildTrackInfoString(next),
                 CurrentVolume = next?.SFX.Volume ?? 50,
                 CurrentSpeed = next?.SFX.Speed ?? 1.0f,
                 StopOthers = next?.SFX.StopOthers ?? false,
@@ -1171,6 +1172,20 @@ namespace SFXPlayer
             trackInfoLabel.ToolTipText = filePath;
         }
 
+        /// <summary>
+        /// Builds the formatted track info string for the current (next) cue,
+        /// matching the desktop trackInfoLabel format: "filename | duration @speedx"
+        /// </summary>
+        private static string BuildTrackInfoString(PlayStrip cue)
+        {
+            if (cue == null || string.IsNullOrEmpty(cue.SFX.FileName))
+                return "";
+            double dur = cue.PlaybackLength.TotalSeconds;
+            string durStr = dur > 0 ? FormatTime(dur) : "?";
+            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.0}x" : "";
+            return $"{Path.GetFileName(cue.SFX.FileName)} | {durStr}{speedStr}";
+        }
+
         private static string FormatTime(double totalSeconds)
         {
             int mins = (int)(totalSeconds / 60);
@@ -1188,6 +1203,7 @@ namespace SFXPlayer
                 PrevMainText = rtPrevMainText.Text,
                 MainText = rtMainText.Text,
                 TrackName = Path.GetFileName(next?.SFX.FileName),
+                TrackInfo = BuildTrackInfoString(next),
                 TrackPositionSeconds = positionSeconds,
                 TrackDurationSeconds = durationSeconds,
                 CurrentVolume = next?.SFX.Volume ?? 50,

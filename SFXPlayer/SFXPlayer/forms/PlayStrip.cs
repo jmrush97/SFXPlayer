@@ -37,6 +37,7 @@ namespace SFXPlayer
         private readonly MusicPlayer _musicPlayer = new MusicPlayer();
         private readonly MusicPlayer _PreviewPlayer = new MusicPlayer();
         ucVolume volume = new ucVolume();
+        ucSpeed speedControl = new ucSpeed();
         public event EventHandler StopAll;
         public event EventHandler<StatusEventArgs> ReportStatus;
         public event EventHandler<int> AutoPlayNext;
@@ -79,6 +80,8 @@ namespace SFXPlayer
             _PreviewPlayer.PlaybackStopped += _PreviewPlayer_PlaybackStopped;
             volume.VolumeChanged += Volume_VolumeChanged;
             volume.Done += Volume_Done;
+            speedControl.SpeedChanged += SpeedControl_SpeedChanged;
+            speedControl.Done += SpeedControl_Done;
 
 
         }
@@ -112,6 +115,7 @@ namespace SFXPlayer
                 bnStopAll.Checked = SFX.StopOthers;
                 UpdatePlayerState(PlayerState);
                 UpdateAutoPlayLabel();
+                UpdateSpeedTooltip();
                 UpdateWaveformBackground();
             }
         }
@@ -317,6 +321,7 @@ namespace SFXPlayer
         private void InitialiseButtons()
         {
             UpdateButtonImage(bnVolume, "volume-up-fill.svg");
+            UpdateButtonImage(bnSpeed, "speed-gauge.svg");
             UpdateButtonImage(bnPreview, "headphones.svg");
             UpdateButtonImage(bnPlay, "play-fill.svg");
             UpdateButtonImage(bnEdit, "blank.svg");
@@ -940,6 +945,92 @@ namespace SFXPlayer
             }
             UpdatePlayerState(PlayerState);
         }
+        #endregion
+
+        #region Speed
+
+        bool justHiddenSpeed = false;
+
+        private void bnSpeed_Enter(object sender, EventArgs e)
+        {
+            if (SFXPlayer.lastFocused == speedControl.Controls[0])
+            {
+                justHiddenSpeed = true;
+            }
+        }
+
+        private void bnSpeed_Click(object sender, EventArgs e)
+        {
+            if (justHiddenSpeed)
+            {
+                justHiddenSpeed = false;
+            }
+            else
+            {
+                Point Loc = Parent.Location;
+                Loc.X += Location.X + Width - speedControl.Width - volume.Width;
+                Loc.Y += Location.Y + Height;
+                if (Loc.Y + speedControl.Height > Parent.Parent.ClientSize.Height)
+                {
+                    Loc.Y = Parent.Parent.ClientSize.Height - speedControl.Height;
+                }
+                Parent.Parent.Controls.Add(speedControl);
+                Parent.Parent.Controls.SetChildIndex(speedControl, 0);
+                speedControl.Location = Loc;
+                speedControl.Speed = SFX.Speed;
+                speedControl.Focus();
+                BackColor = SystemColors.Highlight;
+            }
+        }
+
+        private void UpdateSpeedTooltip()
+        {
+            if (SFX == null) return;
+            float spd = SFX.Speed;
+            string tip = Math.Abs(spd - 1.0f) > 0.01f
+                ? $"Speed={spd:0.00}x"
+                : "Speed (1.00x)";
+            toolTip1.SetToolTip(bnSpeed, tip);
+        }
+
+        private void SpeedControl_SpeedChanged(object sender, EventArgs e)
+        {
+            float newSpeed = speedControl.Speed;
+            SFX.Speed = newSpeed;
+            toolTip1.SetToolTip(bnSpeed, $"Speed={newSpeed:0.00}x");
+
+            // Reload the audio with the new speed if the file is already loaded
+            if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play)
+            {
+                bool wasPlaying = PlayerState == PlayerState.play;
+                if (wasPlaying) _musicPlayer.Stop();
+                if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+                {
+                    _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed);
+                    _musicPlayer.Volume = SFX.Volume;
+                    PlayerState = PlayerState.loaded;
+                    if (wasPlaying)
+                    {
+                        _musicPlayer.Play();
+                        PlayerState = PlayerState.play;
+                        PlayingStateChanged?.Invoke(this, true);
+                    }
+                }
+            }
+            UpdatePlayButton();
+        }
+
+        private void SpeedControl_Done(object sender, EventArgs e)
+        {
+            if (Parent == null) return;
+            if (Parent.Parent == null) return;
+            if (Parent.Parent.Controls.Contains(speedControl))
+            {
+                Parent.Parent.Controls.Remove(speedControl);
+            }
+            UpdatePlayerState(PlayerState);
+        }
+
         #endregion
 
         #region DragNDrop

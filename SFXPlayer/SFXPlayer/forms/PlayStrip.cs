@@ -605,7 +605,8 @@ namespace SFXPlayer
 
         /// <summary>
         /// Generate a mini waveform bitmap and display it as the background of the
-        /// description text box so the user can see a representation of the audio.
+        /// description text box so the user can see a representation of the audio,
+        /// including fade-in and fade-out envelope overlays.
         /// </summary>
         private void UpdateWaveformBackground()
         {
@@ -622,7 +623,7 @@ namespace SFXPlayer
             {
                 int w = Math.Max(tbDescription.Width, 1);
                 int h = Math.Max(tbDescription.Height, 1);
-                var bmp = GenerateWaveformBitmap(SFX.FileName, w, h);
+                var bmp = GenerateWaveformBitmap(SFX.FileName, w, h, SFX.FadeInDurationMs, SFX.FadeOutDurationMs);
                 tbDescription.SetWaveform(bmp); // null is safe — SetWaveform clears if null
             }
             catch (Exception ex)
@@ -631,15 +632,20 @@ namespace SFXPlayer
             }
         }
 
-        private static Bitmap GenerateWaveformBitmap(string fileName, int width, int height)
+        /// <summary>Refresh the waveform background (e.g. after fade settings change).</summary>
+        public void RefreshWaveform() => UpdateWaveformBackground();
+
+        private static Bitmap GenerateWaveformBitmap(string fileName, int width, int height, int fadeInMs = 0, int fadeOutMs = 0)
         {
             const int sampleCount = 200; // number of x-buckets
             float[] peaks = new float[sampleCount];
             float maxPeak = 0;
+            double totalDurationSeconds = 0;
 
             try
             {
                 using var reader = new NAudio.Wave.AudioFileReader(fileName);
+                totalDurationSeconds = reader.TotalTime.TotalSeconds;
                 // Use BlockAlign (bytes per sample frame across all channels) for correct frame count
                 long totalFrames = reader.Length / reader.WaveFormat.BlockAlign;
                 long framesPerBucket = Math.Max(1, totalFrames / sampleCount);
@@ -690,6 +696,36 @@ namespace SFXPlayer
                 float x = i * scaleX + scaleX / 2f;
                 g.DrawLine(pen, x, mid - halfH, x, mid + halfH);
             }
+
+            // Overlay fade-in region (dark gradient from the left edge)
+            if (fadeInMs > 0 && totalDurationSeconds > 0)
+            {
+                float fadeInPct = Math.Min(1f, (float)(fadeInMs / 1000.0 / totalDurationSeconds));
+                int fadeInWidth = (int)(fadeInPct * width);
+                if (fadeInWidth > 1)
+                {
+                    using var fadeBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
+                        new Point(0, 0), new Point(fadeInWidth, 0),
+                        Color.FromArgb(200, 0, 0, 0), Color.FromArgb(0, 0, 0, 0));
+                    g.FillRectangle(fadeBrush, 0, 0, fadeInWidth, height);
+                }
+            }
+
+            // Overlay fade-out region (dark gradient toward the right edge)
+            if (fadeOutMs > 0 && totalDurationSeconds > 0)
+            {
+                float fadeOutPct = Math.Min(1f, (float)(fadeOutMs / 1000.0 / totalDurationSeconds));
+                int fadeOutWidth = (int)(fadeOutPct * width);
+                if (fadeOutWidth > 1)
+                {
+                    int fadeOutStart = width - fadeOutWidth;
+                    using var fadeBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
+                        new Point(fadeOutStart, 0), new Point(width, 0),
+                        Color.FromArgb(0, 0, 0, 0), Color.FromArgb(200, 0, 0, 0));
+                    g.FillRectangle(fadeBrush, fadeOutStart, 0, fadeOutWidth, height);
+                }
+            }
+
             return bitmap;
         }
 
@@ -1240,6 +1276,7 @@ namespace SFXPlayer
                 SFX.FadeOutDurationMs = (int)nudOut.Value;
                 SFX.FadeCurve = cbCurve.SelectedIndex == 1 ? classes.FadeCurve.Logarithmic : classes.FadeCurve.Linear;
                 UpdateFadeTooltip();
+                UpdateWaveformBackground();
 
                 // Reload so the new fade chain takes effect immediately
                 if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play)

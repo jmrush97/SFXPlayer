@@ -23,6 +23,7 @@ var WebApp = function () {
                                 posSeconds = parseFloat(nodeValue) || 0;
                             } else if (nodeName === "TrackDurationSeconds") {
                                 durSeconds = parseFloat(nodeValue) || 0;
+                                _trackDurationSeconds = durSeconds;
                             } else if (nodeName === "CurrentVolume") {
                                 var volSlider = document.getElementById("volumeSlider");
                                 if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
@@ -58,12 +59,16 @@ var WebApp = function () {
                                 }
                             } else if (nodeName === "CueFadeInMs") {
                                 var fi = parseInt(nodeValue) || 0;
+                                _cueFadeInMs = fi;
                                 var fiInput = document.getElementById("fadeInInput");
                                 if (fiInput) fiInput.value = fi;
+                                if (_waveformPeaks) drawWaveform();
                             } else if (nodeName === "CueFadeOutMs") {
                                 var fo = parseInt(nodeValue) || 0;
+                                _cueFadeOutMs = fo;
                                 var foInput = document.getElementById("fadeOutInput");
                                 if (foInput) foInput.value = fo;
+                                if (_waveformPeaks) drawWaveform();
                             } else if (nodeName === "CueFadeCurve") {
                                 var cs = document.getElementById("fadeCurveSelect");
                                 if (cs) cs.value = (nodeValue === "Logarithmic") ? "log" : "linear";
@@ -195,6 +200,9 @@ function formatTime(totalSeconds) {
 
 // ---- Waveform rendering ----
 var _waveformPeaks = null;
+var _cueFadeInMs = 0;
+var _cueFadeOutMs = 0;
+var _trackDurationSeconds = 0;
 
 function updateWaveform(csvData) {
     if (!csvData || csvData.length === 0) {
@@ -247,6 +255,33 @@ function drawWaveform() {
         ctx.lineTo(x, mid + halfH);
     }
     ctx.stroke();
+
+    // Overlay fade-in region (dark gradient from left edge)
+    if (_cueFadeInMs > 0 && _trackDurationSeconds > 0) {
+        var fadeInPct = Math.min(1, (_cueFadeInMs / 1000) / _trackDurationSeconds);
+        var fadeInWidth = fadeInPct * w;
+        if (fadeInWidth > 1) {
+            var grad = ctx.createLinearGradient(0, 0, fadeInWidth, 0);
+            grad.addColorStop(0, "rgba(0,0,0,0.78)");
+            grad.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, fadeInWidth, h);
+        }
+    }
+
+    // Overlay fade-out region (dark gradient toward right edge)
+    if (_cueFadeOutMs > 0 && _trackDurationSeconds > 0) {
+        var fadeOutPct = Math.min(1, (_cueFadeOutMs / 1000) / _trackDurationSeconds);
+        var fadeOutWidth = fadeOutPct * w;
+        if (fadeOutWidth > 1) {
+            var fadeOutStart = w - fadeOutWidth;
+            var grad2 = ctx.createLinearGradient(fadeOutStart, 0, w, 0);
+            grad2.addColorStop(0, "rgba(0,0,0,0)");
+            grad2.addColorStop(1, "rgba(0,0,0,0.78)");
+            ctx.fillStyle = grad2;
+            ctx.fillRect(fadeOutStart, 0, fadeOutWidth, h);
+        }
+    }
 }
 
 function updateWaveformPosition(posSeconds, durSeconds) {

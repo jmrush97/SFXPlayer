@@ -347,7 +347,8 @@ namespace SFXPlayer.classes
                         var nodes = xml.SelectNodes("command");
                         foreach (XmlNode childrenNode in nodes)
                         {
-                            string command = childrenNode.InnerText.ToLower();
+                            string rawCommand = childrenNode.InnerText;
+                            string command = rawCommand.ToLower();
                             if (Program.mainForm != null)
                             {
                                 switch (command)
@@ -411,11 +412,13 @@ namespace SFXPlayer.classes
                                         }
                                         else if (command.StartsWith("device:"))
                                         {
-                                            Program.mainForm.SetPlaybackDevice(command.Substring(7));
+                                            // Use rawCommand to preserve original case of device name
+                                            Program.mainForm.SetPlaybackDevice(rawCommand.Substring(7));
                                         }
                                         else if (command.StartsWith("previewdevice:"))
                                         {
-                                            Program.mainForm.SetPreviewDevice(command.Substring(14));
+                                            // Use rawCommand to preserve original case of device name
+                                            Program.mainForm.SetPreviewDevice(rawCommand.Substring(14));
                                         }
                                         break;
                                 }

@@ -1645,6 +1645,7 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.FadeInDurationMs = Math.Max(0, ms);
+                    NextPlayCue.RefreshWaveform();
                     UpdateWebApp();
                 }
             });
@@ -1657,6 +1658,7 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.FadeOutDurationMs = Math.Max(0, ms);
+                    NextPlayCue.RefreshWaveform();
                     UpdateWebApp();
                 }
             });

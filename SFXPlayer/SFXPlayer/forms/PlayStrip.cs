@@ -697,6 +697,8 @@ namespace SFXPlayer
                 g.DrawLine(pen, x, mid - halfH, x, mid + halfH);
             }
 
+            const int FadeOverlayAlpha = 200;
+
             // Overlay fade-in region (dark gradient from the left edge)
             if (fadeInMs > 0 && totalDurationSeconds > 0)
             {
@@ -706,7 +708,7 @@ namespace SFXPlayer
                 {
                     using var fadeBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
                         new Point(0, 0), new Point(fadeInWidth, 0),
-                        Color.FromArgb(200, 0, 0, 0), Color.FromArgb(0, 0, 0, 0));
+                        Color.FromArgb(FadeOverlayAlpha, 0, 0, 0), Color.FromArgb(0, 0, 0, 0));
                     g.FillRectangle(fadeBrush, 0, 0, fadeInWidth, height);
                 }
             }
@@ -721,7 +723,7 @@ namespace SFXPlayer
                     int fadeOutStart = width - fadeOutWidth;
                     using var fadeBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
                         new Point(fadeOutStart, 0), new Point(width, 0),
-                        Color.FromArgb(0, 0, 0, 0), Color.FromArgb(200, 0, 0, 0));
+                        Color.FromArgb(0, 0, 0, 0), Color.FromArgb(FadeOverlayAlpha, 0, 0, 0));
                     g.FillRectangle(fadeBrush, fadeOutStart, 0, fadeOutWidth, height);
                 }
             }

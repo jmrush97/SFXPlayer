@@ -203,6 +203,7 @@ var _waveformPeaks = null;
 var _cueFadeInMs = 0;
 var _cueFadeOutMs = 0;
 var _trackDurationSeconds = 0;
+var FADE_OVERLAY_OPACITY = 0.78;
 
 function updateWaveform(csvData) {
     if (!csvData || csvData.length === 0) {
@@ -262,7 +263,7 @@ function drawWaveform() {
         var fadeInWidth = fadeInPct * w;
         if (fadeInWidth > 1) {
             var grad = ctx.createLinearGradient(0, 0, fadeInWidth, 0);
-            grad.addColorStop(0, "rgba(0,0,0,0.78)");
+            grad.addColorStop(0, "rgba(0,0,0," + FADE_OVERLAY_OPACITY + ")");
             grad.addColorStop(1, "rgba(0,0,0,0)");
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, fadeInWidth, h);
@@ -277,7 +278,7 @@ function drawWaveform() {
             var fadeOutStart = w - fadeOutWidth;
             var grad2 = ctx.createLinearGradient(fadeOutStart, 0, w, 0);
             grad2.addColorStop(0, "rgba(0,0,0,0)");
-            grad2.addColorStop(1, "rgba(0,0,0,0.78)");
+            grad2.addColorStop(1, "rgba(0,0,0," + FADE_OVERLAY_OPACITY + ")");
             ctx.fillStyle = grad2;
             ctx.fillRect(fadeOutStart, 0, fadeOutWidth, h);
         }

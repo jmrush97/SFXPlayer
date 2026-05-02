@@ -818,6 +818,8 @@ namespace SFXPlayer
                         CurrentShow.Cues.Move(src, dest);
                         RemovePlaystrip(src);
                         InsertPlaystrip(ps.SFX, dest);
+                        PadCueList();
+                        NextPlayCueChanged();
                     }
                 }
             }

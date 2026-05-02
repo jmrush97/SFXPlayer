@@ -280,6 +280,7 @@ namespace SFXPlayer
         private void PlayStrip_Resize(object sender, EventArgs e)
         {
             ResizeProgressBar();
+            UpdateWaveformBackground();
         }
 
         private void UpdatePlayerState(PlayerState newstate)
@@ -450,6 +451,7 @@ namespace SFXPlayer
                 SFX.FileName = "";
                 PlayerState = PlayerState.uninitialised;
                 UpdateWaveformBackground();
+                CueChanged?.Invoke(this, EventArgs.Empty);
             }
             UpdateButtons();
         }

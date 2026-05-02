@@ -32,14 +32,23 @@ namespace SFXPlayer
 
     public partial class PlayStrip : UserControl
     {
+        /// <summary>Threshold below which speed is considered equal to 1.0x for display purposes.</summary>
+        private const float SpeedDisplayThreshold = 0.01f;
+
+        private static readonly Font _volumeLabelFont = new Font("Arial", 6.5f, FontStyle.Regular);
 
         private Bitmap graph;
         private readonly MusicPlayer _musicPlayer = new MusicPlayer();
         private readonly MusicPlayer _PreviewPlayer = new MusicPlayer();
         ucVolume volume = new ucVolume();
+        ucSpeed speedControl = new ucSpeed();
         public event EventHandler StopAll;
         public event EventHandler<StatusEventArgs> ReportStatus;
         public event EventHandler<int> AutoPlayNext;
+        public event EventHandler DeleteCue;
+        public event EventHandler AddCueBefore;
+        /// <summary>Fired when this strip starts or stops playing. Arg = true if now playing.</summary>
+        public event EventHandler<bool> PlayingStateChanged;
         int prevPct = -1;
 
         #region Initialisation
@@ -75,6 +84,9 @@ namespace SFXPlayer
             _PreviewPlayer.PlaybackStopped += _PreviewPlayer_PlaybackStopped;
             volume.VolumeChanged += Volume_VolumeChanged;
             volume.Done += Volume_Done;
+            bnVolume.Paint += BnVolume_Paint;
+            speedControl.SpeedChanged += SpeedControl_SpeedChanged;
+            speedControl.Done += SpeedControl_Done;
 
 
         }
@@ -107,6 +119,11 @@ namespace SFXPlayer
                 tbDescription.Text = SFX.Description;
                 bnStopAll.Checked = SFX.StopOthers;
                 UpdatePlayerState(PlayerState);
+                UpdateAutoPlayLabel();
+                UpdateSpeedTooltip();
+                UpdateVolumeTooltip();
+                UpdateFadeTooltip();
+                UpdateWaveformBackground();
             }
         }
 
@@ -118,6 +135,139 @@ namespace SFXPlayer
         private void bnStopAll_CheckedChanged(object sender, EventArgs e)
         {
             SFX.StopOthers = bnStopAll.Checked;
+        }
+
+        private void Delete_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            autoRunToolStripMenuItem.Checked = SFX.AutoPlay;
+            setPauseToolStripMenuItem.Text = string.Format("Set Auto-run Pause ({0:0.0}s)...",
+                SFX.AutoPlayPauseMs / 1000.0);
+
+            // Update cue-state radio indicators using shared label constants
+            bool hasFile = !string.IsNullOrEmpty(SFX.FileName);
+            const string labelNormal  = "Normal (Yellow)";
+            const string labelAutoRun = "Auto-run (Green)";
+            const string labelSkip    = "Skip / Not Run (White)";
+            cueStateNormalMenuItem.Text  = (hasFile && !SFX.Skipped && !SFX.AutoPlay) ? $"✔ {labelNormal}"  : $"○ {labelNormal}";
+            cueStateAutoRunMenuItem.Text = (hasFile && !SFX.Skipped &&  SFX.AutoPlay) ? $"✔ {labelAutoRun}" : $"○ {labelAutoRun}";
+            cueStateSkipMenuItem.Text    = (SFX.Skipped || !hasFile)                  ? $"✔ {labelSkip}"    : $"○ {labelSkip}";
+        }
+
+        private void addCueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AddCueBefore?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void cueStateNormalMenuItem_Click(object sender, EventArgs e)
+        {
+            SFX.Skipped = false;
+            SFX.AutoPlay = false;
+            UpdateStripBackColor();
+            UpdateAutoPlayLabel();
+        }
+
+        private void cueStateAutoRunMenuItem_Click(object sender, EventArgs e)
+        {
+            SFX.Skipped = false;
+            SFX.AutoPlay = true;
+            UpdateStripBackColor();
+            UpdateAutoPlayLabel();
+        }
+
+        private void cueStateSkipMenuItem_Click(object sender, EventArgs e)
+        {
+            SFX.Skipped = true;
+            UpdateStripBackColor();
+            UpdateAutoPlayLabel();
+        }
+
+        private void autoRunToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SFX.AutoPlay = autoRunToolStripMenuItem.Checked;
+            if (SFX.AutoPlay) SFX.Skipped = false;
+            UpdateStripBackColor();
+            UpdateAutoPlayLabel();
+        }
+
+        private void setPauseToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            double currentSecs = SFX.AutoPlayPauseMs / 1000.0;
+            string input = ShowInputDialog(
+                "Enter pause before next cue (seconds, e.g. 1.5):",
+                "Auto-run Pause",
+                currentSecs.ToString("0.0"));
+            if (string.IsNullOrEmpty(input)) return;
+            if (double.TryParse(input,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.CurrentCulture,
+                out double secs))
+            {
+                SFX.AutoPlayPauseMs = (int)Math.Round(Math.Max(0, Math.Min(60, secs)) * 1000);
+                UpdateAutoPlayLabel();
+            }
+        }
+
+        private void UpdateAutoPlayLabel()
+        {
+            if (SFX == null || !SFX.AutoPlay || SFX.Skipped)
+            {
+                lbAutoPlay.Visible = false;
+                return;
+            }
+            double pauseSecs = SFX.AutoPlayPauseMs / 1000.0;
+            if (pauseSecs > 0)
+                lbAutoPlay.Text = string.Format("⏩ Auto-run  +{0:0.0}s pause", pauseSecs);
+            else
+                lbAutoPlay.Text = "⏩ Auto-run (no pause)";
+            lbAutoPlay.Visible = true;
+        }
+
+        /// <summary>
+        /// Returns the loaded-state background color based on cue state:
+        /// White = no file or skipped, Yellow = normal, Green = auto-run
+        /// </summary>
+        private Color GetCueStateColor()
+        {
+            if (SFX == null || string.IsNullOrEmpty(SFX.FileName) || SFX.Skipped)
+                return Color.White;
+            return SFX.AutoPlay ? Color.LightGreen : Color.LightYellow;
+        }
+
+        /// <summary>
+        /// Apply the cue-state colour to the strip background when in a
+        /// non-transient state (loaded / uninitialised).
+        /// </summary>
+        private void UpdateStripBackColor()
+        {
+            if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.uninitialised)
+            {
+                BackColor = GetCueStateColor();
+            }
+        }
+
+        private static string ShowInputDialog(string prompt, string title, string defaultValue)
+        {
+            using Form dialog = new Form();
+            dialog.Text = title;
+            dialog.ClientSize = new System.Drawing.Size(300, 110);
+            dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+            dialog.StartPosition = FormStartPosition.CenterParent;
+            dialog.MaximizeBox = false;
+            dialog.MinimizeBox = false;
+            Label lbl = new Label { Text = prompt, Location = new System.Drawing.Point(10, 8), AutoSize = false, Width = 280, Height = 40 };
+            TextBox tb = new TextBox { Text = defaultValue, Location = new System.Drawing.Point(10, 52), Width = 280 };
+            Button btnOK = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new System.Drawing.Point(130, 78), Width = 75 };
+            Button btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new System.Drawing.Point(215, 78), Width = 75 };
+            dialog.Controls.AddRange(new Control[] { lbl, tb, btnOK, btnCancel });
+            dialog.AcceptButton = btnOK;
+            dialog.CancelButton = btnCancel;
+            tb.Select(0, defaultValue.Length);
+            return dialog.ShowDialog() == DialogResult.OK ? tb.Text : null;
+        }
+
+        private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            DeleteCue?.Invoke(this, EventArgs.Empty);
         }
 
         #endregion
@@ -134,20 +284,13 @@ namespace SFXPlayer
             switch (newstate)
             {
                 case PlayerState.uninitialised:
-                    if (string.IsNullOrEmpty(SFX.FileName))
-                    {
-                        BackColor = SystemColors.Control;
-                    }
-                    else
-                    {
-                        BackColor = Settings.Default.ColourPlayerIdle;
-                    }
+                    BackColor = GetCueStateColor();
                     break;
                 case PlayerState.loading:
                     BackColor = Settings.Default.ColourPlayerLoading;
                     break;
                 case PlayerState.loaded:
-                    BackColor = Settings.Default.ColourPlayerLoaded;
+                    BackColor = GetCueStateColor();
                     break;
                 case PlayerState.play:
                     //BackColor = Settings.Default.ColourPlayerPlay;
@@ -160,7 +303,7 @@ namespace SFXPlayer
                     BackColor = Color.Red;
                     break;
                 default:
-                    BackColor = Settings.Default.ColourPlayerIdle;
+                    BackColor = GetCueStateColor();
                     break;
             }
             prevPct = -1;
@@ -185,6 +328,8 @@ namespace SFXPlayer
         private void InitialiseButtons()
         {
             UpdateButtonImage(bnVolume, "volume-up-fill.svg");
+            UpdateButtonImage(bnSpeed, "speed-gauge.svg");
+            UpdateButtonImage(bnFade, "music-note-beamed.svg");
             UpdateButtonImage(bnPreview, "headphones.svg");
             UpdateButtonImage(bnPlay, "play-fill.svg");
             UpdateButtonImage(bnEdit, "blank.svg");
@@ -301,6 +446,7 @@ namespace SFXPlayer
                 if (tbDescription.Text == SFX.ShortFileNameOnly) tbDescription.Text = "";
                 SFX.FileName = "";
                 PlayerState = PlayerState.uninitialised;
+                UpdateWaveformBackground();
             }
             UpdateButtons();
         }
@@ -345,10 +491,38 @@ namespace SFXPlayer
             Settings.Default.LastAudioFolder = Path.GetDirectoryName(FileName); Settings.Default.Save();
             if (tbDescription.Text == SFX.ShortFileNameOnly) tbDescription.Text = "";
             SFX.FileName = FileName;
-            if (tbDescription.Text == "") tbDescription.Text = SFX.ShortFileNameOnly;
+            if (tbDescription.Text == "")
+            {
+                // Try to read media metadata tags (mp3, wma, mp4, etc.)
+                string metaDescription = TryReadMediaDescription(FileName);
+                tbDescription.Text = !string.IsNullOrWhiteSpace(metaDescription)
+                    ? metaDescription
+                    : SFX.ShortFileNameOnly;
+            }
             PlayerState = PlayerState.uninitialised;
             UpdateButtons();
             PreloadFile();
+            UpdateWaveformBackground();
+        }
+
+        /// <summary>
+        /// Attempts to read title/artist from media file tags.
+        /// Returns "<title> - <artist>" or just title, or null if no tag information is available.
+        /// </summary>
+        private static string TryReadMediaDescription(string fileName)
+        {
+            try
+            {
+                using var tagFile = TagLib.File.Create(fileName);
+                string title  = tagFile.Tag?.Title?.Trim() ?? "";
+                string artist = (tagFile.Tag?.FirstPerformer ?? tagFile.Tag?.AlbumArtists?.FirstOrDefault() ?? "").Trim();
+                if (string.IsNullOrEmpty(title)) return null;
+                return string.IsNullOrEmpty(artist) ? title : $"{title} - {artist}";
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         internal void PreloadFile()
@@ -376,10 +550,102 @@ namespace SFXPlayer
             AppLogger.Info($"PlayStrip.LoadFile: loading \"{SFX.FileName}\" | description: \"{SFX.Description}\"");
             PlayerState = PlayerState.loading;
             UpdatePlayerState(PlayerState);
-            _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed);
+            _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
             _musicPlayer.Volume = SFX.Volume;
             PlayerState = PlayerState.loaded;
             AppLogger.Info($"PlayStrip.LoadFile: loaded \"{SFX.FileName}\" | duration: {_musicPlayer.Length}");
+        }
+
+        /// <summary>
+        /// Generate a mini waveform bitmap and display it as the background of the
+        /// description text box so the user can see a representation of the audio.
+        /// </summary>
+        private void UpdateWaveformBackground()
+        {
+            // Clear first
+            var old = tbDescription.BackgroundImage;
+            tbDescription.BackgroundImage = null;
+            old?.Dispose();
+
+            if (string.IsNullOrEmpty(SFX.FileName) || !File.Exists(SFX.FileName)) return;
+            try
+            {
+                int w = Math.Max(tbDescription.Width, 1);
+                int h = Math.Max(tbDescription.Height, 1);
+                var bmp = GenerateWaveformBitmap(SFX.FileName, w, h);
+                if (bmp != null)
+                {
+                    tbDescription.BackgroundImage = bmp;
+                    tbDescription.BackgroundImageLayout = ImageLayout.Stretch;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"PlayStrip.UpdateWaveformBackground: {ex.Message}");
+            }
+        }
+
+        private static Bitmap GenerateWaveformBitmap(string fileName, int width, int height)
+        {
+            const int sampleCount = 200; // number of x-buckets
+            float[] peaks = new float[sampleCount];
+            float maxPeak = 0;
+
+            try
+            {
+                using var reader = new NAudio.Wave.AudioFileReader(fileName);
+                // Use BlockAlign (bytes per sample frame across all channels) for correct frame count
+                long totalFrames = reader.Length / reader.WaveFormat.BlockAlign;
+                long framesPerBucket = Math.Max(1, totalFrames / sampleCount);
+                float[] buffer = new float[4096];
+                int bucket = 0;
+                float bucketMax = 0;
+                long bucketFilled = 0;
+                int read;
+                while (bucket < sampleCount && (read = reader.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    for (int i = 0; i < read && bucket < sampleCount; i++)
+                    {
+                        float abs = Math.Abs(buffer[i]);
+                        if (abs > bucketMax) bucketMax = abs;
+                        // Count in mono-equivalent frames (divide by channel count)
+                        if (i % reader.WaveFormat.Channels == reader.WaveFormat.Channels - 1)
+                        {
+                            bucketFilled++;
+                            if (bucketFilled >= framesPerBucket)
+                            {
+                                peaks[bucket++] = bucketMax;
+                                bucketFilled = 0;
+                                bucketMax = 0;
+                            }
+                        }
+                    }
+                }
+                foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"GenerateWaveformBitmap error: {ex.Message}");
+                return null;
+            }
+
+            if (maxPeak < 0.0001f) return null;
+
+            var bitmap = new Bitmap(width, height);
+            using var g = Graphics.FromImage(bitmap);
+            g.Clear(Color.Transparent);
+            using var pen = new Pen(Color.FromArgb(80, 100, 160, 100), 1f);
+            float scaleX = (float)width / sampleCount;
+            float mid = height / 2f;
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float normalised = peaks[i] / maxPeak;
+                float halfH = normalised * mid * 0.9f;
+                float x = i * scaleX + scaleX / 2f;
+                g.DrawLine(pen, x, mid - halfH, x, mid + halfH);
+            }
+            return bitmap;
         }
 
         #endregion
@@ -457,6 +723,11 @@ namespace SFXPlayer
         public void Play()
         {
             AppLogger.Info($"PlayStrip.Play: \"{SFX.FileName}\" | description: \"{SFX.Description}\"");
+            if (SFX.Skipped)
+            {
+                AppLogger.Info($"PlayStrip.Play: cue is skipped, not playing");
+                return;
+            }
             if (PlayerState == PlayerState.uninitialised)
             {
                 LoadFile();
@@ -469,6 +740,11 @@ namespace SFXPlayer
             {
                 PlayFromStart();
                 ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly));
+            }
+            else if (string.IsNullOrEmpty(SFX.FileName) && SFX.AutoPlay)
+            {
+                // Blank cue (no audio file): completes instantly; trigger auto-follow immediately.
+                TriggerAutoPlay();
             }
         }
 
@@ -499,6 +775,7 @@ namespace SFXPlayer
             if (SFX.DebounceStartMs > 0)
             {
                 PlayerState = PlayerState.play;
+                PlayingStateChanged?.Invoke(this, true);
                 UpdatePlayButton();
                 System.Threading.Tasks.Task.Delay(SFX.DebounceStartMs).ContinueWith(_ =>
                 {
@@ -518,6 +795,7 @@ namespace SFXPlayer
             {
                 _musicPlayer.Play();
                 PlayerState = PlayerState.play;
+                PlayingStateChanged?.Invoke(this, true);
                 UpdatePlayButton();
             }
             if (SFX.Triggers.Any()) { timer1.Start(); LastTrigger = 0; }
@@ -537,7 +815,6 @@ namespace SFXPlayer
             AppLogger.Info($"PlayStrip.UnPause: \"{SFX.FileName}\"");
             _musicPlayer.Resume();
             PlayerState = PlayerState.play;
-            ReportStatus?.Invoke(this, new StatusEventArgs("Playing " + SFX.ShortFileNameOnly));
             UpdatePlayButton();
         }
 
@@ -551,6 +828,7 @@ namespace SFXPlayer
                 _musicPlayer.Stop();
                 //_musicPlayer.Volume = SFX.Volume;
                 PlayerState = PlayerState.loaded;
+                PlayingStateChanged?.Invoke(this, false);
                 UpdatePlayButton();
             }
         }
@@ -558,6 +836,7 @@ namespace SFXPlayer
         private void _musicPlayer_PlaybackStopped(object sender, StoppedEventArgs e)
         {
             PlayerState = PlayerState.loaded;
+            PlayingStateChanged?.Invoke(this, false);
             UpdatePlayButton();
             try
             {
@@ -621,17 +900,40 @@ namespace SFXPlayer
         private Rectangle DrawGraph(int pct)
         {
             pct = Math.Max(0, Math.Min(Width, pct));
-            Graphics graphGraphics = Graphics.FromImage(graph);
-            SolidBrush brush = new SolidBrush(Settings.Default.ColourPlayerPlay);
-            if (pct > 0)
+            Graphics g = Graphics.FromImage(graph);
+
+            // Main progress fill
+            using (SolidBrush brush = new SolidBrush(Settings.Default.ColourPlayerPlay))
+                if (pct > 0)
+                    g.FillRectangle(brush, 0, 0, pct, Height);
+
+            using (SolidBrush brush = new SolidBrush(Settings.Default.ColourPlayerLoaded))
+                if (pct < Width)
+                    g.FillRectangle(brush, pct, 0, Width - pct, Height);
+
+            // Volume level indicator — a thin bar at the bottom showing effective volume
+            // Height of bar is proportional to current volume × fade gain
+            float fadeGain = PlayerState == PlayerState.play ? _musicPlayer.CurrentFadeGain : 1.0f;
+            int volPct = SFX?.Volume ?? 50;  // 0–100
+            float effectiveVol = (volPct / 100f) * fadeGain;  // 0–1
+            const float VolBarHeightFraction = 0.18f;   // fraction of strip height used for the volume bar
+            const float VolMidThreshold     = 0.5f;     // above this, interpolate green → yellow; below, yellow → red
+            int barH = Math.Max(2, (int)(Height * VolBarHeightFraction));
+            int barW = (int)(Width * effectiveVol);
+            if (barW > 0)
             {
-                graphGraphics.FillRectangle(brush, 0, 0, pct, Height);
+                // Color: green at full volume, yellow at mid, red at silence
+                int r = effectiveVol >= VolMidThreshold
+                    ? (int)(255 * (1f - effectiveVol) * 2f)   // full→mid: 0→255 red
+                    : 255;                                      // mid→silence: always 255 red
+                int grn = effectiveVol >= VolMidThreshold
+                    ? 200                                       // full→mid: fixed green
+                    : (int)(255 * effectiveVol * 2f);          // mid→silence: 255→0 green
+                Color volColor = Color.FromArgb(180, Math.Max(0, Math.Min(255, r)), Math.Max(0, Math.Min(255, grn)), 0);
+                using (SolidBrush brush = new SolidBrush(volColor))
+                    g.FillRectangle(brush, 0, Height - barH, barW, barH);
             }
-            brush = new SolidBrush(Settings.Default.ColourPlayerLoaded);
-            if (pct < Width)
-            {
-                graphGraphics.FillRectangle(brush, pct, 0, Width - pct, Height);
-            }
+
             if (prevPct == -1)
             {
                 prevPct = pct;
@@ -692,7 +994,24 @@ namespace SFXPlayer
         {
             SFX.Volume = volume.Volume;
             _musicPlayer.Volume = SFX.Volume;
-            toolTip1.SetToolTip(bnVolume, "Vol=" + SFX.Volume.ToString());
+            UpdateVolumeTooltip();
+            bnVolume.Invalidate();
+        }
+
+        private void UpdateVolumeTooltip()
+        {
+            if (SFX == null) return;
+            toolTip1.SetToolTip(bnVolume, $"Vol={SFX.Volume}");
+        }
+
+        private void BnVolume_Paint(object sender, PaintEventArgs e)
+        {
+            if (SFX == null) return;
+            string volText = SFX.Volume.ToString();
+            SizeF textSize = e.Graphics.MeasureString(volText, _volumeLabelFont);
+            float x = (bnVolume.Width - textSize.Width) / 2f;
+            float y = bnVolume.Height - textSize.Height - 1;
+            e.Graphics.DrawString(volText, _volumeLabelFont, Brushes.Black, x, y);
         }
 
         private void Volume_Done(object sender, EventArgs e)
@@ -707,6 +1026,205 @@ namespace SFXPlayer
             }
             UpdatePlayerState(PlayerState);
         }
+        #endregion
+
+        #region Speed
+
+        bool justHiddenSpeed = false;
+
+        private void bnSpeed_Enter(object sender, EventArgs e)
+        {
+            if (SFXPlayer.lastFocused == speedControl.Controls[0])
+            {
+                justHiddenSpeed = true;
+            }
+        }
+
+        private void bnSpeed_Click(object sender, EventArgs e)
+        {
+            if (justHiddenSpeed)
+            {
+                justHiddenSpeed = false;
+            }
+            else
+            {
+                Point Loc = Parent.Location;
+                Loc.X += Location.X + Width - speedControl.Width - volume.Width;
+                Loc.Y += Location.Y + Height;
+                if (Loc.Y + speedControl.Height > Parent.Parent.ClientSize.Height)
+                {
+                    Loc.Y = Parent.Parent.ClientSize.Height - speedControl.Height;
+                }
+                Parent.Parent.Controls.Add(speedControl);
+                Parent.Parent.Controls.SetChildIndex(speedControl, 0);
+                speedControl.Location = Loc;
+                speedControl.Speed = SFX.Speed;
+                speedControl.Focus();
+                BackColor = SystemColors.Highlight;
+            }
+        }
+
+        private void UpdateSpeedTooltip()
+        {
+            if (SFX == null) return;
+            float spd = SFX.Speed;
+            string tip = Math.Abs(spd - 1.0f) > SpeedDisplayThreshold
+                ? $"Speed={spd:0.00}x"
+                : "Speed (1.00x)";
+            toolTip1.SetToolTip(bnSpeed, tip);
+        }
+
+        private void SpeedControl_SpeedChanged(object sender, EventArgs e)
+        {
+            float newSpeed = speedControl.Speed;
+            SFX.Speed = newSpeed;
+            toolTip1.SetToolTip(bnSpeed, $"Speed={newSpeed:0.00}x");
+
+            // Reload the audio with the new speed if the file is already loaded
+            if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play)
+            {
+                bool wasPlaying = PlayerState == PlayerState.play;
+                if (wasPlaying) _musicPlayer.Stop();
+                if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+                {
+                    _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                        SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
+                    _musicPlayer.Volume = SFX.Volume;
+                    PlayerState = PlayerState.loaded;
+                    if (wasPlaying)
+                    {
+                        _musicPlayer.Play();
+                        PlayerState = PlayerState.play;
+                        PlayingStateChanged?.Invoke(this, true);
+                    }
+                }
+            }
+            UpdatePlayButton();
+        }
+
+        private void SpeedControl_Done(object sender, EventArgs e)
+        {
+            if (Parent == null) return;
+            if (Parent.Parent == null) return;
+            if (Parent.Parent.Controls.Contains(speedControl))
+            {
+                Parent.Parent.Controls.Remove(speedControl);
+            }
+            UpdatePlayerState(PlayerState);
+        }
+
+        #endregion
+
+        #region Fade
+
+        bool justHiddenFade = false;
+
+        private void bnFade_Enter(object sender, EventArgs e)
+        {
+            justHiddenFade = false;
+        }
+
+        private void bnFade_Click(object sender, EventArgs e)
+        {
+            if (justHiddenFade)
+            {
+                justHiddenFade = false;
+                return;
+            }
+            ShowFadeDialog();
+        }
+
+        private void ShowFadeDialog()
+        {
+            using Form dialog = new Form();
+            dialog.Text = "Fade Settings";
+            dialog.ClientSize = new System.Drawing.Size(300, 175);
+            dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+            dialog.StartPosition = FormStartPosition.CenterParent;
+            dialog.MaximizeBox = false;
+            dialog.MinimizeBox = false;
+
+            Label lblIn = new Label { Text = "Fade In (ms):", Location = new System.Drawing.Point(10, 12), AutoSize = true };
+            NumericUpDown nudIn = new NumericUpDown
+            {
+                Location = new System.Drawing.Point(130, 10),
+                Width = 100,
+                Minimum = 0,
+                Maximum = 300000,
+                Value = Math.Max(0, Math.Min(300000, SFX.FadeInDurationMs)),
+                DecimalPlaces = 0
+            };
+
+            Label lblOut = new Label { Text = "Fade Out (ms):", Location = new System.Drawing.Point(10, 52), AutoSize = true };
+            NumericUpDown nudOut = new NumericUpDown
+            {
+                Location = new System.Drawing.Point(130, 50),
+                Width = 100,
+                Minimum = 0,
+                Maximum = 300000,
+                Value = Math.Max(0, Math.Min(300000, SFX.FadeOutDurationMs)),
+                DecimalPlaces = 0
+            };
+
+            Label lblCurve = new Label { Text = "Curve:", Location = new System.Drawing.Point(10, 92), AutoSize = true };
+            ComboBox cbCurve = new ComboBox
+            {
+                Location = new System.Drawing.Point(130, 90),
+                Width = 100,
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            cbCurve.Items.AddRange(new object[] { "Linear", "Logarithmic" });
+            cbCurve.SelectedIndex = (SFX.FadeCurve == classes.FadeCurve.Logarithmic) ? 1 : 0;
+
+            Button btnOK = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new System.Drawing.Point(120, 135), Width = 75 };
+            Button btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new System.Drawing.Point(205, 135), Width = 75 };
+            dialog.Controls.AddRange(new Control[] { lblIn, nudIn, lblOut, nudOut, lblCurve, cbCurve, btnOK, btnCancel });
+            dialog.AcceptButton = btnOK;
+            dialog.CancelButton = btnCancel;
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                SFX.FadeInDurationMs = (int)nudIn.Value;
+                SFX.FadeOutDurationMs = (int)nudOut.Value;
+                SFX.FadeCurve = cbCurve.SelectedIndex == 1 ? classes.FadeCurve.Logarithmic : classes.FadeCurve.Linear;
+                UpdateFadeTooltip();
+
+                // Reload so the new fade chain takes effect immediately
+                if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play)
+                {
+                    bool wasPlaying = PlayerState == PlayerState.play;
+                    if (wasPlaying) _musicPlayer.Stop();
+                    if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+                    {
+                        _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                            SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
+                        _musicPlayer.Volume = SFX.Volume;
+                        PlayerState = PlayerState.loaded;
+                        if (wasPlaying)
+                        {
+                            _musicPlayer.Play();
+                            PlayerState = PlayerState.play;
+                            PlayingStateChanged?.Invoke(this, true);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void UpdateFadeTooltip()
+        {
+            if (SFX == null) return;
+            string tip;
+            if (SFX.FadeInDurationMs == 0 && SFX.FadeOutDurationMs == 0)
+                tip = "Fade (none)";
+            else
+            {
+                string curveLabel = SFX.FadeCurve == classes.FadeCurve.Logarithmic ? "Log" : "Lin";
+                tip = $"Fade In={SFX.FadeInDurationMs}ms  Out={SFX.FadeOutDurationMs}ms  [{curveLabel}]";
+            }
+            toolTip1.SetToolTip(bnFade, tip);
+        }
+
         #endregion
 
         #region DragNDrop
@@ -752,6 +1270,12 @@ namespace SFXPlayer
 
         private void bnEdit_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrEmpty(SFX.FileName) || !File.Exists(SFX.FileName))
+            {
+                MessageBox.Show("Please select an audio file before adding event triggers.",
+                    "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
             Cursor cursor = Cursor.Current;
             Cursor = Cursors.WaitCursor;
             TimeStamper timeStamper = new TimeStamper();

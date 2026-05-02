@@ -51,19 +51,63 @@
     <PackageReference Include="System.Security.AccessControl" Version="6.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="2.3.0" />
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="classes\MusicPlayer.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Update="forms\MSCEventEditor.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MSCEventEditor.resx</DependentUpon>
+    </Compile>
     <Compile Update="forms\PlayStrip.cs">
       <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="forms\PlayStrip.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PlayStrip.resx</DependentUpon>
+    </Compile>
+    <Compile Update="forms\SFXPlayer.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SFXPlayer.resx</DependentUpon>
     </Compile>
     <Compile Update="forms\Spacer.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Update="forms\Spacer.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Spacer.resx</DependentUpon>
+    </Compile>
+    <Compile Update="forms\SplashScreen.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SplashScreen.resx</DependentUpon>
+    </Compile>
+    <Compile Update="forms\TimeStamper.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TimeStamper.resx</DependentUpon>
+    </Compile>
     <Compile Update="forms\ucVolume.cs">
       <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="forms\ucSpeed.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="forms\ucVolume.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ucVolume.resx</DependentUpon>
+    </Compile>
+    <Compile Update="ResourcesSvg.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ResourcesSvg.resx</DependentUpon>
     </Compile>
     <None Include="..\..\LICENSE.md">
       <Link>LICENSE.md</Link>
@@ -100,6 +144,8 @@
     <EmbeddedResource Include="Resources\volume-up-fill.svg" />
     <EmbeddedResource Include="Resources\stopwatch-fill.svg" />
     <EmbeddedResource Include="Resources\stopwatch.svg" />
+    <EmbeddedResource Include="Resources\speed-gauge.svg" />
+    <EmbeddedResource Include="Resources\music-note-beamed.svg" />
     <Content Include="Resources\SFXPlayer282.png" />
     <Content Include="Resources\Stop.png" />
     <Content Include="Resources\SFXPlayer.PNG" />
@@ -137,11 +183,45 @@
   <ItemGroup>
     <Folder Include="html\bootstrap\" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="forms\MSCEventEditor.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>MSCEventEditor.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="forms\PlayStrip.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>PlayStrip.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="forms\SFXPlayer.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>SFXPlayer.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="forms\Spacer.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Spacer.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="forms\SplashScreen.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>SplashScreen.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="forms\TimeStamper.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>TimeStamper.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="forms\ucVolume.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ucVolume.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="ResourcesSvg.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ResourcesSvg.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
   
   <!-- Post-build event to run web service tests (Windows only — requires Microsoft.WindowsDesktop.App runtime) -->
   <Target Name="RunWebServiceTests" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' and '$(OS)' == 'Windows_NT'">
     <Message Text="Running WebApp integration tests..." Importance="high" />
-    <Exec Command="dotnet test $(MSBuildProjectDirectory)\..\SFXPlayer.Tests\SFXPlayer.Tests.csproj --filter &quot;FullyQualifiedName~WebAppTests&quot; --logger:&quot;console;verbosity=normal&quot;" ContinueOnError="true" IgnoreExitCode="false">
+    <Exec Command="dotnet test $(MSBuildProjectDirectory)\..\SFXPlayer.Tests\SFXPlayer.Tests.csproj --filter &quot;FullyQualifiedName~WebAppTests&quot; --logger:&quot;console;verbosity=normal&quot; --no-build" ContinueOnError="true" IgnoreExitCode="false">
       <Output TaskParameter="ExitCode" PropertyName="TestExitCode" />
     </Exec> 
     <Message Text="WebApp tests completed with exit code: $(TestExitCode)" Importance="high" />

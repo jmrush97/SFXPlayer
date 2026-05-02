@@ -1690,6 +1690,7 @@ namespace SFXPlayer
         private static float[] GenerateWaveformPeaks(string fileName, int bucketCount)
         {
             const int readBufferSize = 4096;
+            const float MinPeakThreshold = 0.0001f;  // minimum detectable audio level
             float[] peaks = new float[bucketCount];
             try
             {
@@ -1721,7 +1722,7 @@ namespace SFXPlayer
                 }
                 float maxPeak = 0;
                 foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
-                if (maxPeak < 0.0001f) return null;
+                if (maxPeak < MinPeakThreshold) return null;
                 for (int i = 0; i < bucketCount; i++)
                     peaks[i] = peaks[i] / maxPeak;
             }

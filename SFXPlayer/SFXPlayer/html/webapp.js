@@ -253,7 +253,7 @@ function updateFadeGain(gain) {
 
 // ---- Playing info visibility ----
 function updatePlayingInfoVisibility() {
-    var row = document.getElementById("playingInfoRow");
+    var row = document.getElementById("playingInfoContent");
     if (!row) return;
     row.style.color = window._isPlaying ? "#8f8" : "#666";
 }
@@ -271,18 +271,18 @@ function updateDeviceDropdown(pipeSeparatedList) {
     }
     var same = (existing.length === devices.length);
     if (same) {
-        for (var i = 0; i < devices.length; i++) {
-            if (existing[i] !== devices[i]) { same = false; break; }
+        for (var j = 0; j < devices.length; j++) {
+            if (existing[j] !== devices[j]) { same = false; break; }
         }
     }
     if (same) return;
     var currentDevice = window._currentPlaybackDevice || (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].value : "");
     sel.innerHTML = "";
-    for (var i = 0; i < devices.length; i++) {
+    for (var k = 0; k < devices.length; k++) {
         var opt = document.createElement("option");
-        opt.value = devices[i];
-        opt.textContent = devices[i];
-        if (devices[i] === currentDevice) opt.selected = true;
+        opt.value = devices[k];
+        opt.textContent = devices[k];
+        if (devices[k] === currentDevice) opt.selected = true;
         sel.appendChild(opt);
     }
 }

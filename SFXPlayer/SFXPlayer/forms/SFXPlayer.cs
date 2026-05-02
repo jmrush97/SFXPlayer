@@ -1565,6 +1565,8 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.Volume = Math.Max(0, Math.Min(100, vol));
+                    NextPlayCue.RefreshVolumeDisplay();
+                    UpdateWebApp();
                 }
             });
         }
@@ -1576,6 +1578,7 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.Speed = Math.Max(0.1f, Math.Min(20.0f, speed));
+                    UpdateWebApp();
                 }
             });
         }

@@ -1005,6 +1005,12 @@ namespace SFXPlayer
             toolTip1.SetToolTip(bnVolume, $"Vol={SFX.Volume}");
         }
 
+        internal void RefreshVolumeDisplay()
+        {
+            UpdateVolumeTooltip();
+            bnVolume.Invalidate();
+        }
+
         private void BnVolume_Paint(object sender, PaintEventArgs e)
         {
             if (SFX == null) return;

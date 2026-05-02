@@ -11,6 +11,9 @@
 html, body {
     height: 100%;
     width: 100%;
+    min-width: 1024px;
+    min-height: 768px;
+    overflow: auto;
     background-color: #1a1a2e;
     color: #e0e0e0;
     font-family: 'Segoe UI', Arial, sans-serif;

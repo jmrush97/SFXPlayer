@@ -18,6 +18,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Management;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Svg.FilterEffects;
 using SFXPlayer.classes;
@@ -614,6 +615,15 @@ namespace SFXPlayer
             if (ShowFileHandler.Dirty) Title += "*";
             Title += " - ";
             Title += Application.ProductName;
+            var ver = Assembly.GetExecutingAssembly().GetName().Version;
+            if (ver != null)
+                Title += $" v{ver.Major}.{ver.Minor}.{ver.Build}";
+            try
+            {
+                var buildDate = File.GetLastWriteTime(Assembly.GetExecutingAssembly().Location);
+                Title += $" (Built {buildDate:yyyy-MM-dd})";
+            }
+            catch { }
             Text = Title;
         }
 
@@ -853,6 +863,7 @@ namespace SFXPlayer
                 else
                     bnPlayNext_Click(null, null);
             });
+            ps.CueChanged += (s, e) => _commandQueue.Enqueue(() => UpdateWebApp());
         }
 
         private void AddPlaystrip(SFX sfx, int cueIndex)

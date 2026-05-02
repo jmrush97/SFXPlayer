@@ -96,9 +96,7 @@ var WebApp = function () {
                                 }
                                 window._currentPlaybackDevice = nodeValue;
                             } else if (nodeName === "WaveformData") {
-                                if (nodeValue && nodeValue.length > 0) {
-                                    updateWaveform(nodeValue);
-                                }
+                                updateWaveform(nodeValue || "");
                             } else {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {

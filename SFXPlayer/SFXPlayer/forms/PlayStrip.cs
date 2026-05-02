@@ -49,6 +49,8 @@ namespace SFXPlayer
         public event EventHandler AddCueBefore;
         /// <summary>Fired when this strip starts or stops playing. Arg = true if now playing.</summary>
         public event EventHandler<bool> PlayingStateChanged;
+        /// <summary>Fired when this cue's file or description changes so the web app can be refreshed.</summary>
+        public event EventHandler CueChanged;
         int prevPct = -1;
 
         #region Initialisation
@@ -130,6 +132,7 @@ namespace SFXPlayer
         private void tbDescription_TextChanged(object sender, EventArgs e)
         {
             SFX.Description = tbDescription.Text;
+            CueChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private void bnStopAll_CheckedChanged(object sender, EventArgs e)
@@ -503,6 +506,7 @@ namespace SFXPlayer
             UpdateButtons();
             PreloadFile();
             UpdateWaveformBackground();
+            CueChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>

@@ -102,6 +102,8 @@ namespace SFXPlayer
         private void PlayStrip_Load(object sender, EventArgs e)
         {
             AddDnDEventHandlers(this);
+            tbDescription.SizeChanged += (s, ev) => UpdateWaveformBackground();
+            UpdateWaveformBackground();
         }
 
         #endregion

@@ -83,7 +83,7 @@ var WebApp = function () {
                                 var pfg = document.getElementById("PlayingFadeGain");
                                 if (pfg) pfg.textContent = (fg * 100).toFixed(0) + "%";
                             } else if (nodeName === "AvailablePlaybackDevices") {
-                                updateDeviceDropdown(nodeValue);
+                                updateDeviceDropdown(nodeValue, "playbackDeviceSelect");
                             } else if (nodeName === "CurrentPlaybackDevice") {
                                 var sel = document.getElementById("playbackDeviceSelect");
                                 if (sel && nodeValue) {
@@ -95,6 +95,19 @@ var WebApp = function () {
                                     }
                                 }
                                 window._currentPlaybackDevice = nodeValue;
+                            } else if (nodeName === "AvailablePreviewDevices") {
+                                updateDeviceDropdown(nodeValue, "previewDeviceSelect");
+                            } else if (nodeName === "CurrentPreviewDevice") {
+                                var psel = document.getElementById("previewDeviceSelect");
+                                if (psel && nodeValue) {
+                                    for (var pi2 = 0; pi2 < psel.options.length; pi2++) {
+                                        if (psel.options[pi2].value === nodeValue) {
+                                            psel.selectedIndex = pi2;
+                                            break;
+                                        }
+                                    }
+                                }
+                                window._currentPreviewDevice = nodeValue;
                             } else if (nodeName === "WaveformData") {
                                 updateWaveform(nodeValue || "");
                             } else {
@@ -207,8 +220,13 @@ function drawWaveform() {
     if (!canvas || !_waveformPeaks) return;
     // Sync canvas size to its CSS display size
     var rect = canvas.getBoundingClientRect();
-    var w = Math.max(1, Math.round(rect.width));
-    var h = Math.max(1, Math.round(rect.height));
+    var w = Math.round(rect.width);
+    var h = Math.round(rect.height);
+    // If the canvas hasn't been laid out yet, retry on the next animation frame
+    if (w < 2 || h < 2) {
+        requestAnimationFrame(drawWaveform);
+        return;
+    }
     canvas.width = w;
     canvas.height = h;
     var ctx = canvas.getContext("2d");
@@ -257,8 +275,8 @@ function updatePlayingInfoVisibility() {
 }
 
 // ---- Device dropdown ----
-function updateDeviceDropdown(pipeSeparatedList) {
-    var sel = document.getElementById("playbackDeviceSelect");
+function updateDeviceDropdown(pipeSeparatedList, selectId) {
+    var sel = document.getElementById(selectId || "playbackDeviceSelect");
     if (!sel) return;
     if (!pipeSeparatedList || pipeSeparatedList.length === 0) return;
     var devices = pipeSeparatedList.split("|");
@@ -274,7 +292,8 @@ function updateDeviceDropdown(pipeSeparatedList) {
         }
     }
     if (same) return;
-    var currentDevice = window._currentPlaybackDevice || (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].value : "");
+    var storeKey = sel.id === "previewDeviceSelect" ? "_currentPreviewDevice" : "_currentPlaybackDevice";
+    var currentDevice = window[storeKey] || (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].value : "");
     sel.innerHTML = "";
     for (var k = 0; k < devices.length; k++) {
         var opt = document.createElement("option");

@@ -413,6 +413,10 @@ namespace SFXPlayer.classes
                                         {
                                             Program.mainForm.SetPlaybackDevice(command.Substring(7));
                                         }
+                                        else if (command.StartsWith("previewdevice:"))
+                                        {
+                                            Program.mainForm.SetPreviewDevice(command.Substring(14));
+                                        }
                                         break;
                                 }
                             }

@@ -266,6 +266,8 @@ namespace SFXPlayer
                 PlayingFadeGain = 1.0f,
                 AvailablePlaybackDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
+                AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
+                CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
                 WaveformData = GetWaveformData(next)
             };
             OnDisplayChanged(disp);
@@ -1259,6 +1261,8 @@ namespace SFXPlayer
                 PlayingFadeGain = playing?.CurrentFadeGain ?? 1.0f,
                 AvailablePlaybackDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
+                AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
+                CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
                 WaveformData = GetWaveformData(playing ?? next)
             };
             OnDisplayChanged(disp);
@@ -1677,6 +1681,20 @@ namespace SFXPlayer
                 if (!string.IsNullOrEmpty(deviceName) && CurrentAudioOutDevices.Contains(deviceName))
                 {
                     Settings.Default.LastPlaybackDevice = deviceName;
+                    Settings.Default.Save();
+                    UpdateDevices();
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetPreviewDevice(string deviceName)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (!string.IsNullOrEmpty(deviceName) && CurrentAudioOutDevices.Contains(deviceName))
+                {
+                    Settings.Default.LastPreviewDevice = deviceName;
                     Settings.Default.Save();
                     UpdateDevices();
                     UpdateWebApp();

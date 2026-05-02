@@ -238,6 +238,15 @@
                 </div>
             </td>
         </tr>
+        <!-- Preview device selection -->
+        <tr style="height: 4%;">
+            <td colspan="4" style="padding: 0;">
+                <div id="previewDeviceRow" style="font-size:0.75em;padding:2px 8px;background-color:#1a1a2e;color:#ccc;display:flex;align-items:center;gap:6px;">
+                    <label for="previewDeviceSelect">&#127911; Preview:</label>
+                    <select id="previewDeviceSelect" style="font-size:0.85em;max-width:60%;" onchange="webapp.sendCommand('previewdevice:' + this.value)"></select>
+                </div>
+            </td>
+        </tr>
     </table>
 </body>
 </html>

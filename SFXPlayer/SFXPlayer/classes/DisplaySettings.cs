@@ -47,6 +47,10 @@ namespace SFXPlayer.classes
         public string AvailablePlaybackDevices = "";
         public string CurrentPlaybackDevice = "";
 
+        // Preview device selection
+        public string AvailablePreviewDevices = "";
+        public string CurrentPreviewDevice = "";
+
         // Waveform peak data for the current/next track (comma-separated normalised 0-1 values)
         public string WaveformData = "";
     }

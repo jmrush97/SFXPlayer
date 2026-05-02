@@ -16,6 +16,17 @@ namespace SFXPlayer.classes
         private SpeedSampleProvider _speedProvider;
         private float _speed = 1.0f;
 
+        // Stored so the full chain (including fade) can be rebuilt on seek/position reset
+        private int _fadeInMs;
+        private int _fadeOutMs;
+        private FadeCurve _fadeCurve;
+        private FadeSampleProvider _fadeProvider;
+
+        /// <summary>
+        /// Current gain from the fade envelope (0.0–1.0). Returns 1.0 if no fade is active.
+        /// </summary>
+        public float CurrentFadeGain => _fadeProvider?.CurrentGain ?? 1.0f;
+
         public event EventHandler<StoppedEventArgs> PlaybackStopped;
 
         public PlaybackState PlaybackState
@@ -42,10 +53,7 @@ namespace SFXPlayer.classes
                     _waveSource.CurrentTime = value;
                 if (_soundOut != null)
                 {
-                    if (_speedProvider != null)
-                        _soundOut.Init(new SampleToWaveProvider(_speedProvider));
-                    else
-                        _soundOut.Init(_waveSource);
+                    _soundOut.Init(new SampleToWaveProvider(BuildChain()));
                 }
             }
         }
@@ -77,30 +85,56 @@ namespace SFXPlayer.classes
             }
         }
 
-        public void Open(string filename, int deviceNumber, float speed = 1.0f)
+        public void Open(string filename, int deviceNumber, float speed = 1.0f,
+            int fadeInMs = 0, int fadeOutMs = 0, FadeCurve fadeCurve = FadeCurve.Linear)
         {
             CleanupPlayback();
-            Debug.WriteLine($"Open {filename}, {deviceNumber}, speed={speed}");
+            AppLogger.Info($"MusicPlayer.Open: file=\"{filename}\", device={deviceNumber}, speed={speed}, fadeIn={fadeInMs}ms, fadeOut={fadeOutMs}ms, curve={fadeCurve}");
             _waveSource = new AudioFileReader(filename);
             _soundOut = new WaveOutEvent();
             _soundOut.DeviceNumber = deviceNumber;
             _speed = speed;
+            _fadeInMs = fadeInMs;
+            _fadeOutMs = fadeOutMs;
+            _fadeCurve = fadeCurve;
+
             if (Math.Abs(speed - 1.0f) > 0.001f)
-            {
                 _speedProvider = new SpeedSampleProvider((ISampleProvider)_waveSource, speed);
-                _soundOut.Init(new SampleToWaveProvider(_speedProvider));
+            else
+                _speedProvider = null;
+
+            _soundOut.Init(new SampleToWaveProvider(BuildChain()));
+
+            if (PlaybackStopped != null) _soundOut.PlaybackStopped += PlaybackStopped;
+        }
+
+        /// <summary>
+        /// Builds the sample-provider chain from the current _waveSource position.
+        /// Always creates a fresh FadeSampleProvider so the fade counters start at zero.
+        /// </summary>
+        private ISampleProvider BuildChain()
+        {
+            ISampleProvider chain = _speedProvider != null
+                ? (ISampleProvider)_speedProvider
+                : (ISampleProvider)_waveSource;
+
+            if (_fadeInMs > 0 || _fadeOutMs > 0)
+            {
+                double totalSeconds = _waveSource.TotalTime.TotalSeconds;
+                _fadeProvider = new FadeSampleProvider(chain, _fadeInMs, _fadeOutMs, totalSeconds, _fadeCurve);
+                chain = _fadeProvider;
             }
             else
             {
-                _speedProvider = null;
-                _soundOut.Init(_waveSource);
+                _fadeProvider = null;
             }
-            if (PlaybackStopped != null) _soundOut.PlaybackStopped += PlaybackStopped;
+
+            return chain;
         }
 
         public void Play()
         {
-            Debug.WriteLine("Play");
+            AppLogger.Info("MusicPlayer.Play");
             _soundOut?.Play();
         }
 
@@ -108,7 +142,7 @@ namespace SFXPlayer.classes
         {
             if (_soundOut != null)
             {
-                Debug.WriteLine("Pause");
+                AppLogger.Info("MusicPlayer.Pause");
                 _soundOut.Pause();
             }
         }
@@ -117,7 +151,7 @@ namespace SFXPlayer.classes
         {
             if (_soundOut != null)
             {
-                Debug.WriteLine("Resume");
+                AppLogger.Info("MusicPlayer.Resume");
                 _soundOut.Play();
             }
         }
@@ -126,13 +160,14 @@ namespace SFXPlayer.classes
         {
             if (_soundOut != null)
             {
-                Debug.WriteLine("Stop");
+                AppLogger.Info("MusicPlayer.Stop");
                 _soundOut.Stop();
             }
         }
 
         private void CleanupPlayback()
         {
+            _fadeProvider = null;
             if (_soundOut != null)
             {
                 Debug.WriteLine("_soundOut.Dispose");

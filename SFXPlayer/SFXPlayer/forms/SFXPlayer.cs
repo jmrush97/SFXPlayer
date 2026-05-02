@@ -34,6 +34,11 @@ namespace SFXPlayer
         private XMLFileHandler<Show> ShowFileHandler = new XMLFileHandler<Show>();
         private const int WM_DEVICECHANGE = 0x0219;
         private readonly ConcurrentQueue<Action> _commandQueue = new ConcurrentQueue<Action>();
+        /// <summary>
+        /// Tracks all PlayStrip instances that are currently playing.
+        /// Updated via PlayingStateChanged events so StopAll can stop them efficiently.
+        /// </summary>
+        private readonly HashSet<PlayStrip> _playingSounds = new HashSet<PlayStrip>();
 
         protected override void WndProc(ref Message m)
         {
@@ -100,20 +105,7 @@ namespace SFXPlayer
         // Sets up the status bar and other controls.
         private void InitializeControls()
         {
-            // Set up the status bar.
-            //CurrentShow.Panel = CueList;
-            //StatusBarPanel panel = new StatusBarPanel();
-            //panel.BorderStyle = StatusBarPanelBorderStyle.Sunken;
-            //panel.Text = "Ready.";
-            //panel.AutoSize = StatusBarPanelAutoSize.Spring;
-            //this.statusBar.ShowPanels = true;
-            //this.statusBar.Panels.Add(panel);
-            //cbPlayback.DataSource = PlayDevices;
-            //cbPreview.DataSource = PreviewDevices;
-
-
             ShowFileHandler.FileExtensions = FileExtensions;
-            //cuelistFormSpacing = this.Height - CueList.Height;
             bnStopAll.Top = bnPrev.Top = CueList.Top + TOPGAP - bnPrev.Height;
             bnPlayNext.Top = CueList.Top + TOPGAP;
             bnPlayNext.Height = PlayStripControlHeight;
@@ -125,14 +117,36 @@ namespace SFXPlayer
             bnDeleteCue.Top = bnAddCue.Top = bnPlayNext.Top + (bnPlayNext.Height - bnAddCue.Height) / 2;
             bnNext.Top = CueList.Top + TOPGAP + bnPlayNext.Height;
             bnStopAll.Height = bnNext.Top + bnNext.Height - bnStopAll.Top;
-            //bnNext.Height = PlayStripControlHeight;
-            rtPrevMainText.Height = bnStopAll.Top - bnStopAll.Margin.Top - rtPrevMainText.Margin.Bottom - rtPrevMainText.Top;
+
+            // Reserve space for detail label below rtPrevMainText
+            const int detailLabelHeight = 32;
+            rtPrevMainText.Height = bnStopAll.Top - bnStopAll.Margin.Top - detailLabelHeight - rtPrevMainText.Margin.Bottom - rtPrevMainText.Top;
+
+            // Position prev cue detail label between rtPrevMainText and bnStopAll
+            lbPrevCueInfo.Left = rtPrevMainText.Left;
+            lbPrevCueInfo.Width = rtPrevMainText.Width;
+            lbPrevCueInfo.Top = rtPrevMainText.Bottom + rtPrevMainText.Margin.Bottom;
+            lbPrevCueInfo.Height = detailLabelHeight;
+            lbPrevCueInfo.AutoSize = false;
+            lbPrevCueInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5f);
+            lbPrevCueInfo.BackColor = System.Drawing.Color.FromArgb(220, 220, 220);
+            lbPrevCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
 
             rtMainText.Top = bnStopAll.Bottom + rtMainText.Margin.Top + bnStopAll.Margin.Bottom;
-            rtMainText.Height = Math.Min(statusStrip.Top - rtMainText.Margin.Bottom - rtMainText.Top, rtPrevMainText.Height);
+            int nextInfoTop = Math.Min(statusStrip.Top - rtMainText.Margin.Bottom - detailLabelHeight, rtMainText.Top + rtPrevMainText.Height);
+            rtMainText.Height = nextInfoTop - rtMainText.Top;
+
+            // Position next cue detail label below rtMainText
+            lbNextCueInfo.Left = rtMainText.Left;
+            lbNextCueInfo.Width = rtMainText.Width;
+            lbNextCueInfo.Top = nextInfoTop;
+            lbNextCueInfo.Height = detailLabelHeight;
+            lbNextCueInfo.AutoSize = false;
+            lbNextCueInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5f);
+            lbNextCueInfo.BackColor = System.Drawing.Color.FromArgb(240, 240, 240);
+            lbNextCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+
             PlayStrip.OFD = dlgOpenAudioFile;
-            //PlayStrip.Devices = cbPlayback;
-            //PlayStrip.PreviewDevices = cbPreview;
             autoLoadLastsfxCuelistToolStripMenuItem.Checked = Settings.Default.AutoLoadLastSession;
             confirmDeleteCueToolStripMenuItem.Checked = Settings.Default.ConfirmDeleteCue;
             //// Initialize device status label
@@ -222,15 +236,29 @@ namespace SFXPlayer
 
         private void UpdateWebApp()
         {
+            PlayStrip next = NextPlayCue;
+            PlayStrip prev = PrevPlayCue;
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
                 PrevMainText = rtPrevMainText.Text,
                 MainText = rtMainText.Text,
-                TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName),
-                CurrentVolume = NextPlayCue?.SFX.Volume ?? 50,
-                CurrentSpeed = NextPlayCue?.SFX.Speed ?? 1.0f,
-                StopOthers = NextPlayCue?.SFX.StopOthers ?? false
+                TrackName = Path.GetFileName(next?.SFX.FileName),
+                TrackInfo = BuildTrackInfoString(next),
+                CurrentVolume = next?.SFX.Volume ?? 50,
+                CurrentSpeed = next?.SFX.Speed ?? 1.0f,
+                StopOthers = next?.SFX.StopOthers ?? false,
+                CueNumber = next != null ? (next.PlayStripIndex + 1).ToString("D3") : "",
+                CueDescription = next?.SFX.Description ?? "",
+                CueFileName = Path.GetFileName(next?.SFX.FileName ?? ""),
+                CueAutoRun = next?.SFX.AutoPlay ?? false,
+                CuePauseSeconds = (next?.SFX.AutoPlayPauseMs ?? 0) / 1000.0,
+                CueFadeInMs = next?.SFX.FadeInDurationMs ?? 0,
+                CueFadeOutMs = next?.SFX.FadeOutDurationMs ?? 0,
+                CueFadeCurve = (next?.SFX.FadeCurve ?? classes.FadeCurve.Linear) == classes.FadeCurve.Logarithmic ? "Logarithmic" : "Linear",
+                PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
+                PrevCueDescription = prev?.SFX.Description ?? "",
+                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? "")
             };
             OnDisplayChanged(disp);
         }
@@ -261,13 +289,36 @@ namespace SFXPlayer
                 rtMainText.ReadOnly = true;
             }
             rtMainText.TextChanged += rtMainText_TextChanged;
+            UpdateCueDetailLabels();
             CurrentShow.NextPlayCueIndex = NextPlayCueIndex;
             UpdateTrackInfoLabel(null);
             UpdateWebApp();
         }
 
+        private void UpdateCueDetailLabels()
+        {
+            PlayStrip prev = PrevPlayCue;
+            PlayStrip next = NextPlayCue;
+            lbPrevCueInfo.Text = FormatCueDetail(prev);
+            lbNextCueInfo.Text = FormatCueDetail(next);
+        }
+
+        private static string FormatCueDetail(PlayStrip ps)
+        {
+            if (ps == null) return "";
+            SFX s = ps.SFX;
+            string num = (ps.PlayStripIndex + 1).ToString("D3");
+            string desc = string.IsNullOrEmpty(s.Description) ? "(no description)" : s.Description;
+            string file = string.IsNullOrEmpty(s.FileName) ? "(no file)" : Path.GetFileName(s.FileName);
+            string autoRun = s.AutoPlay
+                ? string.Format(" | Auto-run {0}s", (s.AutoPlayPauseMs / 1000.0).ToString("0.0"))
+                : "";
+            return string.Format("#{0}  {1}  |  {2}  Vol:{3}{4}", num, desc, file, s.Volume, autoRun);
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
+            AppLogger.Info("SFXPlayer.Form1_Load");
             Debug.WriteLine("Form1_Load");
             StartWebApp();
             ShowFileHandler.FileTitleUpdate += UpdateTitleBar;
@@ -332,6 +383,7 @@ namespace SFXPlayer
         {
             //something changed, so get a new list of devices
             //check whether output audio device is still in the list
+            InitialisingDevices = true;
 
             //WaveOut gives us truncated names but the index we need to open the device
             //combine these with the full names from mmdevices to populate the device list
@@ -487,6 +539,7 @@ namespace SFXPlayer
         public MidiOut MIDIOut;
         private void StartWebApp()
         {
+            AppLogger.Info("SFXPlayer.StartWebApp");
             Debug.WriteLine("MouseWheelScrollLines = " + SystemInformation.MouseWheelScrollLines);
 
             // Start WebApp asynchronously
@@ -658,12 +711,14 @@ namespace SFXPlayer
 
         void FileNew()
         {
+            AppLogger.Info("SFXPlayer.FileNew");
             CurrentShow = new Show();
             ShowFileHandler.NewFile();
         }
 
         void FileOpen()
         {
+            AppLogger.Info("SFXPlayer.FileOpen (dialog)");
             Show newShow;
             newShow = ShowFileHandler.LoadFromFile();
             if (newShow != null)
@@ -676,6 +731,7 @@ namespace SFXPlayer
 
         void FileOpen(string FileName)
         {
+            AppLogger.Info($"SFXPlayer.FileOpen: \"{FileName}\"");
             Show oldShow = CurrentShow;
             if (oldShow != null) oldShow.ShowFileBecameDirty -= ShowFileHandler.SetDirty;
             CurrentShow = ShowFileHandler.LoadFromFile(FileName);
@@ -768,8 +824,17 @@ namespace SFXPlayer
         /// <param name="rowIndex">sfx Index or TOPPLACEHOLDER or BOTTOMPLACEHOLDER</param>
         private void SubscribePlaystripEvents(PlayStrip ps)
         {
-            ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAll(s, e));
+            ps.StopAll += (s, e) => _commandQueue.Enqueue(() => StopAllPlayingSounds(s as PlayStrip));
             ps.ReportStatus += Ps_ReportStatus;
+            ps.DeleteCue += Ps_DeleteCue;
+            ps.AddCueBefore += Ps_AddCueBefore;
+            ps.PlayingStateChanged += (s, isPlaying) =>
+            {
+                var strip = s as PlayStrip;
+                if (strip == null) return;
+                if (isPlaying) _playingSounds.Add(strip);
+                else _playingSounds.Remove(strip);
+            };
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
             {
                 if (pauseMs > 0)
@@ -813,6 +878,36 @@ namespace SFXPlayer
             }
         }
 
+        private void Ps_DeleteCue(object sender, EventArgs e)
+        {
+            PlayStrip ps = sender as PlayStrip;
+            if (ps == null) return;
+            if (Settings.Default.ConfirmDeleteCue)
+            {
+                DialogResult response = MessageBox.Show(
+                    string.Format("Delete Cue {0}?\r\n{1}", ps.PlayStripIndex + 1, ps.SFX.Description),
+                    "Cue List", MessageBoxButtons.YesNo);
+                if (response != DialogResult.Yes) return;
+            }
+            SFX sfxToRemove = ps.SFX;
+            RemovePlaystrip(ps.PlayStripIndex);
+            CurrentShow.RemoveCue(sfxToRemove);
+            PadCueList();
+            NextPlayCueChanged();
+        }
+
+        private void Ps_AddCueBefore(object sender, EventArgs e)
+        {
+            PlayStrip ps = sender as PlayStrip;
+            if (ps == null) return;
+            int insertAt = ps.PlayStripIndex;
+            SFX sfx = new SFX();
+            InsertPlaystrip(sfx, insertAt);
+            PadCueList();
+            CurrentShow.AddCue(sfx, insertAt);
+            NextPlayCueChanged();
+        }
+
         private PlayStrip InsertPlaystrip(SFX sfx, int cueIndex)
         {
             PlayStrip ps;
@@ -835,6 +930,7 @@ namespace SFXPlayer
             SubscribePlaystripEvents(ps);
             FocusTrackLowestControls(ps);
             Spacer sp = new Spacer { Width = CueList.ClientSize.Width };
+            sp.Paint += Highlight_Paint;
             CueList.Controls.Add(ps, 0, rowIndex);
             CueList.Controls.Add(sp, 0, rowIndex + 1);
             CueList.ResumeLayout();
@@ -849,7 +945,10 @@ namespace SFXPlayer
             if (removedPs != null)
             {
                 removedPs.Stop();
+                _playingSounds.Remove(removedPs);
                 removedPs.ReportStatus -= Ps_ReportStatus;
+                removedPs.DeleteCue -= Ps_DeleteCue;
+                removedPs.AddCueBefore -= Ps_AddCueBefore;
                 FocusUntrackLowestControls(removedPs);
             }
             CueList.Controls.Remove(CueList.GetControlFromPosition(0, rowIndex));
@@ -880,6 +979,20 @@ namespace SFXPlayer
             foreach (PlayStrip Player in CueList.Controls.OfType<PlayStrip>())
             {
                 Player.StopOthers(sender, e);
+            }
+        }
+
+        /// <summary>
+        /// Stop all currently playing sounds except the one that requested the stop.
+        /// Uses the tracked _playingSounds set for efficiency.
+        /// </summary>
+        private void StopAllPlayingSounds(PlayStrip except)
+        {
+            // Snapshot the set to avoid modifying it while iterating
+            var toStop = _playingSounds.Where(ps => ps != except && !ps.IsDisposed).ToList();
+            foreach (var ps in toStop)
+            {
+                ps.Stop();
             }
         }
 
@@ -1067,9 +1180,23 @@ namespace SFXPlayer
             string filePath = cue.SFX.FileName;
             double dur = cue.PlaybackLength.TotalSeconds;
             string durStr = dur > 0 ? FormatTime(dur) : "?";
-            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.0}x" : "";
+            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.00}x" : "";
             trackInfoLabel.Text = string.Format("{0} | {1}{2}", Path.GetFileName(filePath), durStr, speedStr);
             trackInfoLabel.ToolTipText = filePath;
+        }
+
+        /// <summary>
+        /// Builds the formatted track info string for the current (next) cue,
+        /// matching the desktop trackInfoLabel format: "filename | duration @speedx"
+        /// </summary>
+        private static string BuildTrackInfoString(PlayStrip cue)
+        {
+            if (cue == null || string.IsNullOrEmpty(cue.SFX.FileName))
+                return "";
+            double dur = cue.PlaybackLength.TotalSeconds;
+            string durStr = dur > 0 ? FormatTime(dur) : "?";
+            string speedStr = Math.Abs(cue.SFX.Speed - 1.0f) > 0.01f ? $" @{cue.SFX.Speed:0.00}x" : "";
+            return $"{Path.GetFileName(cue.SFX.FileName)} | {durStr}{speedStr}";
         }
 
         private static string FormatTime(double totalSeconds)
@@ -1081,27 +1208,40 @@ namespace SFXPlayer
 
         private void UpdateWebAppProgress(double positionSeconds, double durationSeconds)
         {
+            PlayStrip next = NextPlayCue;
+            PlayStrip prev = PrevPlayCue;
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
                 PrevMainText = rtPrevMainText.Text,
                 MainText = rtMainText.Text,
-                TrackName = Path.GetFileName(NextPlayCue?.SFX.FileName),
+                TrackName = Path.GetFileName(next?.SFX.FileName),
+                TrackInfo = BuildTrackInfoString(next),
                 TrackPositionSeconds = positionSeconds,
                 TrackDurationSeconds = durationSeconds,
-                CurrentVolume = NextPlayCue?.SFX.Volume ?? 50,
-                CurrentSpeed = NextPlayCue?.SFX.Speed ?? 1.0f,
-                StopOthers = NextPlayCue?.SFX.StopOthers ?? false
+                CurrentVolume = next?.SFX.Volume ?? 50,
+                CurrentSpeed = next?.SFX.Speed ?? 1.0f,
+                StopOthers = next?.SFX.StopOthers ?? false,
+                CueNumber = next != null ? (next.PlayStripIndex + 1).ToString("D3") : "",
+                CueDescription = next?.SFX.Description ?? "",
+                CueFileName = Path.GetFileName(next?.SFX.FileName ?? ""),
+                CueAutoRun = next?.SFX.AutoPlay ?? false,
+                CuePauseSeconds = (next?.SFX.AutoPlayPauseMs ?? 0) / 1000.0,
+                CueFadeInMs = next?.SFX.FadeInDurationMs ?? 0,
+                CueFadeOutMs = next?.SFX.FadeOutDurationMs ?? 0,
+                CueFadeCurve = (next?.SFX.FadeCurve ?? classes.FadeCurve.Linear) == classes.FadeCurve.Logarithmic ? "Logarithmic" : "Linear",
+                PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
+                PrevCueDescription = prev?.SFX.Description ?? "",
+                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? "")
             };
             OnDisplayChanged(disp);
         }
 
         private void bnPlayNext_Click(object sender, EventArgs e)
         {
-            if (PrevPlayCue!=null)
-            {
-                PrevPlayCue.Stop();
-            }
+            // Stop all currently playing sounds (not just the visual "previous" cue —
+            // the cue order may have changed while sounds were playing)
+            StopAllPlayingSounds(null);
             if (NextPlayCue != null)
             {
                 NextPlayCue.Play();
@@ -1144,6 +1284,7 @@ namespace SFXPlayer
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            AppLogger.Info($"SFXPlayer.Form1_FormClosing: reason={e.CloseReason}");
             if (e.CloseReason == CloseReason.TaskManagerClosing) return;    //allow close from task manager
             if (ShowFileHandler.CheckSave(CurrentShow) != DialogResult.OK)
             {
@@ -1361,6 +1502,7 @@ namespace SFXPlayer
             }
             catch (Exception ex)
             {
+                AppLogger.Error("SFXPlayer.createSampleProject: failed", ex);
                 MessageBox.Show(
                     $"Error creating sample project:\n{ex.Message}",
                     "Error",
@@ -1378,21 +1520,25 @@ namespace SFXPlayer
 
         internal void PlayNextCue()
         {
+            AppLogger.Info("SFXPlayer.PlayNextCue");
             _commandQueue.Enqueue(() => bnPlayNext_Click(null, null));
         }
 
         internal void StopAll()
         {
+            AppLogger.Info("SFXPlayer.StopAll");
             _commandQueue.Enqueue(() => bnStopAll_Click(null, null));
         }
 
         internal void PreviousCue()
         {
+            AppLogger.Info("SFXPlayer.PreviousCue");
             _commandQueue.Enqueue(() => bnPrev_Click(null, null));
         }
 
         internal void NextCue()
         {
+            AppLogger.Info("SFXPlayer.NextCue");
             _commandQueue.Enqueue(() => bnNext_Click(null, null));
         }
 
@@ -1414,6 +1560,82 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.Speed = Math.Max(0.1f, Math.Min(20.0f, speed));
+                }
+            });
+        }
+
+        internal void DeleteNextCue()
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                PlayStrip ps = NextPlayCue;
+                if (ps == null) return;
+                SFX sfxToRemove = ps.SFX;
+                RemovePlaystrip(ps.PlayStripIndex);
+                CurrentShow.RemoveCue(sfxToRemove);
+                PadCueList();
+                NextPlayCueChanged();
+            });
+        }
+
+        internal void SetNextCueAutoRun(bool enabled)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.AutoPlay = enabled;
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetNextCuePauseSeconds(double seconds)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.AutoPlayPauseMs = (int)Math.Round(Math.Max(0, Math.Min(60, seconds)) * 1000);
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetNextCueFadeIn(int ms)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.FadeInDurationMs = Math.Max(0, ms);
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetNextCueFadeOut(int ms)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.FadeOutDurationMs = Math.Max(0, ms);
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetNextCueFadeCurve(string curve)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (NextPlayCue != null)
+                {
+                    NextPlayCue.SFX.FadeCurve = string.Equals(curve, "log", StringComparison.OrdinalIgnoreCase)
+                        ? classes.FadeCurve.Logarithmic
+                        : classes.FadeCurve.Linear;
+                    UpdateWebApp();
                 }
             });
         }

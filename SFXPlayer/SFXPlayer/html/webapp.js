@@ -27,17 +27,50 @@ var WebApp = function () {
                                 var volSlider = document.getElementById("volumeSlider");
                                 if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
                                 var volSpan = document.getElementById("CurrentVolume");
-                                if (volSpan) volSpan.innerHTML = nodeValue;
+                                if (volSpan) volSpan.textContent = nodeValue;
+                                var cueVolSpan = document.getElementById("CueVolume");
+                                if (cueVolSpan) cueVolSpan.textContent = "Vol: " + nodeValue;
                             } else if (nodeName === "CurrentSpeed") {
                                 var spd = parseFloat(nodeValue) || 1.0;
                                 var spdSlider = document.getElementById("speedSlider");
                                 if (spdSlider) spdSlider.value = Math.round(spd * 100);
                                 var spdSpan = document.getElementById("CurrentSpeed");
-                                if (spdSpan) spdSpan.innerHTML = spd.toFixed(2);
+                                if (spdSpan) spdSpan.textContent = spd.toFixed(2);
+                            } else if (nodeName === "CueAutoRun") {
+                                var isAutoRun = nodeValue === "true";
+                                window._cueAutoRun = isAutoRun;
+                                var btnAR = document.getElementById("btnAutoRun");
+                                if (btnAR) {
+                                    btnAR.textContent = "Auto-run: " + (isAutoRun ? "ON" : "OFF");
+                                    btnAR.style.background = isAutoRun ? "#3a3" : "";
+                                    btnAR.style.color = isAutoRun ? "white" : "";
+                                }
+                                var detail = document.getElementById("CueAutoRunDetail");
+                                if (detail) detail.textContent = isAutoRun ? "\u21B7 Auto" : "";
+                            } else if (nodeName === "CuePauseSeconds") {
+                                var ps = parseFloat(nodeValue) || 0;
+                                window._cuePauseSeconds = ps;
+                                var pi = document.getElementById("pauseInput");
+                                if (pi) pi.value = ps.toFixed(1);
+                                var detail = document.getElementById("CueAutoRunDetail");
+                                if (detail && window._cueAutoRun && ps > 0) {
+                                    detail.textContent = "\u21B7 Auto +" + ps.toFixed(1) + "s";
+                                }
+                            } else if (nodeName === "CueFadeInMs") {
+                                var fi = parseInt(nodeValue) || 0;
+                                var fiInput = document.getElementById("fadeInInput");
+                                if (fiInput) fiInput.value = fi;
+                            } else if (nodeName === "CueFadeOutMs") {
+                                var fo = parseInt(nodeValue) || 0;
+                                var foInput = document.getElementById("fadeOutInput");
+                                if (foInput) foInput.value = fo;
+                            } else if (nodeName === "CueFadeCurve") {
+                                var cs = document.getElementById("fadeCurveSelect");
+                                if (cs) cs.value = (nodeValue === "Logarithmic") ? "log" : "linear";
                             } else {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {
-                                    field.innerHTML = nodeValue;
+                                    field.textContent = nodeValue;
                                 } else {
                                     console.log("Unable to locate id=" + nodeName + ". New value = " + nodeValue);
                                 }
@@ -60,6 +93,35 @@ var WebApp = function () {
         if (ws && ws.readyState == WebSocket.OPEN) {
             ws.send("<command>" + command + "</command>");
         }
+    }
+}
+
+function toggleAutoRun() {
+    var newVal = !window._cueAutoRun;
+    webapp.sendCommand("autorun:" + (newVal ? "true" : "false"));
+}
+
+function setPause() {
+    var pi = document.getElementById("pauseInput");
+    var secs = parseFloat(pi ? pi.value : "0") || 0;
+    webapp.sendCommand("pause:" + secs.toFixed(1));
+}
+
+function setFade() {
+    var fiInput = document.getElementById("fadeInInput");
+    var foInput = document.getElementById("fadeOutInput");
+    var csInput = document.getElementById("fadeCurveSelect");
+    var fadeIn  = parseInt(fiInput  ? fiInput.value  : "0") || 0;
+    var fadeOut = parseInt(foInput  ? foInput.value  : "0") || 0;
+    var curve   = csInput ? csInput.value : "linear";
+    webapp.sendCommand("fadein:"    + fadeIn);
+    webapp.sendCommand("fadeout:"   + fadeOut);
+    webapp.sendCommand("fadecurve:" + curve);
+}
+
+function deleteCue() {
+    if (confirm("Delete the current next cue?")) {
+        webapp.sendCommand("delete");
     }
 }
 
@@ -178,3 +240,4 @@ function BuildXMLFromString(text) {
 
     return true;
 }
+

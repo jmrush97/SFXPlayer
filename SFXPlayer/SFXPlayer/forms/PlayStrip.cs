@@ -575,6 +575,11 @@ namespace SFXPlayer
             var old = tbDescription.BackgroundImage;
             tbDescription.BackgroundImage = null;
             old?.Dispose();
+            if (SFX == null)
+            {
+                Debug.WriteLine("PlayStrip.UpdateWaveformBackground: SFX is null");
+                return;
+            }
 
             if (string.IsNullOrEmpty(SFX.FileName) || !File.Exists(SFX.FileName)) return;
             try

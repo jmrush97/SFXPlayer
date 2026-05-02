@@ -320,12 +320,12 @@ function renderCueList(json) {
         row.className = "cue-list-item" + (c.c ? " current-cue" : "");
         var desc = c.d ? htmlEscape(c.d) : "<em style='color:#666'>—</em>";
         var file = c.f ? htmlEscape(c.f) : "";
-        var meta = "Vol:" + c.v + "  " + c.s + "x";
+        var cueInfo = "Vol:" + c.v + "  " + c.s + "x";
         row.innerHTML =
             "<span class='cue-num'>" + c.i + "</span>" +
             "<span class='cue-desc'>" + desc + "</span>" +
             (file ? "<span class='cue-file'>" + file + "</span>" : "") +
-            "<span class='cue-meta'>" + meta + "</span>";
+            "<span class='cue-meta'>" + cueInfo + "</span>";
         container.appendChild(row);
     }
     // Scroll the current cue into view

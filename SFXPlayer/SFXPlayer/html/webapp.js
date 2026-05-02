@@ -67,6 +67,38 @@ var WebApp = function () {
                             } else if (nodeName === "CueFadeCurve") {
                                 var cs = document.getElementById("fadeCurveSelect");
                                 if (cs) cs.value = (nodeValue === "Logarithmic") ? "log" : "linear";
+                            } else if (nodeName === "IsPlaying") {
+                                window._isPlaying = (nodeValue === "true");
+                                updatePlayingInfoVisibility();
+                            } else if (nodeName === "PlayingVolume") {
+                                var pv = document.getElementById("PlayingVolume");
+                                if (pv) pv.textContent = nodeValue;
+                            } else if (nodeName === "PlayingSpeed") {
+                                var psp = parseFloat(nodeValue) || 1.0;
+                                var psSpan = document.getElementById("PlayingSpeed");
+                                if (psSpan) psSpan.textContent = psp.toFixed(2) + "x";
+                            } else if (nodeName === "PlayingFadeGain") {
+                                var fg = parseFloat(nodeValue);
+                                if (!isNaN(fg)) updateFadeGain(fg);
+                                var pfg = document.getElementById("PlayingFadeGain");
+                                if (pfg) pfg.textContent = (fg * 100).toFixed(0) + "%";
+                            } else if (nodeName === "AvailablePlaybackDevices") {
+                                updateDeviceDropdown(nodeValue);
+                            } else if (nodeName === "CurrentPlaybackDevice") {
+                                var sel = document.getElementById("playbackDeviceSelect");
+                                if (sel && nodeValue) {
+                                    for (var oi = 0; oi < sel.options.length; oi++) {
+                                        if (sel.options[oi].value === nodeValue) {
+                                            sel.selectedIndex = oi;
+                                            break;
+                                        }
+                                    }
+                                }
+                                window._currentPlaybackDevice = nodeValue;
+                            } else if (nodeName === "WaveformData") {
+                                if (nodeValue && nodeValue.length > 0) {
+                                    updateWaveform(nodeValue);
+                                }
                             } else {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {
@@ -134,9 +166,11 @@ function updateProgress(posSeconds, durSeconds) {
         bar.style.width = pct.toFixed(1) + "%";
         var remaining = Math.max(0, durSeconds - posSeconds);
         label.textContent = formatTime(posSeconds) + " / -" + formatTime(remaining);
+        updateWaveformPosition(posSeconds, durSeconds);
     } else {
         bar.style.width = "0%";
         label.textContent = "0:00 / 0:00";
+        updateWaveformPosition(0, 0);
     }
 }
 
@@ -146,8 +180,118 @@ function formatTime(totalSeconds) {
     return mins + ":" + (secs < 10 ? "0" : "") + secs;
 }
 
+// ---- Waveform rendering ----
+var _waveformPeaks = null;
+
+function updateWaveform(csvData) {
+    if (!csvData || csvData.length === 0) {
+        _waveformPeaks = null;
+        var canvas = document.getElementById("waveformCanvas");
+        if (canvas) {
+            var ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        return;
+    }
+    var parts = csvData.split(",");
+    var peaks = [];
+    for (var i = 0; i < parts.length; i++) {
+        var v = parseFloat(parts[i]);
+        if (!isNaN(v)) peaks.push(v);
+    }
+    if (peaks.length === 0) return;
+    _waveformPeaks = peaks;
+    drawWaveform();
+}
+
+function drawWaveform() {
+    var canvas = document.getElementById("waveformCanvas");
+    if (!canvas || !_waveformPeaks) return;
+    // Sync canvas size to its CSS display size
+    var rect = canvas.getBoundingClientRect();
+    var w = Math.max(1, Math.round(rect.width));
+    var h = Math.max(1, Math.round(rect.height));
+    canvas.width = w;
+    canvas.height = h;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#1a1a2e";
+    ctx.fillRect(0, 0, w, h);
+    var count = _waveformPeaks.length;
+    var mid = h / 2;
+    ctx.strokeStyle = "rgba(100, 200, 100, 0.8)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var i = 0; i < count; i++) {
+        var x = (i / count) * w;
+        var halfH = _waveformPeaks[i] * mid * 0.9;
+        ctx.moveTo(x, mid - halfH);
+        ctx.lineTo(x, mid + halfH);
+    }
+    ctx.stroke();
+}
+
+function updateWaveformPosition(posSeconds, durSeconds) {
+    var line = document.getElementById("waveformPositionLine");
+    if (!line) return;
+    if (durSeconds > 0) {
+        var pct = Math.min(100, (posSeconds / durSeconds) * 100);
+        line.style.left = pct.toFixed(2) + "%";
+        line.style.display = "block";
+    } else {
+        line.style.display = "none";
+    }
+}
+
+// ---- Fade gain bar ----
+function updateFadeGain(gain) {
+    var fill = document.getElementById("fadeGainFill");
+    if (!fill) return;
+    var pct = Math.min(100, Math.max(0, gain * 100));
+    fill.style.width = pct.toFixed(1) + "%";
+}
+
+// ---- Playing info visibility ----
+function updatePlayingInfoVisibility() {
+    var row = document.getElementById("playingInfoRow");
+    if (!row) return;
+    row.style.color = window._isPlaying ? "#8f8" : "#666";
+}
+
+// ---- Device dropdown ----
+function updateDeviceDropdown(pipeSeparatedList) {
+    var sel = document.getElementById("playbackDeviceSelect");
+    if (!sel) return;
+    if (!pipeSeparatedList || pipeSeparatedList.length === 0) return;
+    var devices = pipeSeparatedList.split("|");
+    // Only rebuild if the list has changed
+    var existing = [];
+    for (var i = 0; i < sel.options.length; i++) {
+        existing.push(sel.options[i].value);
+    }
+    var same = (existing.length === devices.length);
+    if (same) {
+        for (var i = 0; i < devices.length; i++) {
+            if (existing[i] !== devices[i]) { same = false; break; }
+        }
+    }
+    if (same) return;
+    var currentDevice = window._currentPlaybackDevice || (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].value : "");
+    sel.innerHTML = "";
+    for (var i = 0; i < devices.length; i++) {
+        var opt = document.createElement("option");
+        opt.value = devices[i];
+        opt.textContent = devices[i];
+        if (devices[i] === currentDevice) opt.selected = true;
+        sel.appendChild(opt);
+    }
+}
+
 function init() {
     webapp = new WebApp();
+    window.addEventListener("resize", function() {
+        if (_waveformPeaks) drawWaveform();
+    });
 }
 
 function updateCueMode(stopOthers) {

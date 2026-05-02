@@ -59,6 +59,61 @@
         }
         #autoRunStatus { font-size: 0.75em; }
         #pauseInput { width: 44px; font-size: 0.75em; }
+        #waveformContainer {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-color: #1a1a2e;
+        }
+        #waveformCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #waveformPositionLine {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: rgba(255, 255, 255, 0.85);
+            pointer-events: none;
+            left: 0%;
+            transition: left 0.1s linear;
+        }
+        #fadeGainBar {
+            height: 6px;
+            width: 100%;
+            background-color: #333;
+            position: relative;
+        }
+        #fadeGainFill {
+            height: 100%;
+            background: linear-gradient(to right, #f00, #ff0, #0f0);
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+        #playingInfoRow {
+            font-size: 0.75em;
+            padding: 2px 8px;
+            background-color: #222;
+            color: #8f8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #deviceRow {
+            font-size: 0.75em;
+            padding: 2px 8px;
+            background-color: #1a1a2e;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #deviceRow select {
+            font-size: 0.85em;
+            max-width: 60%;
+        }
     </style>
 </head>
 
@@ -83,10 +138,19 @@
                 <span id="CueAutoRunDetail" style="color:#8f8;"></span>
             </td>
         </tr>
-        <tr style="height: 32%; outline: 1px solid;">
+        <tr style="height: 27%; outline: 1px solid;">
             <td id="MainText" colspan="4">Main Cue</td>
         </tr>
-        <tr style="height: 6%; outline: 1px solid;">
+        <!-- Waveform canvas row -->
+        <tr style="height: 7%;">
+            <td colspan="4" style="padding: 0;">
+                <div id="waveformContainer">
+                    <canvas id="waveformCanvas"></canvas>
+                    <div id="waveformPositionLine"></div>
+                </div>
+            </td>
+        </tr>
+        <tr style="height: 5%; outline: 1px solid;">
             <td id="TrackInfo" colspan="4">Track Info</td>
         </tr>
         <tr style="height: 4%; outline: 1px solid;">
@@ -97,6 +161,23 @@
                 <div id="progressContainer">
                     <div id="progressBar"></div>
                     <div id="progressTime">0:00 / 0:00</div>
+                </div>
+            </td>
+        </tr>
+        <!-- Fade gain indicator -->
+        <tr style="height: 1%;">
+            <td colspan="4" style="padding: 0;" title="Volume fade level">
+                <div id="fadeGainBar"><div id="fadeGainFill"></div></div>
+            </td>
+        </tr>
+        <!-- Playing track live info -->
+        <tr style="height: 3%;" id="playingInfoRow">
+            <td colspan="4">
+                <div id="playingInfoRow">
+                    <span>&#9654; Playing:</span>
+                    <span>Vol: <strong id="PlayingVolume">–</strong></span>
+                    <span>Speed: <strong id="PlayingSpeed">–</strong></span>
+                    <span>Fade: <strong id="PlayingFadeGain">–</strong></span>
                 </div>
             </td>
         </tr>
@@ -148,6 +229,16 @@
                 <span id="CueFadeCurve" style="display:none;"></span>
             </td>
         </tr>
+        <!-- Audio device selection -->
+        <tr style="height: 4%;">
+            <td colspan="4" style="padding: 0;">
+                <div id="deviceRow">
+                    <label for="playbackDeviceSelect">&#128266; Output:</label>
+                    <select id="playbackDeviceSelect" onchange="webapp.sendCommand('device:' + this.value)"></select>
+                </div>
+            </td>
+        </tr>
     </table>
 </body>
 </html>
+

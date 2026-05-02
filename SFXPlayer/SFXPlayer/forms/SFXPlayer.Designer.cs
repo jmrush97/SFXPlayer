@@ -509,15 +509,13 @@ namespace SFXPlayer
             // bnMIDI
             // 
             this.bnMIDI.BackColor = System.Drawing.Color.Red;
-            this.bnMIDI.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.bnMIDI.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.bnMIDI.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.cbMIDI});
-            this.bnMIDI.Image = ((System.Drawing.Image)(resources.GetObject("bnMIDI.Image")));
-            this.bnMIDI.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.bnMIDI.Name = "bnMIDI";
             this.bnMIDI.ShowDropDownArrow = false;
-            this.bnMIDI.Size = new System.Drawing.Size(28, 28);
-            this.bnMIDI.Text = "toolStripDropDownButton1";
+            this.bnMIDI.Size = new System.Drawing.Size(48, 28);
+            this.bnMIDI.Text = "MIDI";
             this.bnMIDI.ToolTipText = "MIDI Out";
             // 
             // cbMIDI
@@ -531,15 +529,13 @@ namespace SFXPlayer
             // bnPreview
             // 
             this.bnPreview.BackColor = System.Drawing.Color.Red;
-            this.bnPreview.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.bnPreview.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.bnPreview.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.cbPreview});
-            this.bnPreview.Image = ((System.Drawing.Image)(resources.GetObject("bnPreview.Image")));
-            this.bnPreview.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.bnPreview.Name = "bnPreview";
             this.bnPreview.ShowDropDownArrow = false;
-            this.bnPreview.Size = new System.Drawing.Size(28, 28);
-            this.bnPreview.Text = "toolStripDropDownButton2";
+            this.bnPreview.Size = new System.Drawing.Size(58, 28);
+            this.bnPreview.Text = "Preview";
             this.bnPreview.ToolTipText = "Preview Device";
             // 
             // cbPreview
@@ -553,15 +549,13 @@ namespace SFXPlayer
             // bnPlayback
             // 
             this.bnPlayback.BackColor = System.Drawing.Color.Red;
-            this.bnPlayback.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.bnPlayback.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.bnPlayback.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.cbPlayback});
-            this.bnPlayback.Image = ((System.Drawing.Image)(resources.GetObject("bnPlayback.Image")));
-            this.bnPlayback.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.bnPlayback.Name = "bnPlayback";
             this.bnPlayback.ShowDropDownArrow = false;
-            this.bnPlayback.Size = new System.Drawing.Size(28, 28);
-            this.bnPlayback.Text = "toolStripDropDownButton3";
+            this.bnPlayback.Size = new System.Drawing.Size(65, 28);
+            this.bnPlayback.Text = "Playback";
             this.bnPlayback.ToolTipText = "Playback Device";
             // 
             // cbPlayback

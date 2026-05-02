@@ -258,7 +258,14 @@ namespace SFXPlayer
                 CueFadeCurve = (next?.SFX.FadeCurve ?? classes.FadeCurve.Linear) == classes.FadeCurve.Logarithmic ? "Logarithmic" : "Linear",
                 PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
                 PrevCueDescription = prev?.SFX.Description ?? "",
-                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? "")
+                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? ""),
+                IsPlaying = false,
+                PlayingVolume = next?.SFX.Volume ?? 50,
+                PlayingSpeed = next?.SFX.Speed ?? 1.0f,
+                PlayingFadeGain = 1.0f,
+                AvailablePlaybackDevices = string.Join("|", CurrentAudioOutDevices),
+                CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
+                WaveformData = GetWaveformData(next)
             };
             OnDisplayChanged(disp);
         }
@@ -1210,6 +1217,8 @@ namespace SFXPlayer
         {
             PlayStrip next = NextPlayCue;
             PlayStrip prev = PrevPlayCue;
+            // Find the currently playing strip for live volume/speed/fade data
+            PlayStrip playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
@@ -1232,7 +1241,14 @@ namespace SFXPlayer
                 CueFadeCurve = (next?.SFX.FadeCurve ?? classes.FadeCurve.Linear) == classes.FadeCurve.Logarithmic ? "Logarithmic" : "Linear",
                 PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
                 PrevCueDescription = prev?.SFX.Description ?? "",
-                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? "")
+                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? ""),
+                IsPlaying = playing != null,
+                PlayingVolume = playing?.SFX.Volume ?? (next?.SFX.Volume ?? 50),
+                PlayingSpeed = playing?.SFX.Speed ?? (next?.SFX.Speed ?? 1.0f),
+                PlayingFadeGain = playing?.CurrentFadeGain ?? 1.0f,
+                AvailablePlaybackDevices = string.Join("|", CurrentAudioOutDevices),
+                CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
+                WaveformData = GetWaveformData(playing ?? next)
             };
             OnDisplayChanged(disp);
         }
@@ -1640,7 +1656,84 @@ namespace SFXPlayer
             });
         }
 
-        // Drag & drop helpers
+        internal void SetPlaybackDevice(string deviceName)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (!string.IsNullOrEmpty(deviceName) && CurrentAudioOutDevices.Contains(deviceName))
+                {
+                    Settings.Default.LastPlaybackDevice = deviceName;
+                    Settings.Default.Save();
+                    UpdateDevices();
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        private static string _lastWaveformFile = null;
+        private static string _cachedWaveformData = null;
+
+        private static string GetWaveformData(PlayStrip strip)
+        {
+            if (strip == null) return "";
+            string filePath = strip.SFX?.FileName;
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return "";
+            if (filePath == _lastWaveformFile) return _cachedWaveformData ?? "";
+            var peaks = GenerateWaveformPeaks(filePath, 200);
+            _lastWaveformFile = filePath;
+            _cachedWaveformData = peaks != null
+                ? string.Join(",", peaks.Select(p => p.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)))
+                : "";
+            return _cachedWaveformData;
+        }
+
+        private static float[] GenerateWaveformPeaks(string fileName, int bucketCount)
+        {
+            const int readBufferSize = 4096;
+            float[] peaks = new float[bucketCount];
+            try
+            {
+                using var reader = new NAudio.Wave.AudioFileReader(fileName);
+                long totalFrames = reader.Length / reader.WaveFormat.BlockAlign;
+                long framesPerBucket = Math.Max(1, totalFrames / bucketCount);
+                float[] buffer = new float[readBufferSize];
+                int bucket = 0;
+                float bucketMax = 0;
+                long bucketFilled = 0;
+                int read;
+                while (bucket < bucketCount && (read = reader.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    for (int i = 0; i < read && bucket < bucketCount; i++)
+                    {
+                        float abs = Math.Abs(buffer[i]);
+                        if (abs > bucketMax) bucketMax = abs;
+                        if (i % reader.WaveFormat.Channels == reader.WaveFormat.Channels - 1)
+                        {
+                            bucketFilled++;
+                            if (bucketFilled >= framesPerBucket)
+                            {
+                                peaks[bucket++] = bucketMax;
+                                bucketFilled = 0;
+                                bucketMax = 0;
+                            }
+                        }
+                    }
+                }
+                float maxPeak = 0;
+                foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
+                if (maxPeak < 0.0001f) return null;
+                for (int i = 0; i < bucketCount; i++)
+                    peaks[i] = peaks[i] / maxPeak;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"GenerateWaveformPeaks error: {ex.Message}");
+                return null;
+            }
+            return peaks;
+        }
+
+
         Control LastHovered;
         Color LastHoveredColor;
         bool ReplaceOK;

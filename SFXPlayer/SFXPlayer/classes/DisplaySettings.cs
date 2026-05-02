@@ -57,5 +57,25 @@ namespace SFXPlayer.classes
         public string PrevCueDescription = "";
         [DefaultValue("")]
         public string PrevCueFileName = "";
+
+        // Currently playing track state (distinct from next-cue values above)
+        [DefaultValue(false)]
+        public bool IsPlaying = false;
+        [DefaultValue(50)]
+        public int PlayingVolume = 50;
+        [DefaultValue(1.0f)]
+        public float PlayingSpeed = 1.0f;
+        [DefaultValue(1.0f)]
+        public float PlayingFadeGain = 1.0f;
+
+        // Audio device selection (pipe-separated list of available device names)
+        [DefaultValue("")]
+        public string AvailablePlaybackDevices = "";
+        [DefaultValue("")]
+        public string CurrentPlaybackDevice = "";
+
+        // Waveform peak data for the current/next track (comma-separated normalised 0-1 values)
+        [DefaultValue("")]
+        public string WaveformData = "";
     }
 }

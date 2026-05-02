@@ -409,6 +409,10 @@ namespace SFXPlayer.classes
                                         {
                                             Program.mainForm.SetNextCueFadeCurve(command.Substring(10));
                                         }
+                                        else if (command.StartsWith("device:"))
+                                        {
+                                            Program.mainForm.SetPlaybackDevice(command.Substring(7));
+                                        }
                                         break;
                                 }
                             }

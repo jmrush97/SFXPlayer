@@ -671,6 +671,7 @@ namespace SFXPlayer
 
         public TimeSpan PlaybackPosition => _musicPlayer.Position;
         public TimeSpan PlaybackLength => _musicPlayer.Length;
+        public float CurrentFadeGain => _musicPlayer.CurrentFadeGain;
 
         private void bnPlay_Click(object sender, EventArgs e)
         {

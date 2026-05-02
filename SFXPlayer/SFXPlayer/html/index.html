@@ -3,251 +3,141 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, user-scalable=yes" />
-    <title id="Title">SFX Player</title>
+    <title id="TitleTab">SFX Player</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="webapp.js"></script>
-    <style>
-        .disable-selection{
-            -moz-user-select: none;
-            -ms-user-select: none;
-            -khtml-user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-        }
-        #progressContainer {
-            width: 100%;
-            height: 100%;
-            background-color: #444;
-            position: relative;
-        }
-        #progressBar {
-            height: 100%;
-            width: 0%;
-            background-color: limegreen;
-            transition: width 0.1s linear;
-        }
-        #progressTime {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 0.85em;
-            white-space: nowrap;
-            pointer-events: none;
-        }
-        .cue-detail {
-            font-size: 0.75em;
-            color: #ccc;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            padding: 1px 4px;
-        }
-        .cue-detail span { margin-right: 6px; }
-        #cueActions {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-            padding: 2px 4px;
-            flex-wrap: wrap;
-        }
-        #cueActions button {
-            font-size: 0.75em;
-            padding: 2px 8px;
-            cursor: pointer;
-        }
-        #autoRunStatus { font-size: 0.75em; }
-        #pauseInput { width: 44px; font-size: 0.75em; }
-        #waveformContainer {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            background-color: #1a1a2e;
-        }
-        #waveformCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        #waveformPositionLine {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background-color: rgba(255, 255, 255, 0.85);
-            pointer-events: none;
-            left: 0%;
-            transition: left 0.1s linear;
-        }
-        #fadeGainBar {
-            height: 6px;
-            width: 100%;
-            background-color: #333;
-            position: relative;
-        }
-        #fadeGainFill {
-            height: 100%;
-            background: linear-gradient(to right, #f00, #ff0, #0f0);
-            width: 100%;
-            transition: width 0.1s linear;
-        }
-        #playingInfoRow {
-            font-size: 0.75em;
-            padding: 2px 8px;
-            background-color: #222;
-            color: #8f8;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        #deviceRow {
-            font-size: 0.75em;
-            padding: 2px 8px;
-            background-color: #1a1a2e;
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        #deviceRow select {
-            font-size: 0.85em;
-            max-width: 60%;
-        }
-    </style>
 </head>
 
 <body>
-    <table style="position: absolute; top: 0; bottom: 0; left: 0; right:0; border: 1px solid; height: 100%; width:100%; min-width: 1024px; min-height: 768px;">
-        <tr style="height: 3%; outline: 1px solid; background-color:#333;">
-            <td colspan="4" class="cue-detail">
+<div class="app-container">
+
+    <!-- Title bar -->
+    <div class="title-bar">
+        <span id="Title">SFX Player</span>
+        <span id="playingInfoContent" class="playing-info">
+            <span>&#9654; Playing:</span>
+            <span>Vol: <strong id="PlayingVolume">-</strong></span>
+            <span>Speed: <strong id="PlayingSpeed">-</strong></span>
+            <span>Fade: <strong id="PlayingFadeGain">-</strong></span>
+        </span>
+    </div>
+
+    <!-- Three-column main area -->
+    <div class="main-area">
+
+        <!-- LEFT: full cue list -->
+        <div class="left-panel">
+            <div class="panel-header">Cue List</div>
+            <div id="cueListContainer" class="cue-list-container"></div>
+        </div>
+
+        <!-- CENTER: display + waveform + progress -->
+        <div class="center-panel">
+            <div class="prev-cue-bar cue-detail">
                 <span id="PrevCueNumber" style="font-weight:bold;"></span>
                 <span id="PrevCueDescription"></span>
                 <span id="PrevCueFileName" style="color:#aaa;"></span>
-            </td>
-        </tr>
-        <tr style="height: 35%; outline: 1px solid; background-color:gray;">
-            <td id="PrevMainText" colspan="4">Previous Cue</td>
-        </tr>
-        <tr style="height: 3%; outline: 1px solid; background-color:#222;">
-            <td colspan="4" class="cue-detail">
+            </div>
+            <div id="PrevMainText" class="cue-text prev-cue"></div>
+            <div class="next-cue-bar cue-detail">
                 <span id="CueNumber" style="font-weight:bold;"></span>
                 <span id="CueDescription"></span>
                 <span id="CueFileName" style="color:#aaa;"></span>
                 <span id="CueVolume" style="color:#afa;"></span>
                 <span id="CueAutoRunDetail" style="color:#8f8;"></span>
-            </td>
-        </tr>
-        <tr style="height: 27%; outline: 1px solid;">
-            <td id="MainText" colspan="4">Main Cue</td>
-        </tr>
-        <!-- Waveform canvas row -->
-        <tr style="height: 7%;">
-            <td colspan="4" style="padding: 0;">
-                <div id="waveformContainer">
-                    <canvas id="waveformCanvas"></canvas>
-                    <div id="waveformPositionLine"></div>
-                </div>
-            </td>
-        </tr>
-        <tr style="height: 5%; outline: 1px solid;">
-            <td id="TrackInfo" colspan="4">Track Info</td>
-        </tr>
-        <tr style="height: 4%; outline: 1px solid;">
-            <td id="CueMode" colspan="4" style="text-align:center;">&#9654; Parallel</td>
-        </tr>
-        <tr style="height: 4%;">
-            <td colspan="4" style="padding: 0;">
-                <div id="progressContainer">
-                    <div id="progressBar"></div>
-                    <div id="progressTime">0:00 / 0:00</div>
-                </div>
-            </td>
-        </tr>
-        <!-- Fade gain indicator -->
-        <tr style="height: 1%;">
-            <td colspan="4" style="padding: 0;" title="Volume fade level">
-                <div id="fadeGainBar"><div id="fadeGainFill"></div></div>
-            </td>
-        </tr>
-        <!-- Playing track live info -->
-        <tr style="height: 3%;" id="playingInfoRow">
-            <td colspan="4">
-                <div id="playingInfoContent">
-                    <span>&#9654; Playing:</span>
-                    <span>Vol: <strong id="PlayingVolume">–</strong></span>
-                    <span>Speed: <strong id="PlayingSpeed">–</strong></span>
-                    <span>Fade: <strong id="PlayingFadeGain">–</strong></span>
-                </div>
-            </td>
-        </tr>
-        <tr style="height: 10%;">
-            <td style="background-color:gray; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('previous')">Previous</td>
-            <td style="background-color:red; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('stop')">Stop</td>
-            <td style="background-color:limegreen; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('play')">Go</td>
-            <td style="background-color:gray; text-align:center; width:25%; cursor:pointer;" onclick="webapp.sendCommand('next')">Next</td>
-        </tr>
-        <tr style="height: 4%;" id="cueActionsRow">
-            <td colspan="4" id="cueActions">
-                <button onclick="toggleAutoRun()" id="btnAutoRun">Auto-run: OFF</button>
-                <label style="font-size:0.75em;">Pause(s):</label>
-                <input id="pauseInput" type="number" min="0" max="60" step="0.1" value="0" />
-                <button onclick="setPause()" style="font-size:0.75em;padding:2px 8px;">Set Pause</button>
-                <button onclick="deleteCue()" style="font-size:0.75em;padding:2px 8px;background:tomato;color:white;">Delete Cue</button>
-            </td>
-        </tr>
-        <tr style="height: 4%;">
-            <td colspan="4" style="padding: 2px 8px;">
-                <label for="volumeSlider">Volume:</label>
-                <input id="volumeSlider" type="range" min="0" max="100" value="50" style="width:80%;"
+            </div>
+            <div id="MainText" class="cue-text current-cue"></div>
+            <div id="waveformContainer">
+                <canvas id="waveformCanvas"></canvas>
+                <div id="waveformPositionLine"></div>
+            </div>
+            <div id="fadeGainBar" title="Volume fade level"><div id="fadeGainFill"></div></div>
+            <div id="progressContainer">
+                <div id="progressBar"></div>
+                <div id="progressTime">0:00 / 0:00</div>
+            </div>
+            <div class="info-row">
+                <span id="TrackInfo" class="track-info"></span>
+                <span id="CueMode" class="cue-mode parallel">&#9654; Parallel</span>
+            </div>
+        </div>
+
+        <!-- RIGHT: current cue properties -->
+        <div class="right-panel">
+            <div class="panel-header">Cue Properties</div>
+
+            <div class="prop-row">
+                <label for="volumeSlider">&#128266; Volume</label>
+                <input id="volumeSlider" type="range" min="0" max="100" value="50"
                     oninput="webapp.sendCommand('volume:' + this.value)" />
-                <span id="CurrentVolume">50</span>
-            </td>
-        </tr>
-        <tr style="height: 4%;">
-            <td colspan="4" style="padding: 2px 8px;">
-                <label for="speedSlider">Speed:</label>
-                <input id="speedSlider" type="range" min="10" max="200" value="100" style="width:80%;"
+                <span id="CurrentVolume" class="prop-val">50</span>
+            </div>
+
+            <div class="prop-row">
+                <label for="speedSlider">Speed</label>
+                <input id="speedSlider" type="range" min="10" max="200" value="100"
                     oninput="webapp.sendCommand('speed:' + (this.value / 100).toFixed(2))" />
-                <span id="CurrentSpeed">1.00</span>
-            </td>
-        </tr>
-        <tr style="height: 5%;">
-            <td colspan="4" style="padding: 2px 8px; font-size: 0.8em;">
-                <label>Fade In(ms):</label>
-                <input id="fadeInInput" type="number" min="0" max="300000" step="100" value="0" style="width:60px;" />
-                <label style="margin-left:6px;">Out(ms):</label>
-                <input id="fadeOutInput" type="number" min="0" max="300000" step="100" value="0" style="width:60px;" />
-                <label style="margin-left:6px;">Curve:</label>
-                <select id="fadeCurveSelect" style="font-size:0.9em;">
+                <span id="CurrentSpeed" class="prop-val">1.00</span>
+            </div>
+
+            <div class="prop-group-header">Fade</div>
+            <div class="prop-row small">
+                <label for="fadeInInput">In (ms):</label>
+                <input id="fadeInInput" type="number" min="0" max="300000" step="100" value="0" />
+            </div>
+            <div class="prop-row small">
+                <label for="fadeOutInput">Out (ms):</label>
+                <input id="fadeOutInput" type="number" min="0" max="300000" step="100" value="0" />
+            </div>
+            <div class="prop-row small">
+                <label for="fadeCurveSelect">Curve:</label>
+                <select id="fadeCurveSelect">
                     <option value="linear">Linear</option>
                     <option value="log">Logarithmic</option>
                 </select>
-                <button onclick="setFade()" style="font-size:0.75em;padding:2px 8px;margin-left:4px;">Set Fade</button>
+            </div>
+            <div class="prop-row small">
+                <button onclick="setFade()">Set Fade</button>
                 <span id="CueFadeInMs" style="display:none;"></span>
                 <span id="CueFadeOutMs" style="display:none;"></span>
                 <span id="CueFadeCurve" style="display:none;"></span>
-            </td>
-        </tr>
-        <!-- Audio device selection -->
-        <tr style="height: 4%;">
-            <td colspan="4" style="padding: 0;">
-                <div id="deviceRow">
-                    <label for="playbackDeviceSelect">&#128266; Output:</label>
-                    <select id="playbackDeviceSelect" onchange="webapp.sendCommand('device:' + this.value)"></select>
-                </div>
-            </td>
-        </tr>
-        <!-- Preview device selection -->
-        <tr style="height: 4%;">
-            <td colspan="4" style="padding: 0;">
-                <div id="previewDeviceRow" style="font-size:0.75em;padding:2px 8px;background-color:#1a1a2e;color:#ccc;display:flex;align-items:center;gap:6px;">
-                    <label for="previewDeviceSelect">&#127911; Preview:</label>
-                    <select id="previewDeviceSelect" style="font-size:0.85em;max-width:60%;" onchange="webapp.sendCommand('previewdevice:' + this.value)"></select>
-                </div>
-            </td>
-        </tr>
-    </table>
+            </div>
+
+            <div class="prop-group-header">Auto-run</div>
+            <div class="prop-row small">
+                <button onclick="toggleAutoRun()" id="btnAutoRun">Auto-run: OFF</button>
+            </div>
+            <div class="prop-row small">
+                <label>Pause(s):</label>
+                <input id="pauseInput" type="number" min="0" max="60" step="0.1" value="0" style="width:44px;" />
+                <button onclick="setPause()">Set</button>
+            </div>
+
+            <div class="prop-group-header">Output Devices</div>
+            <div class="prop-row small">
+                <label for="playbackDeviceSelect">&#128266; Output:</label><br/>
+                <select id="playbackDeviceSelect" onchange="webapp.sendCommand('device:' + this.value)"></select>
+            </div>
+            <div class="prop-row small">
+                <label for="previewDeviceSelect">&#127911; Preview:</label><br/>
+                <select id="previewDeviceSelect" onchange="webapp.sendCommand('previewdevice:' + this.value)"></select>
+            </div>
+
+            <div class="prop-group-header">Actions</div>
+            <div class="prop-row small">
+                <button onclick="deleteCue()" style="background:tomato;color:white;">Delete Cue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation bar -->
+    <div class="nav-bar">
+        <button class="nav-btn btn-prev" onclick="webapp.sendCommand('previous')">Previous</button>
+        <button class="nav-btn btn-stop" onclick="webapp.sendCommand('stop')">Stop</button>
+        <button class="nav-btn btn-go" onclick="webapp.sendCommand('play')">Go</button>
+        <button class="nav-btn btn-next" onclick="webapp.sendCommand('next')">Next</button>
+    </div>
+
+</div>
 </body>
 </html>
-

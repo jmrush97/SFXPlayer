@@ -33,7 +33,7 @@
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             lbIndex = new System.Windows.Forms.Label();
-            tbDescription = new System.Windows.Forms.TextBox();
+            tbDescription = new WaveformTextBox();
             bnPlay = new System.Windows.Forms.PictureBox();
             bnSpeed = new System.Windows.Forms.PictureBox();
             bnVolume = new System.Windows.Forms.PictureBox();
@@ -362,7 +362,7 @@
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.Label lbIndex;
-        private System.Windows.Forms.TextBox tbDescription;
+        private WaveformTextBox tbDescription;
         private System.Windows.Forms.PictureBox bnPlay;
         private System.Windows.Forms.PictureBox bnSpeed;
         private System.Windows.Forms.CheckBox bnStopAll;

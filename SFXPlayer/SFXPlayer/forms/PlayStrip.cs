@@ -30,6 +30,44 @@ namespace SFXPlayer
 
     }
 
+    /// <summary>
+    /// A TextBox that paints a waveform bitmap as its background by intercepting
+    /// WM_ERASEBKGND, which the native Win32 EDIT control handles itself (ignoring
+    /// the inherited BackgroundImage property). Dark background + white text.
+    /// </summary>
+    internal sealed class WaveformTextBox : TextBox
+    {
+        private static readonly Color WaveformBg = Color.FromArgb(26, 26, 46);
+        private Bitmap _waveformBitmap;
+        private const int WM_ERASEBKGND = 0x0014;
+
+        public WaveformTextBox()
+        {
+            BackColor = WaveformBg;
+            ForeColor = Color.White;
+        }
+
+        public void SetWaveform(Bitmap bmp)
+        {
+            var old = _waveformBitmap;
+            _waveformBitmap = bmp;
+            old?.Dispose();
+            Invalidate();
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_ERASEBKGND && _waveformBitmap != null && m.WParam != IntPtr.Zero)
+            {
+                using var g = Graphics.FromHdc(m.WParam);
+                g.DrawImage(_waveformBitmap, 0, 0, Width, Height);
+                m.Result = (IntPtr)1;
+                return;
+            }
+            base.WndProc(ref m);
+        }
+    }
+
     public partial class PlayStrip : UserControl
     {
         /// <summary>Threshold below which speed is considered equal to 1.0x for display purposes.</summary>
@@ -572,9 +610,7 @@ namespace SFXPlayer
         private void UpdateWaveformBackground()
         {
             // Clear first
-            var old = tbDescription.BackgroundImage;
-            tbDescription.BackgroundImage = null;
-            old?.Dispose();
+            tbDescription.SetWaveform(null);
             if (SFX == null)
             {
                 Debug.WriteLine("PlayStrip.UpdateWaveformBackground: SFX is null");
@@ -587,11 +623,7 @@ namespace SFXPlayer
                 int w = Math.Max(tbDescription.Width, 1);
                 int h = Math.Max(tbDescription.Height, 1);
                 var bmp = GenerateWaveformBitmap(SFX.FileName, w, h);
-                if (bmp != null)
-                {
-                    tbDescription.BackgroundImage = bmp;
-                    tbDescription.BackgroundImageLayout = ImageLayout.Stretch;
-                }
+                tbDescription.SetWaveform(bmp); // null is safe — SetWaveform clears if null
             }
             catch (Exception ex)
             {
@@ -647,8 +679,8 @@ namespace SFXPlayer
 
             var bitmap = new Bitmap(width, height);
             using var g = Graphics.FromImage(bitmap);
-            g.Clear(Color.Transparent);
-            using var pen = new Pen(Color.FromArgb(80, 100, 160, 100), 1f);
+            g.Clear(Color.FromArgb(26, 26, 46));
+            using var pen = new Pen(Color.FromArgb(160, 100, 200, 100), 1f);
             float scaleX = (float)width / sampleCount;
             float mid = height / 2f;
             for (int i = 0; i < sampleCount; i++)

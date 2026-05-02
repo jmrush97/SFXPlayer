@@ -53,5 +53,8 @@ namespace SFXPlayer.classes
 
         // Waveform peak data for the current/next track (comma-separated normalised 0-1 values)
         public string WaveformData = "";
+
+        // Full cue list for the left-panel cue list in the web UI (JSON array)
+        public string CueListJson = "[]";
     }
 }

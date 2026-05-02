@@ -268,7 +268,8 @@ namespace SFXPlayer
                 CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
-                WaveformData = GetWaveformData(next)
+                WaveformData = GetWaveformData(next),
+                CueListJson = GetCueListJson()
             };
             OnDisplayChanged(disp);
         }
@@ -1263,7 +1264,8 @@ namespace SFXPlayer
                 CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
-                WaveformData = GetWaveformData(playing ?? next)
+                WaveformData = GetWaveformData(playing ?? next),
+                CueListJson = GetCueListJson()
             };
             OnDisplayChanged(disp);
         }
@@ -1718,6 +1720,28 @@ namespace SFXPlayer
                 : "";
             return _cachedWaveformData;
         }
+
+        private string GetCueListJson()
+        {
+            var sb = new System.Text.StringBuilder("[");
+            bool first = true;
+            int nextIdx = NextPlayCue?.PlayStripIndex ?? -1;
+            foreach (PlayStrip ps in CueList.Controls.OfType<PlayStrip>().OrderBy(p => p.PlayStripIndex))
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                string desc = EscapeJsonString(ps.SFX.Description ?? "");
+                string file = EscapeJsonString(Path.GetFileName(ps.SFX.FileName ?? ""));
+                string spd = ps.SFX.Speed.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                string isCur = ps.PlayStripIndex == nextIdx ? "true" : "false";
+                sb.Append($"{{\"i\":{ps.PlayStripIndex + 1},\"d\":\"{desc}\",\"f\":\"{file}\",\"v\":{ps.SFX.Volume},\"s\":{spd},\"c\":{isCur}}}");
+            }
+            sb.Append(']');
+            return sb.ToString();
+        }
+
+        private static string EscapeJsonString(string s)
+            => s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r");
 
         private static float[] GenerateWaveformPeaks(string fileName, int bucketCount)
         {

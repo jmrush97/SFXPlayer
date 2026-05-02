@@ -110,6 +110,8 @@ var WebApp = function () {
                                 window._currentPreviewDevice = nodeValue;
                             } else if (nodeName === "WaveformData") {
                                 updateWaveform(nodeValue || "");
+                            } else if (nodeName === "CueListJson") {
+                                renderCueList(nodeValue || "[]");
                             } else {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {
@@ -302,6 +304,37 @@ function updateDeviceDropdown(pipeSeparatedList, selectId) {
         if (devices[k] === currentDevice) opt.selected = true;
         sel.appendChild(opt);
     }
+}
+
+// ---- Cue list rendering ----
+function renderCueList(json) {
+    var container = document.getElementById("cueListContainer");
+    if (!container) return;
+    var cues;
+    try { cues = JSON.parse(json); } catch (e) { return; }
+    if (!Array.isArray(cues)) return;
+    container.innerHTML = "";
+    for (var i = 0; i < cues.length; i++) {
+        var c = cues[i];
+        var row = document.createElement("div");
+        row.className = "cue-list-item" + (c.c ? " current-cue" : "");
+        var desc = c.d ? htmlEscape(c.d) : "<em style='color:#666'>—</em>";
+        var file = c.f ? htmlEscape(c.f) : "";
+        var meta = "Vol:" + c.v + "  " + c.s + "x";
+        row.innerHTML =
+            "<span class='cue-num'>" + c.i + "</span>" +
+            "<span class='cue-desc'>" + desc + "</span>" +
+            (file ? "<span class='cue-file'>" + file + "</span>" : "") +
+            "<span class='cue-meta'>" + meta + "</span>";
+        container.appendChild(row);
+    }
+    // Scroll the current cue into view
+    var current = container.querySelector(".current-cue");
+    if (current) current.scrollIntoView({ block: "nearest" });
+}
+
+function htmlEscape(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function init() {

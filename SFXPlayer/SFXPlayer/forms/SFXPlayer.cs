@@ -21,6 +21,7 @@ using System.Management;
 using System.Runtime.InteropServices;
 using Svg.FilterEffects;
 using SFXPlayer.classes;
+using SFXPlayer.forms;
 
 namespace SFXPlayer
 {
@@ -134,6 +135,12 @@ namespace SFXPlayer
             //PlayStrip.PreviewDevices = cbPreview;
             autoLoadLastsfxCuelistToolStripMenuItem.Checked = Settings.Default.AutoLoadLastSession;
             confirmDeleteCueToolStripMenuItem.Checked = Settings.Default.ConfirmDeleteCue;
+            //// Initialize device status label
+            //if (lblDeviceStatus != null)
+            //{
+            //    lblDeviceStatus.Text = "Initializing devices...";
+            //    lblDeviceStatus.ForeColor = System.Drawing.Color.Gray;
+            //}
         }
 
         // Convenience method for setting message text in 
@@ -475,6 +482,7 @@ namespace SFXPlayer
                 }
             }
             InitialisingDevices = false;
+            UpdateDeviceStatusDisplay();  // Add this line
         }
         public MidiOut MIDIOut;
         private void StartWebApp()
@@ -628,6 +636,7 @@ namespace SFXPlayer
         //private void CueList_ControlAdded(object sender, ControlEventArgs e) {
         //    e.Control.MouseWheel += CueList_MouseWheel;
         //}
+
 
         private void CueList_MouseWheel(object sender, MouseEventArgs e)
         {
@@ -1362,6 +1371,11 @@ namespace SFXPlayer
             }
         }
 
+        private void audioMidiDevicesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowDeviceSelectionDialog();
+        }
+
         internal void PlayNextCue()
         {
             _commandQueue.Enqueue(() => bnPlayNext_Click(null, null));
@@ -1411,6 +1425,7 @@ namespace SFXPlayer
         bool AddOK;
         bool AddZone;
         bool ReplaceZone;
+        private Label lblDeviceStatus;
 
         private void HighlightControl(Control ctl)
         {
@@ -1454,6 +1469,97 @@ namespace SFXPlayer
                 if (!fileOK) return false;
             }
             return true;
+        }
+
+        private void UpdateDeviceStatusDisplay()
+        {
+            if (lblDeviceStatus == null) return;
+
+            string playback = CurrentPlaybackDeviceIdx >= 0 
+                ? $"🔊 {TruncateDeviceName(Settings.Default.LastPlaybackDevice, 25)}" 
+                : "🔊 Not Connected";
+            
+            string preview = CurrentPreviewDeviceIdx >= 0 
+                ? $"🎧 {TruncateDeviceName(Settings.Default.LastPreviewDevice, 25)}" 
+                : "🎧 Not Connected";
+            
+            string midi = CurrentMIDIDeviceIdx >= 0 
+                ? $"🎹 {TruncateDeviceName(Settings.Default.LastMidiDevice, 20)}" 
+                : "🎹 Not Connected";
+
+            lblDeviceStatus.Text = $"{playback}  |  {preview}  |  {midi}";
+            
+            // Color-code based on connection status
+            bool allConnected = CurrentPlaybackDeviceIdx >= 0 && 
+                               CurrentPreviewDeviceIdx >= 0 && 
+                               CurrentMIDIDeviceIdx >= 0;
+            lblDeviceStatus.ForeColor = allConnected 
+                ? System.Drawing.Color.DarkGreen 
+                : System.Drawing.Color.DarkRed;
+            
+            // Build detailed tooltip
+            string tooltip = "Click to change devices\n\n";
+            tooltip += $"Playback: {(CurrentPlaybackDeviceIdx >= 0 ? Settings.Default.LastPlaybackDevice : "Not Connected")}\n";
+            tooltip += $"Preview: {(CurrentPreviewDeviceIdx >= 0 ? Settings.Default.LastPreviewDevice : "Not Connected")}\n";
+            tooltip += $"MIDI: {(CurrentMIDIDeviceIdx >= 0 ? Settings.Default.LastMidiDevice : "Not Connected")}";
+            
+            toolTip1.SetToolTip(lblDeviceStatus, tooltip);
+        }
+
+        private string TruncateDeviceName(string deviceName, int maxLength = 20)
+        {
+            if (string.IsNullOrEmpty(deviceName)) return "None";
+            if (deviceName.Length <= maxLength) return deviceName;
+            return deviceName.Substring(0, maxLength - 3) + "...";
+        }
+
+        private void lblDeviceStatus_Click(object sender, EventArgs e)
+        {
+            ShowDeviceSelectionDialog();
+        }
+
+        private void ShowDeviceSelectionDialog()
+        {
+            using (DeviceSelectionDialog dialog = new DeviceSelectionDialog(
+                CurrentAudioOutDevices.ToArray(),
+                CurrentAudioOutDevices.ToArray(),
+                CurrentMIDIOutDevices.ToArray(),
+                Settings.Default.LastPlaybackDevice,
+                Settings.Default.LastPreviewDevice,
+                Settings.Default.LastMidiDevice))
+            {
+                if (dialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    bool devicesChanged = false;
+
+                    // Update playback device if changed
+                    if (dialog.SelectedPlaybackDevice != Settings.Default.LastPlaybackDevice)
+                    {
+                        Settings.Default.LastPlaybackDevice = dialog.SelectedPlaybackDevice;
+                        devicesChanged = true;
+                    }
+
+                    // Update preview device if changed
+                    if (dialog.SelectedPreviewDevice != Settings.Default.LastPreviewDevice)
+                    {
+                        Settings.Default.LastPreviewDevice = dialog.SelectedPreviewDevice;
+                        devicesChanged = true;
+                    }
+
+                    // Update MIDI device if changed
+                    if (dialog.SelectedMidiDevice != Settings.Default.LastMidiDevice)
+                    {
+                        Settings.Default.LastMidiDevice = dialog.SelectedMidiDevice;
+                        devicesChanged = true;
+                    }
+
+                    if (devicesChanged)
+                    {
+                        Settings.Default.Save();
+                        UpdateDevices();
+                    }
+                }
+            }
         }
     }
 }

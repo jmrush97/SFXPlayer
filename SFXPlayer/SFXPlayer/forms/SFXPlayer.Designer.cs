@@ -68,6 +68,7 @@ namespace SFXPlayer
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.autoLoadLastsfxCuelistToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.confirmDeleteCueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.audioMidiDevicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ScrollTimer = new System.Windows.Forms.Timer(this.components);
             this.bnPrev = new System.Windows.Forms.Button();
@@ -340,7 +341,8 @@ namespace SFXPlayer
             // 
             this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.autoLoadLastsfxCuelistToolStripMenuItem,
-            this.confirmDeleteCueToolStripMenuItem});
+            this.confirmDeleteCueToolStripMenuItem,
+            this.audioMidiDevicesToolStripMenuItem});
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
             this.settingsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
             this.settingsToolStripMenuItem.Text = "Settings";
@@ -362,6 +364,13 @@ namespace SFXPlayer
             this.confirmDeleteCueToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.confirmDeleteCueToolStripMenuItem.Text = "Confirm delete cue";
             this.confirmDeleteCueToolStripMenuItem.Click += new System.EventHandler(this.confirmDeleteCueToolStripMenuItem_Click);
+            // 
+            // audioMidiDevicesToolStripMenuItem
+            // 
+            this.audioMidiDevicesToolStripMenuItem.Name = "audioMidiDevicesToolStripMenuItem";
+            this.audioMidiDevicesToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.audioMidiDevicesToolStripMenuItem.Text = "Audio && MIDI Devices...";
+            this.audioMidiDevicesToolStripMenuItem.Click += new System.EventHandler(this.audioMidiDevicesToolStripMenuItem_Click);
             // 
             // helpToolStripMenuItem
             // 
@@ -705,7 +714,7 @@ namespace SFXPlayer
             }
             else if (AddOK && Math.Abs(Ypos % CueListSpacing) < SpacerControlHeight)
             {
-                UnHighlightControl();
+                UnHighlightControl(); HighlightControl(null);
                 AddZone = true;
                 e.Effect = DragDropEffects.Move;
             }
@@ -919,6 +928,7 @@ namespace SFXPlayer
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem autoLoadLastsfxCuelistToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem confirmDeleteCueToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem audioMidiDevicesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem previousCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem nextCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;

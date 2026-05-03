@@ -455,14 +455,16 @@ namespace SFXPlayer
         }
 
         /// <summary>
-        /// Returns the loaded-state background color based on cue state:
-        /// White = no file or skipped, Yellow = normal, Green = auto-run
+        /// Returns the loaded-state background color based on cue state (dark theme).
+        /// Dark navy = no file or skipped, dark amber = normal, dark green = auto-run
         /// </summary>
         private Color GetCueStateColor()
         {
             if (SFX == null || string.IsNullOrEmpty(SFX.FileName) || SFX.Skipped)
-                return Color.White;
-            return SFX.AutoPlay ? Color.LightGreen : Color.LightYellow;
+                return Color.FromArgb(26, 26, 46);          // #1a1a2e  base dark
+            return SFX.AutoPlay
+                ? Color.FromArgb(10, 32, 10)                // dark green  (auto-run)
+                : Color.FromArgb(42, 38, 10);               // dark amber  (normal)
         }
 
         /// <summary>
@@ -520,20 +522,19 @@ namespace SFXPlayer
                     BackColor = GetCueStateColor();
                     break;
                 case PlayerState.loading:
-                    BackColor = Settings.Default.ColourPlayerLoading;
+                    BackColor = Color.FromArgb(60, 20, 20);         // dark coral
                     break;
                 case PlayerState.loaded:
                     BackColor = GetCueStateColor();
                     break;
                 case PlayerState.play:
-                    //BackColor = Settings.Default.ColourPlayerPlay;
                     BackColor = Color.Transparent;
                     break;
                 case PlayerState.paused:
-                    BackColor = Settings.Default.ColourPlayerPaused;
+                    BackColor = Color.FromArgb(10, 42, 20);         // dark green-teal
                     break;
                 case PlayerState.error:
-                    BackColor = Color.Red;
+                    BackColor = Color.FromArgb(128, 0, 0);          // dark red
                     break;
                 default:
                     BackColor = GetCueStateColor();
@@ -1075,7 +1076,7 @@ namespace SFXPlayer
                 _PreviewPlayer.Volume = SFX.Volume; _PreviewPlayer.Position = TimeSpan.Zero;  //this resets the volume!
                 _PreviewPlayer.Volume = SFX.Volume;
                 _PreviewPlayer.Play();
-                BackColor = Settings.Default.ColourPreview;
+                BackColor = Color.FromArgb(42, 28, 10);         // dark orange (preview)
             }
             UpdatePreviewButton();
         }
@@ -1366,7 +1367,7 @@ namespace SFXPlayer
                 Debug.WriteLine("This = " + this.ToString());
                 Debug.WriteLine("Parent = " + Parent.ToString());
                 Debug.WriteLine("Parent.Parent = " + Parent.Parent.ToString());
-                BackColor = SystemColors.Highlight;
+                BackColor = Color.FromArgb(30, 48, 80);         // dark blue highlight
             }
         }
 
@@ -1446,7 +1447,7 @@ namespace SFXPlayer
                 speedControl.Location = Loc;
                 speedControl.Speed = SFX.Speed;
                 speedControl.Focus();
-                BackColor = SystemColors.Highlight;
+                BackColor = Color.FromArgb(30, 48, 80);         // dark blue highlight
             }
         }
 

@@ -23,6 +23,7 @@ namespace SFXPlayer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
             this.Name = "Spacer";
             this.Size = new System.Drawing.Size(100, 8);
             this.ResumeLayout(false);

@@ -106,7 +106,7 @@ namespace SFXPlayer
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.CueList.AutoScroll = true;
-            this.CueList.BackColor = System.Drawing.SystemColors.ControlDark;
+            this.CueList.BackColor = System.Drawing.Color.FromArgb(17, 17, 34);
             this.CueList.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 556F));
             this.CueList.Location = new System.Drawing.Point(305, 34);
             this.CueList.Name = "CueList";
@@ -130,6 +130,8 @@ namespace SFXPlayer
             // 
             this.rtMainText.Location = new System.Drawing.Point(12, 244);
             this.rtMainText.Name = "rtMainText";
+            this.rtMainText.BackColor = System.Drawing.Color.FromArgb(22, 33, 62);
+            this.rtMainText.ForeColor = System.Drawing.Color.White;
             this.rtMainText.Size = new System.Drawing.Size(287, 178);
             this.rtMainText.TabIndex = 2;
             this.rtMainText.Text = "";
@@ -137,8 +139,9 @@ namespace SFXPlayer
             // 
             // bnStopAll
             // 
-            this.bnStopAll.BackColor = System.Drawing.Color.Red;
-            this.bnStopAll.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.bnStopAll.BackColor = System.Drawing.Color.FromArgb(192, 57, 43);
+            this.bnStopAll.ForeColor = System.Drawing.Color.White;
+            this.bnStopAll.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.bnStopAll.Location = new System.Drawing.Point(12, 142);
             this.bnStopAll.Name = "bnStopAll";
             this.bnStopAll.Size = new System.Drawing.Size(177, 81);
@@ -154,7 +157,8 @@ namespace SFXPlayer
             // 
             // bnPlayNext
             // 
-            this.bnPlayNext.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
+            this.bnPlayNext.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
+            this.bnPlayNext.ForeColor = System.Drawing.Color.White;
             this.bnPlayNext.Location = new System.Drawing.Point(256, 172);
             this.bnPlayNext.Name = "bnPlayNext";
             this.bnPlayNext.Size = new System.Drawing.Size(48, 21);
@@ -171,6 +175,8 @@ namespace SFXPlayer
             this.bnAddCue.Size = new System.Drawing.Size(18, 19);
             this.bnAddCue.TabIndex = 6;
             this.bnAddCue.Text = "+";
+            this.bnAddCue.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
+            this.bnAddCue.ForeColor = System.Drawing.Color.White;
             this.toolTip1.SetToolTip(this.bnAddCue, "Add Cue");
             this.bnAddCue.UseVisualStyleBackColor = true;
             this.bnAddCue.Click += new System.EventHandler(this.bnAddCue_Click);
@@ -182,6 +188,8 @@ namespace SFXPlayer
             this.bnDeleteCue.Size = new System.Drawing.Size(18, 19);
             this.bnDeleteCue.TabIndex = 7;
             this.bnDeleteCue.Text = "-";
+            this.bnDeleteCue.BackColor = System.Drawing.Color.FromArgb(85, 85, 102);
+            this.bnDeleteCue.ForeColor = System.Drawing.Color.White;
             this.toolTip1.SetToolTip(this.bnDeleteCue, "Delete Cue");
             this.bnDeleteCue.UseVisualStyleBackColor = true;
             this.bnDeleteCue.Click += new System.EventHandler(this.bnDeleteCue_Click);
@@ -190,6 +198,9 @@ namespace SFXPlayer
             // 
             this.menuStrip1.Dock = System.Windows.Forms.DockStyle.None;
             this.menuStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.menuStrip1.BackColor = System.Drawing.Color.FromArgb(15, 15, 30);
+            this.menuStrip1.ForeColor = System.Drawing.Color.FromArgb(200, 200, 240);
+            this.menuStrip1.Renderer = new System.Windows.Forms.ToolStripProfessionalRenderer(new global::SFXPlayer.classes.DarkToolStripColorTable());
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
             this.transportToolStripMenuItem,
@@ -416,7 +427,8 @@ namespace SFXPlayer
             this.bnPrev.Size = new System.Drawing.Size(23, 23);
             this.bnPrev.TabIndex = 26;
             this.bnPrev.Text = "˄";
-            this.bnPrev.UseVisualStyleBackColor = true;
+            this.bnPrev.BackColor = System.Drawing.Color.FromArgb(85, 85, 102);
+            this.bnPrev.ForeColor = System.Drawing.Color.White;
             this.bnPrev.Click += new System.EventHandler(this.bnPrev_Click);
             // 
             // bnNext
@@ -426,13 +438,16 @@ namespace SFXPlayer
             this.bnNext.Size = new System.Drawing.Size(23, 23);
             this.bnNext.TabIndex = 27;
             this.bnNext.Text = "˅";
-            this.bnNext.UseVisualStyleBackColor = true;
+            this.bnNext.BackColor = System.Drawing.Color.FromArgb(85, 85, 102);
+            this.bnNext.ForeColor = System.Drawing.Color.White;
             this.bnNext.Click += new System.EventHandler(this.bnNext_Click);
             // 
             // rtPrevMainText
             // 
             this.rtPrevMainText.Location = new System.Drawing.Point(12, 34);
             this.rtPrevMainText.Name = "rtPrevMainText";
+            this.rtPrevMainText.BackColor = System.Drawing.Color.FromArgb(58, 58, 74);
+            this.rtPrevMainText.ForeColor = System.Drawing.Color.FromArgb(170, 170, 204);
             this.rtPrevMainText.Size = new System.Drawing.Size(287, 102);
             this.rtPrevMainText.TabIndex = 28;
             this.rtPrevMainText.Text = "";
@@ -459,6 +474,8 @@ namespace SFXPlayer
             // 
             // statusStrip
             // 
+            this.statusStrip.BackColor = System.Drawing.Color.FromArgb(15, 15, 30);
+            this.statusStrip.ForeColor = System.Drawing.Color.FromArgb(200, 200, 240);
             this.statusStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusBar,
@@ -521,6 +538,9 @@ namespace SFXPlayer
             this.toolStrip1.Dock = System.Windows.Forms.DockStyle.None;
             this.toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.toolStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.toolStrip1.BackColor = System.Drawing.Color.FromArgb(15, 15, 30);
+            this.toolStrip1.ForeColor = System.Drawing.Color.FromArgb(200, 200, 240);
+            this.toolStrip1.Renderer = new System.Windows.Forms.ToolStripProfessionalRenderer(new global::SFXPlayer.classes.DarkToolStripColorTable());
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.bnMIDI,
             this.bnPreview,
@@ -614,6 +634,8 @@ namespace SFXPlayer
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
+            this.ForeColor = System.Drawing.Color.FromArgb(224, 224, 224);
             this.ClientSize = new System.Drawing.Size(861, 450);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.statusStrip);

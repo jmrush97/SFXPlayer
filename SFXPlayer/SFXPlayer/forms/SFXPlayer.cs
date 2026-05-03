@@ -126,9 +126,10 @@ namespace SFXPlayer
             bnStopAll.Top = bnPrev.Top = CueList.Top + TOPGAP - bnPrev.Height;
             bnPlayNext.Top = CueList.Top + TOPGAP;
             bnPlayNext.Height = PlayStripControlHeight;
-            bnPlayNext.BackColor = Settings.Default.ColourPlayerPlay;
-            pictureBox1.BackColor = Settings.Default.ColourPlayerPlay;
-            pictureBox2.BackColor = Settings.Default.ColourPlayerPlay;
+            // Keep web-app green regardless of the legacy colour setting
+            bnPlayNext.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
+            pictureBox1.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
+            pictureBox2.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
             pictureBox1.Top = bnPlayNext.Top - pictureBox1.Height;
             pictureBox2.Top = bnPlayNext.Bottom;
             bnDeleteCue.Top = bnAddCue.Top = bnPlayNext.Top + (bnPlayNext.Height - bnAddCue.Height) / 2;
@@ -145,8 +146,9 @@ namespace SFXPlayer
             lbPrevCueInfo.Top = rtPrevMainText.Bottom + rtPrevMainText.Margin.Bottom;
             lbPrevCueInfo.Height = detailLabelHeight;
             lbPrevCueInfo.AutoSize = false;
-            lbPrevCueInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5f);
-            lbPrevCueInfo.BackColor = System.Drawing.Color.FromArgb(220, 220, 220);
+            lbPrevCueInfo.Font = new System.Drawing.Font("Segoe UI", 7.5f);
+            lbPrevCueInfo.BackColor = System.Drawing.Color.FromArgb(15, 52, 96);
+            lbPrevCueInfo.ForeColor = System.Drawing.Color.FromArgb(160, 196, 255);
             lbPrevCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
 
             rtMainText.Top = bnStopAll.Bottom + rtMainText.Margin.Top + bnStopAll.Margin.Bottom;
@@ -159,8 +161,9 @@ namespace SFXPlayer
             lbNextCueInfo.Top = nextInfoTop;
             lbNextCueInfo.Height = detailLabelHeight;
             lbNextCueInfo.AutoSize = false;
-            lbNextCueInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5f);
-            lbNextCueInfo.BackColor = System.Drawing.Color.FromArgb(240, 240, 240);
+            lbNextCueInfo.Font = new System.Drawing.Font("Segoe UI", 7.5f);
+            lbNextCueInfo.BackColor = System.Drawing.Color.FromArgb(15, 52, 96);
+            lbNextCueInfo.ForeColor = System.Drawing.Color.FromArgb(160, 196, 255);
             lbNextCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
 
             PlayStrip.OFD = dlgOpenAudioFile;

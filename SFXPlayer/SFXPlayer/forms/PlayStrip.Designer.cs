@@ -102,6 +102,7 @@
             tableLayoutPanel2.Controls.Add(tableLayoutPanel1, 0, 0);
             tableLayoutPanel2.Controls.Add(pnlWaveform, 0, 1);
             tableLayoutPanel2.Controls.Add(lbAutoPlay, 0, 2);
+            tableLayoutPanel2.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
             tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
             tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
@@ -136,6 +137,7 @@
             tableLayoutPanel1.Controls.Add(bnFade, 8, 0);
             tableLayoutPanel1.Controls.Add(bnVolume, 9, 0);
             tableLayoutPanel1.Controls.Add(bnPreview, 3, 0);
+            tableLayoutPanel1.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
             tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
             tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
@@ -149,6 +151,8 @@
             // lbIndex
             // 
             lbIndex.AutoSize = true;
+            lbIndex.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
+            lbIndex.ForeColor = System.Drawing.Color.FromArgb(119, 170, 255);
             lbIndex.Dock = System.Windows.Forms.DockStyle.Fill;
             lbIndex.Location = new System.Drawing.Point(5, 0);
             lbIndex.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
@@ -263,7 +267,7 @@
             // 
             lbAutoPlay.Dock = System.Windows.Forms.DockStyle.Fill;
             lbAutoPlay.Font = new System.Drawing.Font("Microsoft Sans Serif", 7F);
-            lbAutoPlay.ForeColor = System.Drawing.Color.DarkGreen;
+            lbAutoPlay.ForeColor = System.Drawing.Color.FromArgb(170, 255, 170);
             lbAutoPlay.Location = new System.Drawing.Point(2, 52);
             lbAutoPlay.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             lbAutoPlay.Name = "lbAutoPlay";
@@ -349,6 +353,7 @@
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
             BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             ContextMenuStrip = Delete;
             Controls.Add(tableLayoutPanel2);

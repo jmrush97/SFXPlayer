@@ -730,9 +730,9 @@ namespace SFXPlayer
             this.pnlCenterLayout.Controls.Add(this.lbNextCueInfo, 0, 3);
             // pnlRightHeader: properties label
             this.pnlRightHeader.Controls.Add(this.lblPropsHeader);
-            // pnlRight: header at top (added first), device toolstrip below (added second)
-            this.pnlRight.Controls.Add(this.pnlRightHeader);
+            // pnlRight: device toolstrip added first (docked after header), header added last (docks first = at top)
             this.pnlRight.Controls.Add(this.toolStrip1);
+            this.pnlRight.Controls.Add(this.pnlRightHeader);
             // pnlContent: three columns
             this.pnlContent.Controls.Add(this.pnlLeft, 0, 0);
             this.pnlContent.Controls.Add(this.pnlCenterLayout, 1, 0);
@@ -750,12 +750,13 @@ namespace SFXPlayer
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.pictureBox2);
             this.DoubleBuffered = true;
+            this.AutoScroll = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.MainMenuStrip = this.menuStrip1;
             this.MinimumSize = new System.Drawing.Size(720, 450);
             this.Name = "SFXPlayer";
-            this.RightToLeftLayout = true;
+            this.RightToLeftLayout = false;
             this.Text = "Form1";
             this.toolTip1.SetToolTip(this, "Playback");
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);

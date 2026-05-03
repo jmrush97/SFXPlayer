@@ -22,12 +22,26 @@ namespace SFXPlayer.classes
         private FadeCurve _fadeCurve;
         private FadeSampleProvider _fadeProvider;
 
+        // Suppresses the PlaybackStopped event while a seek re-init is in progress
+        private bool _isSeeking = false;
+        private EventHandler<StoppedEventArgs> _externalPlaybackStopped;
+
         /// <summary>
         /// Current gain from the fade envelope (0.0–1.0). Returns 1.0 if no fade is active.
         /// </summary>
         public float CurrentFadeGain => _fadeProvider?.CurrentGain ?? 1.0f;
 
-        public event EventHandler<StoppedEventArgs> PlaybackStopped;
+        public event EventHandler<StoppedEventArgs> PlaybackStopped
+        {
+            add => _externalPlaybackStopped += value;
+            remove => _externalPlaybackStopped -= value;
+        }
+
+        private void OnPlaybackStopped(object sender, StoppedEventArgs e)
+        {
+            if (!_isSeeking)
+                _externalPlaybackStopped?.Invoke(sender, e);
+        }
 
         public PlaybackState PlaybackState
         {
@@ -49,12 +63,10 @@ namespace SFXPlayer.classes
             }
             set
             {
-                if (_waveSource != null)
-                    _waveSource.CurrentTime = value;
-                if (_soundOut != null)
-                {
-                    _soundOut.Init(new SampleToWaveProvider(BuildChain()));
-                }
+                if (_waveSource == null) return;
+                double totalSeconds = _waveSource.TotalTime.TotalSeconds;
+                double fraction = totalSeconds > 0 ? value.TotalSeconds / totalSeconds : 0.0;
+                Seek(Math.Max(0.0, Math.Min(1.0, fraction)));
             }
         }
 
@@ -105,7 +117,7 @@ namespace SFXPlayer.classes
 
             _soundOut.Init(new SampleToWaveProvider(BuildChain()));
 
-            if (PlaybackStopped != null) _soundOut.PlaybackStopped += PlaybackStopped;
+            _soundOut.PlaybackStopped += OnPlaybackStopped;
         }
 
         /// <summary>
@@ -130,6 +142,30 @@ namespace SFXPlayer.classes
             }
 
             return chain;
+        }
+
+        /// <summary>
+        /// Seeks to a fractional position (0.0–1.0) without firing PlaybackStopped.
+        /// Automatically resumes playback if the player was playing when Seek was called.
+        /// </summary>
+        public void Seek(double fraction)
+        {
+            if (_waveSource == null || _soundOut == null) return;
+            fraction = Math.Max(0.0, Math.Min(1.0, fraction));
+            var targetTime = TimeSpan.FromSeconds(fraction * _waveSource.TotalTime.TotalSeconds);
+            bool wasPlaying = _soundOut.PlaybackState == PlaybackState.Playing;
+            _isSeeking = true;
+            try
+            {
+                if (wasPlaying) _soundOut.Stop();
+                _waveSource.CurrentTime = targetTime;
+                _soundOut.Init(new SampleToWaveProvider(BuildChain()));
+                if (wasPlaying) _soundOut.Play();
+            }
+            finally
+            {
+                _isSeeking = false;
+            }
         }
 
         public void Play()

@@ -75,9 +75,12 @@ var WebApp = function () {
                             } else if (nodeName === "IsPlaying") {
                                 window._isPlaying = (nodeValue === "true");
                                 updatePlayingInfoVisibility();
+                                updateStopAllButton();
                             } else if (nodeName === "PlayingVolume") {
                                 var pv = document.getElementById("PlayingVolume");
                                 if (pv) pv.textContent = nodeValue;
+                                _currentVolume = parseInt(nodeValue) || 50;
+                                if (_waveformPeaks) drawWaveform();
                             } else if (nodeName === "PlayingSpeed") {
                                 var psp = parseFloat(nodeValue) || 1.0;
                                 var psSpan = document.getElementById("PlayingSpeed");
@@ -121,6 +124,12 @@ var WebApp = function () {
                                 var field = document.getElementById(nodeName);
                                 if (field != null) {
                                     field.textContent = nodeValue;
+                                    // Also update browser tab when Title changes
+                                    if (nodeName === "Title" && nodeValue) {
+                                        document.title = nodeValue;
+                                        var tab = document.getElementById("TitleTab");
+                                        if (tab) tab.textContent = nodeValue;
+                                    }
                                 } else {
                                     console.log("Unable to locate id=" + nodeName + ". New value = " + nodeValue);
                                 }
@@ -179,6 +188,9 @@ function updateProgress(posSeconds, durSeconds) {
     var bar = document.getElementById("progressBar");
     var label = document.getElementById("progressTime");
     if (!bar || !label) return;
+    // Store on position line for zoom re-draw
+    var line = document.getElementById("waveformPositionLine");
+    if (line) { line.dataset.posSeconds = posSeconds; line.dataset.durSeconds = durSeconds; }
     if (durSeconds > 0) {
         var pct = Math.min(100, (posSeconds / durSeconds) * 100);
         bar.style.width = pct.toFixed(1) + "%";
@@ -203,6 +215,11 @@ var _waveformPeaks = null;
 var _cueFadeInMs = 0;
 var _cueFadeOutMs = 0;
 var _trackDurationSeconds = 0;
+var _currentVolume = 50;
+
+// Zoom state (1 = full view; 2–8 = zoomed in on playhead)
+var _waveZoom = 1.0;
+var _waveZoomCenter = 0.5; // fractional center of the visible window
 
 function computeSineFadeGain(i, count, fadeInBuckets, fadeOutBuckets) {
     if (fadeInBuckets > 0 && i < fadeInBuckets)
@@ -232,6 +249,10 @@ function updateWaveform(csvData) {
     }
     if (peaks.length === 0) return;
     _waveformPeaks = peaks;
+    // Reset zoom when a new waveform loads
+    _waveZoom = 1.0;
+    _waveZoomCenter = 0.5;
+    updateZoomLabel();
     drawWaveform();
 }
 
@@ -256,7 +277,16 @@ function drawWaveform() {
     var count = _waveformPeaks.length;
     var mid = h / 2;
 
-    // Compute fade bucket counts from ms and total duration
+    // Zoom: compute visible bucket range
+    var halfWindow = 0.5 / _waveZoom;
+    var startFrac = Math.max(0, _waveZoomCenter - halfWindow);
+    var endFrac = Math.min(1, startFrac + 1.0 / _waveZoom);
+    startFrac = endFrac - 1.0 / _waveZoom; // re-clamp after end-clamp
+    var startBucket = Math.floor(startFrac * count);
+    var endBucket = Math.ceil(endFrac * count);
+    var visCount = Math.max(1, endBucket - startBucket);
+
+    // Compute fade bucket counts from ms and total duration (full-track coordinates)
     var fadeInBuckets = 0;
     var fadeOutBuckets = 0;
     if (_trackDurationSeconds > 0) {
@@ -277,57 +307,73 @@ function drawWaveform() {
         gains.push(computeSineFadeGain(i, count, fadeInBuckets, fadeOutBuckets));
     }
 
-    // Draw waveform bars scaled by the half-sine fade envelope
+    // Draw waveform bars for the visible (zoomed) window
     ctx.strokeStyle = "rgba(100, 200, 100, 0.8)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (var i = 0; i < count; i++) {
-        var x = (i / count) * w;
+    for (var i = startBucket; i < endBucket; i++) {
+        var x = ((i - startBucket) / visCount) * w;
         var halfH = _waveformPeaks[i] * gains[i] * mid * 0.9;
         ctx.moveTo(x, mid - halfH);
         ctx.lineTo(x, mid + halfH);
     }
     ctx.stroke();
 
-    // Draw half-sine envelope curves (upper + lower) in fade regions
-    if (fadeInBuckets > 1 || fadeOutBuckets > 1) {
+    // Draw half-sine envelope curves (upper + lower) in fade regions, clipped to visible window
+    var envInStart = Math.max(startBucket, 0);
+    var envInEnd   = Math.min(endBucket, fadeInBuckets);
+    var envOutStart = Math.max(startBucket, count - fadeOutBuckets);
+    var envOutEnd   = Math.min(endBucket, count);
+
+    if (fadeInBuckets > 1 && envInEnd > envInStart) {
         ctx.strokeStyle = "rgba(255, 220, 0, 0.7)";
         ctx.lineWidth = 1.5;
-
-        if (fadeInBuckets > 1) {
-            ctx.beginPath();
-            for (var i = 0; i < fadeInBuckets; i++) {
-                var x = (i / count) * w;
-                var y = mid - gains[i] * mid * 0.9;
-                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-            ctx.beginPath();
-            for (var i = 0; i < fadeInBuckets; i++) {
-                var x = (i / count) * w;
-                var y = mid + gains[i] * mid * 0.9;
-                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
+        ctx.beginPath();
+        for (var i = envInStart; i < envInEnd; i++) {
+            var x = ((i - startBucket) / visCount) * w;
+            var y = mid - gains[i] * mid * 0.9;
+            if (i === envInStart) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
-
-        if (fadeOutBuckets > 1) {
-            var startBucket = count - fadeOutBuckets;
-            ctx.beginPath();
-            for (var i = startBucket; i < count; i++) {
-                var x = (i / count) * w;
-                var y = mid - gains[i] * mid * 0.9;
-                if (i === startBucket) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-            ctx.beginPath();
-            for (var i = startBucket; i < count; i++) {
-                var x = (i / count) * w;
-                var y = mid + gains[i] * mid * 0.9;
-                if (i === startBucket) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
+        ctx.stroke();
+        ctx.beginPath();
+        for (var i = envInStart; i < envInEnd; i++) {
+            var x = ((i - startBucket) / visCount) * w;
+            var y = mid + gains[i] * mid * 0.9;
+            if (i === envInStart) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
+        ctx.stroke();
+    }
+
+    if (fadeOutBuckets > 1 && envOutEnd > envOutStart) {
+        ctx.strokeStyle = "rgba(255, 220, 0, 0.7)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var i = envOutStart; i < envOutEnd; i++) {
+            var x = ((i - startBucket) / visCount) * w;
+            var y = mid - gains[i] * mid * 0.9;
+            if (i === envOutStart) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        for (var i = envOutStart; i < envOutEnd; i++) {
+            var x = ((i - startBucket) / visCount) * w;
+            var y = mid + gains[i] * mid * 0.9;
+            if (i === envOutStart) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // Volume level line (horizontal dashed pair at ±volume amplitude)
+    if (_currentVolume > 0 && _currentVolume < 100) {
+        var volH = (_currentVolume / 100) * mid * 0.9;
+        ctx.strokeStyle = "rgba(100, 180, 255, 0.55)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, mid - volH); ctx.lineTo(w, mid - volH);
+        ctx.moveTo(0, mid + volH); ctx.lineTo(w, mid + volH);
+        ctx.stroke();
+        ctx.setLineDash([]);
     }
 }
 
@@ -335,12 +381,31 @@ function updateWaveformPosition(posSeconds, durSeconds) {
     var line = document.getElementById("waveformPositionLine");
     if (!line) return;
     if (durSeconds > 0) {
-        var pct = Math.min(100, (posSeconds / durSeconds) * 100);
+        var posFrac = posSeconds / durSeconds;
+        // When zoomed, auto-follow the playhead
+        if (_waveZoom > 1.0) {
+            _waveZoomCenter = posFrac;
+            if (_waveformPeaks) drawWaveform();
+        }
+        // Map position fraction to canvas percentage within zoom window
+        var halfWindow = 0.5 / _waveZoom;
+        var startFrac = Math.max(0, _waveZoomCenter - halfWindow);
+        var endFrac = Math.min(1, startFrac + 1.0 / _waveZoom);
+        startFrac = endFrac - 1.0 / _waveZoom;
+        var pct = (endFrac > startFrac)
+            ? ((posFrac - startFrac) / (endFrac - startFrac)) * 100
+            : 50;
+        pct = Math.max(0, Math.min(100, pct));
         line.style.left = pct.toFixed(2) + "%";
         line.style.display = "block";
     } else {
         line.style.display = "none";
     }
+}
+
+function updateZoomLabel() {
+    var lbl = document.getElementById("waveZoomLabel");
+    if (lbl) lbl.textContent = _waveZoom.toFixed(1) + "x";
 }
 
 // ---- Fade gain bar ----
@@ -356,6 +421,20 @@ function updatePlayingInfoVisibility() {
     var row = document.getElementById("playingInfoContent");
     if (!row) return;
     row.style.color = window._isPlaying ? "#8f8" : "#666";
+}
+
+function updateStopAllButton() {
+    var btn = document.getElementById("btnStopAll");
+    if (!btn) return;
+    if (window._isPlaying) {
+        btn.style.background = "#c33";
+        btn.style.color = "white";
+        btn.style.fontWeight = "bold";
+    } else {
+        btn.style.background = "";
+        btn.style.color = "";
+        btn.style.fontWeight = "";
+    }
 }
 
 // ---- Device dropdown ----
@@ -426,13 +505,51 @@ function init() {
     });
     var canvas = document.getElementById("waveformCanvas");
     if (canvas) {
+        // Click-to-seek (accounts for zoom)
         canvas.addEventListener("mousedown", function(e) {
             if (!_waveformPeaks) return;
             var rect = canvas.getBoundingClientRect();
-            var fraction = (e.clientX - rect.left) / rect.width;
+            var clickRatio = (e.clientX - rect.left) / rect.width;
+            clickRatio = Math.max(0, Math.min(1, clickRatio));
+            // Map click ratio to track fraction via zoom window
+            var halfWindow = 0.5 / _waveZoom;
+            var startFrac = Math.max(0, _waveZoomCenter - halfWindow);
+            var endFrac = Math.min(1, startFrac + 1.0 / _waveZoom);
+            startFrac = endFrac - 1.0 / _waveZoom;
+            var fraction = startFrac + clickRatio * (endFrac - startFrac);
             fraction = Math.max(0, Math.min(1, fraction));
             webapp.sendCommand("seek:" + fraction.toFixed(4));
         });
+        // Scroll wheel to zoom in/out, centered on cursor position
+        canvas.addEventListener("wheel", function(e) {
+            e.preventDefault();
+            var rect = canvas.getBoundingClientRect();
+            var clickRatio = (e.clientX - rect.left) / rect.width;
+            clickRatio = Math.max(0, Math.min(1, clickRatio));
+            // Current cursor track fraction
+            var halfWindow = 0.5 / _waveZoom;
+            var startFrac = Math.max(0, _waveZoomCenter - halfWindow);
+            var endFrac = Math.min(1, startFrac + 1.0 / _waveZoom);
+            startFrac = endFrac - 1.0 / _waveZoom;
+            var cursorFrac = startFrac + clickRatio * (endFrac - startFrac);
+            // Adjust zoom
+            if (e.deltaY < 0) {
+                _waveZoom = Math.min(8, _waveZoom * 1.25);
+            } else {
+                _waveZoom = Math.max(1, _waveZoom / 1.25);
+            }
+            if (_waveZoom <= 1.0) _waveZoom = 1.0;
+            // Re-center on the cursor position
+            _waveZoomCenter = cursorFrac;
+            updateZoomLabel();
+            if (_waveformPeaks) drawWaveform();
+            // Reposition the playhead line
+            var line = document.getElementById("waveformPositionLine");
+            if (line && line.style.display !== "none") {
+                updateWaveformPosition(parseFloat(line.dataset.posSeconds || "0"),
+                                       parseFloat(line.dataset.durSeconds || "0"));
+            }
+        }, { passive: false });
     }
 }
 
@@ -446,6 +563,19 @@ function updateCueMode(stopOthers) {
         modeEl.className = "cue-mode parallel";
         modeEl.innerHTML = "&#9654; Parallel";
     }
+}
+
+function waveformZoomIn() {
+    _waveZoom = Math.min(8, _waveZoom * 1.25);
+    updateZoomLabel();
+    if (_waveformPeaks) drawWaveform();
+}
+
+function waveformZoomOut() {
+    _waveZoom = Math.max(1, _waveZoom / 1.25);
+    if (_waveZoom < 1.05) { _waveZoom = 1.0; _waveZoomCenter = 0.5; }
+    updateZoomLabel();
+    if (_waveformPeaks) drawWaveform();
 }
 
 document.addEventListener('DOMContentLoaded', init);

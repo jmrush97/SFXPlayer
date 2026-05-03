@@ -216,6 +216,40 @@ html, body {
     transition: left 0.1s linear;
 }
 
+/* Zoom bar overlaid at bottom-right of waveform */
+#waveformZoomBar {
+    position: absolute;
+    bottom: 3px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    pointer-events: all;
+}
+
+#waveformZoomBar button {
+    background: rgba(0,0,0,0.55);
+    color: #aef;
+    border: 1px solid #556;
+    border-radius: 3px;
+    width: 18px;
+    height: 18px;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+#waveformZoomBar button:hover { background: rgba(30,80,160,0.7); }
+
+#waveZoomLabel {
+    color: #aef;
+    font-size: 0.7em;
+    min-width: 30px;
+    text-align: center;
+    pointer-events: none;
+}
+
 /* Fade gain strip */
 #fadeGainBar {
     height: 5px;

@@ -34,12 +34,25 @@ namespace SFXPlayer
     /// A TextBox that paints a waveform bitmap as its background by intercepting
     /// WM_ERASEBKGND, which the native Win32 EDIT control handles itself (ignoring
     /// the inherited BackgroundImage property). Dark background + white text.
+    /// Supports playback-position line, volume-level line, and bitmap zoom.
     /// </summary>
     internal sealed class WaveformTextBox : TextBox
     {
         private static readonly Color WaveformBg = Color.FromArgb(26, 26, 46);
         private Bitmap _waveformBitmap;
         private const int WM_ERASEBKGND = 0x0014;
+
+        // Overlay state
+        private float _positionFraction = -1f;  // -1 = no line
+        private int _volumePct = 100;            // 0–100
+        private float _zoom = 1f;               // 1 = full view; >1 = zoomed in
+        private float _zoomCenter = 0.5f;       // fractional center of the zoomed view
+
+        public float Zoom
+        {
+            get => _zoom;
+            set { _zoom = Math.Max(1f, Math.Min(8f, value)); Invalidate(); }
+        }
 
         public WaveformTextBox()
         {
@@ -55,16 +68,101 @@ namespace SFXPlayer
             Invalidate();
         }
 
+        /// <summary>Sets the playback position fraction (0–1) to draw as an overlay line. Use -1 to hide.</summary>
+        public void SetPosition(float fraction, float zoomCenter = -1f)
+        {
+            _positionFraction = fraction;
+            if (zoomCenter >= 0f) _zoomCenter = Math.Max(0f, Math.Min(1f, zoomCenter));
+            Invalidate();
+        }
+
+        /// <summary>Sets the current volume (0–100) for the horizontal volume-level overlay line.</summary>
+        public void SetVolume(int volume)
+        {
+            _volumePct = Math.Max(0, Math.Min(100, volume));
+            Invalidate();
+        }
+
+        /// <summary>Adjusts zoom by a multiplicative factor (e.g. 1.25 or 0.8) and re-centers on the given fraction.</summary>
+        public void AdjustZoom(float factor, float centerFraction)
+        {
+            _zoom = Math.Max(1f, Math.Min(8f, _zoom * factor));
+            _zoomCenter = Math.Max(0f, Math.Min(1f, centerFraction));
+            Invalidate();
+        }
+
+        /// <summary>
+        /// Maps a canvas X coordinate (pixels) to the corresponding track fraction, taking zoom into account.
+        /// </summary>
+        public float CanvasXToFraction(int canvasX)
+        {
+            float halfWindow = 0.5f / _zoom;
+            float startFrac = Math.Max(0f, _zoomCenter - halfWindow);
+            float endFrac = Math.Min(1f, startFrac + 1f / _zoom);
+            startFrac = endFrac - 1f / _zoom;
+            if (Width <= 0) return 0f;
+            float clickRatio = Math.Max(0f, Math.Min(1f, (float)canvasX / Width));
+            return Math.Max(0f, Math.Min(1f, startFrac + clickRatio * (endFrac - startFrac)));
+        }
+
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == WM_ERASEBKGND && _waveformBitmap != null && m.WParam != IntPtr.Zero)
+            if (m.Msg == WM_ERASEBKGND && m.WParam != IntPtr.Zero)
             {
                 using var g = Graphics.FromHdc(m.WParam);
-                g.DrawImage(_waveformBitmap, 0, 0, Width, Height);
+                if (_waveformBitmap != null)
+                {
+                    // Draw only the zoomed portion of the bitmap
+                    float halfWindow = 0.5f / _zoom;
+                    float startFrac = Math.Max(0f, _zoomCenter - halfWindow);
+                    float endFrac = Math.Min(1f, startFrac + 1f / _zoom);
+                    startFrac = endFrac - 1f / _zoom;
+                    var srcRect = new RectangleF(
+                        startFrac * _waveformBitmap.Width,
+                        0,
+                        (endFrac - startFrac) * _waveformBitmap.Width,
+                        _waveformBitmap.Height);
+                    g.DrawImage(_waveformBitmap, new Rectangle(0, 0, Width, Height), srcRect, GraphicsUnit.Pixel);
+                }
+                else
+                {
+                    g.Clear(WaveformBg);
+                }
+                DrawOverlays(g);
                 m.Result = (IntPtr)1;
                 return;
             }
             base.WndProc(ref m);
+        }
+
+        private void DrawOverlays(Graphics g)
+        {
+            float mid = Height / 2f;
+
+            // Volume level line (dashed horizontal pair at ±volumePct amplitude)
+            if (_volumePct > 0 && _volumePct < 100)
+            {
+                float volH = (_volumePct / 100f) * mid * 0.9f;
+                using var volPen = new Pen(Color.FromArgb(140, 100, 180, 255), 1f);
+                volPen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dash;
+                g.DrawLine(volPen, 0, mid - volH, Width, mid - volH);
+                g.DrawLine(volPen, 0, mid + volH, Width, mid + volH);
+            }
+
+            // Playback position line (white vertical)
+            if (_positionFraction >= 0f && _positionFraction <= 1f)
+            {
+                float halfWindow = 0.5f / _zoom;
+                float startFrac = Math.Max(0f, _zoomCenter - halfWindow);
+                float endFrac = Math.Min(1f, startFrac + 1f / _zoom);
+                startFrac = endFrac - 1f / _zoom;
+                float visibleFrac = (endFrac > startFrac)
+                    ? (_positionFraction - startFrac) / (endFrac - startFrac)
+                    : 0.5f;
+                int x = Math.Max(0, Math.Min(Width - 1, (int)(visibleFrac * Width)));
+                using var pen = new Pen(Color.FromArgb(220, 255, 255, 255), 2f);
+                g.DrawLine(pen, x, 0, x, Height);
+            }
         }
     }
 
@@ -142,6 +240,7 @@ namespace SFXPlayer
             AddDnDEventHandlers(this);
             tbDescription.SizeChanged += (s, ev) => UpdateWaveformBackground();
             tbDescription.MouseDown += TbDescription_MouseDown;
+            tbDescription.MouseWheel += TbDescription_MouseWheel;
             UpdateWaveformBackground();
         }
 
@@ -149,9 +248,17 @@ namespace SFXPlayer
         {
             if (e.Button == MouseButtons.Left && tbDescription.Width > 0 && _musicPlayer.Length.TotalSeconds > 0)
             {
-                float fraction = (float)e.X / tbDescription.Width;
+                float fraction = tbDescription.CanvasXToFraction(e.X);
                 SeekToFraction(fraction);
             }
+        }
+
+        private void TbDescription_MouseWheel(object sender, MouseEventArgs e)
+        {
+            float factor = e.Delta > 0 ? 1.25f : 0.8f;
+            // Zoom centered on the cursor x position as a track fraction
+            float center = tbDescription.CanvasXToFraction(e.X);
+            tbDescription.AdjustZoom(factor, center);
         }
 
         #endregion
@@ -169,6 +276,7 @@ namespace SFXPlayer
             {
                 _SFX = value;
                 tbDescription.Text = SFX.Description;
+                tbDescription.SetVolume(SFX.Volume);
                 bnStopAll.Checked = SFX.StopOthers;
                 UpdatePlayerState(PlayerState);
                 UpdateAutoPlayLabel();
@@ -654,9 +762,9 @@ namespace SFXPlayer
             var totalSeconds = _musicPlayer.Length.TotalSeconds;
             if (totalSeconds <= 0) return;
             fraction = Math.Max(0f, Math.Min(1f, fraction));
-            bool wasPlaying = IsPlaying;
-            _musicPlayer.Position = TimeSpan.FromSeconds(fraction * totalSeconds);
-            if (wasPlaying) _musicPlayer.Play();
+            _musicPlayer.Seek(fraction);
+            // If the cue is in "loaded" state (not yet actively playing), keep it that way —
+            // Seek handles resume internally if it was already playing.
         }
 
         /// <summary>
@@ -1028,7 +1136,21 @@ namespace SFXPlayer
 
         internal void ProgressUpdate(object sender, EventArgs e)
         {
-            //UpdatePosition(_musicPlayer.Position);
+            if (IsPlaying)
+            {
+                double length = _musicPlayer.Length.TotalSeconds;
+                double pos = _musicPlayer.Position.TotalSeconds;
+                if (length > 0)
+                {
+                    float frac = (float)(pos / length);
+                    tbDescription.SetPosition(frac, frac); // keep zoom centered on playhead
+                }
+            }
+            else if (PlayerState == PlayerState.loaded)
+            {
+                // Reset position line when stopped
+                tbDescription.SetPosition(-1f);
+            }
         }
 
         private int Progress = 0;

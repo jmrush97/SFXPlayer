@@ -50,6 +50,11 @@
             <div id="waveformContainer">
                 <canvas id="waveformCanvas"></canvas>
                 <div id="waveformPositionLine"></div>
+                <div id="waveformZoomBar">
+                    <button onclick="waveformZoomOut()" title="Zoom out">&#8722;</button>
+                    <span id="waveZoomLabel">1.0x</span>
+                    <button onclick="waveformZoomIn()" title="Zoom in">&#43;</button>
+                </div>
             </div>
             <div id="fadeGainBar" title="Volume fade level"><div id="fadeGainFill"></div></div>
             <div id="progressContainer">
@@ -124,6 +129,9 @@
             </div>
 
             <div class="prop-group-header">Actions</div>
+            <div class="prop-row small">
+                <button id="btnStopAll" onclick="webapp.sendCommand('stop')" title="Stop all playing audio">&#9632; Stop All</button>
+            </div>
             <div class="prop-row small">
                 <button onclick="deleteCue()" style="background:tomato;color:white;">Delete Cue</button>
             </div>

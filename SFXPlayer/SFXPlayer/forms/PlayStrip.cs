@@ -10,8 +10,7 @@ using System.IO;
 using System.Diagnostics;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
-using Svg;
-using Svg.FilterEffects;
+using NAudio.WaveFormRenderer;
 using System.Reflection;
 using System.Xml.Linq;
 using System.Linq;
@@ -31,18 +30,20 @@ namespace SFXPlayer
     }
 
     /// <summary>
-    /// A TextBox that paints a waveform as its background by intercepting
+    /// A TextBox that paints a waveform bitmap as its background by intercepting
     /// WM_ERASEBKGND, which the native Win32 EDIT control handles itself (ignoring
     /// the inherited BackgroundImage property). Dark background + white text.
-    /// The waveform is stored as an <see cref="SvgDocument"/> and re-rendered at
-    /// the exact control pixel size on demand, giving sharp results at any zoom level.
-    /// Position and volume overlay lines are drawn in GDI+ on top of the rendered bitmap.
+    /// The waveform is stored as a full-resolution source <see cref="Bitmap"/> produced by
+    /// <see cref="NAudio.WaveFormRenderer.WaveFormRenderer"/>; zoom/pan is implemented by
+    /// cropping the source bitmap with <see cref="Graphics.DrawImage"/> into a scaled cache
+    /// bitmap that matches the control's pixel size.
+    /// Position and volume overlay lines are drawn in GDI+ on top.
     /// </summary>
     internal sealed class WaveformTextBox : TextBox
     {
         private static readonly Color WaveformBg = Color.FromArgb(26, 26, 46);
-        private SvgDocument _waveformSvg;
-        private Bitmap _renderCache;
+        private Bitmap _waveformBitmap;  // full-resolution source bitmap (owned here)
+        private Bitmap _renderCache;     // control-size cropped/scaled cache
         private int _cacheW = -1, _cacheH = -1;
         private float _cacheZoom = -1f, _cacheZoomCenter = -1f;
         private const int WM_ERASEBKGND = 0x0014;
@@ -52,10 +53,6 @@ namespace SFXPlayer
         private int _volumePct = 100;            // 0–100
         private float _zoom = 1f;               // 1 = full view; >1 = zoomed in
         private float _zoomCenter = 0.5f;       // fractional center of the zoomed view
-
-        // The SVG coordinate space (normalized viewBox used when generating the document)
-        private const float SvgWidth = 200f;
-        private const float SvgHeight = 100f;
 
         public float Zoom
         {
@@ -69,10 +66,23 @@ namespace SFXPlayer
             ForeColor = Color.White;
         }
 
-        /// <summary>Sets the waveform SVG document. Pass null to clear.</summary>
-        public void SetWaveform(SvgDocument svg)
+        protected override void Dispose(bool disposing)
         {
-            _waveformSvg = svg;   // old doc is abandoned; callers own creation
+            if (disposing)
+            {
+                _waveformBitmap?.Dispose();
+                _waveformBitmap = null;
+                _renderCache?.Dispose();
+                _renderCache = null;
+            }
+            base.Dispose(disposing);
+        }
+
+        /// <summary>Sets the waveform source bitmap. Pass null to clear. Takes ownership of the bitmap.</summary>
+        public void SetWaveform(Bitmap bmp)
+        {
+            _waveformBitmap?.Dispose();
+            _waveformBitmap = bmp;
             InvalidateCache();
             Invalidate();
         }
@@ -123,12 +133,13 @@ namespace SFXPlayer
         }
 
         /// <summary>
-        /// Ensures <see cref="_renderCache"/> is a fresh bitmap rendered from the SVG at the current
-        /// control size and zoom. Re-renders only when size or zoom has changed.
+        /// Ensures <see cref="_renderCache"/> is a fresh bitmap cropped and scaled from the
+        /// source waveform bitmap to the current control size and zoom window.
+        /// Re-renders only when size or zoom has changed.
         /// </summary>
         private void EnsureRenderedCache()
         {
-            if (_waveformSvg == null)
+            if (_waveformBitmap == null)
             {
                 _renderCache?.Dispose();
                 _renderCache = null;
@@ -142,24 +153,25 @@ namespace SFXPlayer
 
             if (!stale) return;
 
-            // Compute zoomed viewBox in SVG coordinate space
+            // Compute the visible fraction window for zoom/pan
             float halfWindow = 0.5f / _zoom;
             float startFrac = Math.Max(0f, _zoomCenter - halfWindow);
             float endFrac = Math.Min(1f, startFrac + 1f / _zoom);
             startFrac = endFrac - 1f / _zoom; // re-clamp after end-clamp
 
-            _waveformSvg.ViewBox = new SvgViewBox(
-                startFrac * SvgWidth,
-                0,
-                (endFrac - startFrac) * SvgWidth,
-                SvgHeight);
-            // Set explicit pixel dimensions so Svg.NET scales the viewBox to fill
-            // the control exactly rather than preserving the document's own aspect ratio.
-            _waveformSvg.Width = new SvgUnit(SvgUnitType.Pixel, Width);
-            _waveformSvg.Height = new SvgUnit(SvgUnitType.Pixel, Height);
+            // Map fractional window to source pixel columns
+            int srcX = (int)(startFrac * _waveformBitmap.Width);
+            int srcW = Math.Max(1, (int)((endFrac - startFrac) * _waveformBitmap.Width));
 
             _renderCache?.Dispose();
-            _renderCache = _waveformSvg.Draw(Math.Max(1, Width), Math.Max(1, Height));
+            _renderCache = new Bitmap(Math.Max(1, Width), Math.Max(1, Height));
+            using var g = Graphics.FromImage(_renderCache);
+            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            g.DrawImage(_waveformBitmap,
+                new Rectangle(0, 0, Width, Height),
+                new Rectangle(srcX, 0, srcW, _waveformBitmap.Height),
+                GraphicsUnit.Pixel);
+
             _cacheW = Width; _cacheH = Height;
             _cacheZoom = _zoom; _cacheZoomCenter = _zoomCenter;
         }
@@ -766,15 +778,16 @@ namespace SFXPlayer
         }
 
         /// <summary>
-        /// Generate a mini waveform SVG document and display it as the background of the
-        /// description text box so the user can see a representation of the audio,
-        /// including fade-in and fade-out envelope overlays.
-        /// The SVG is vector-based and re-rendered at the actual control pixel size on demand.
+        /// Generates a high-resolution waveform bitmap and displays it as the background of
+        /// the waveform panel so the user can see a representation of the audio, including
+        /// fade-in and fade-out envelope overlays. The bitmap is produced by
+        /// <see cref="NAudio.WaveFormRenderer.WaveFormRenderer"/> and zoom/pan is handled
+        /// by cropping the source bitmap at render time.
         /// </summary>
         private void UpdateWaveformBackground()
         {
             // Clear first
-            pnlWaveform.SetWaveform((SvgDocument)null);
+            pnlWaveform.SetWaveform((Bitmap)null);
             if (SFX == null)
             {
                 Debug.WriteLine("PlayStrip.UpdateWaveformBackground: SFX is null");
@@ -784,8 +797,8 @@ namespace SFXPlayer
             if (string.IsNullOrEmpty(SFX.FileName) || !File.Exists(SFX.FileName)) return;
             try
             {
-                var svg = GenerateWaveformSvg(SFX.FileName, SFX.FadeInDurationMs, SFX.FadeOutDurationMs);
-                pnlWaveform.SetWaveform(svg); // null is safe — SetWaveform clears if null
+                var bmp = GenerateWaveformBitmap(SFX.FileName, SFX.FadeInDurationMs, SFX.FadeOutDurationMs);
+                pnlWaveform.SetWaveform(bmp); // null is safe — SetWaveform clears if null
             }
             catch (Exception ex)
             {
@@ -811,7 +824,7 @@ namespace SFXPlayer
         }
 
         /// <summary>
-        /// Computes the half-sine fade envelope gain (0–1) for a waveform bucket.
+        /// Computes the half-sine fade envelope gain (0–1) for a waveform sample point.
         /// Fade-in: gain rises from 0 to 1 over the first fadeInBuckets buckets.
         /// Fade-out: gain falls from 1 to 0 over the last fadeOutBuckets buckets.
         /// </summary>
@@ -827,74 +840,67 @@ namespace SFXPlayer
             return 1.0f;
         }
 
-        private static Bitmap GenerateWaveformBitmap(string fileName, int width, int height, int fadeInMs = 0, int fadeOutMs = 0)
-        {
-            var svg = GenerateWaveformSvg(fileName, fadeInMs, fadeOutMs);
-            return svg?.Draw(width, height);
-        }
+        // Source bitmap dimensions — high resolution so zoom crops look sharp.
+        private const int WaveformSourceWidth = 2000;
+        private const int WaveformSourceHalfHeight = 30; // total height = 60px
 
         /// <summary>
-        /// Generates a vector SVG document representing the waveform of the given audio file.
-        /// The SVG uses a normalized viewBox of "0 0 200 100" so it renders sharply at any size.
+        /// Generates a high-resolution waveform bitmap for the given audio file using
+        /// <see cref="NAudio.WaveFormRenderer.WaveFormRenderer"/> with <see cref="NAudio.WaveFormRenderer.MaxPeakProvider"/>
+        /// for accurate peak representation. Fade-in and fade-out envelope curves are drawn
+        /// on top in yellow using GDI+.
         /// Returns null if the file cannot be read or the audio is silent.
         /// </summary>
-        private static SvgDocument GenerateWaveformSvg(string fileName, int fadeInMs = 0, int fadeOutMs = 0)
+        private static Bitmap GenerateWaveformBitmap(string fileName, int fadeInMs = 0, int fadeOutMs = 0)
         {
-            const int sampleCount = 200;
-            float[] peaks = new float[sampleCount];
-            float maxPeak = 0;
-            double totalDurationSeconds = 0;
-
             try
             {
                 using var reader = new NAudio.Wave.AudioFileReader(fileName);
-                totalDurationSeconds = reader.TotalTime.TotalSeconds;
-                long totalFrames = reader.Length / reader.WaveFormat.BlockAlign;
-                long framesPerBucket = Math.Max(1, totalFrames / sampleCount);
-                float[] buffer = new float[4096];
-                int bucket = 0;
-                float bucketMax = 0;
-                long bucketFilled = 0;
-                int read;
-                while (bucket < sampleCount && (read = reader.Read(buffer, 0, buffer.Length)) > 0)
+                double totalDurationSeconds = reader.TotalTime.TotalSeconds;
+                if (totalDurationSeconds <= 0) return null;
+
+                var topPen = new Pen(Color.FromArgb(160, 100, 200, 100));
+                var bottomPen = new Pen(Color.FromArgb(160, 100, 200, 100));
+                var settings = new NAudio.WaveFormRenderer.StandardWaveFormRendererSettings
                 {
-                    for (int i = 0; i < read && bucket < sampleCount; i++)
-                    {
-                        float abs = Math.Abs(buffer[i]);
-                        if (abs > bucketMax) bucketMax = abs;
-                        if (i % reader.WaveFormat.Channels == reader.WaveFormat.Channels - 1)
-                        {
-                            bucketFilled++;
-                            if (bucketFilled >= framesPerBucket)
-                            {
-                                peaks[bucket++] = bucketMax;
-                                bucketFilled = 0;
-                                bucketMax = 0;
-                            }
-                        }
-                    }
-                }
-                // Save any partial final bucket so the tail of the audio is not silently dropped
-                if (bucket < sampleCount && bucketFilled > 0)
-                    peaks[bucket] = bucketMax;
-                foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
+                    Width = WaveformSourceWidth,
+                    TopHeight = WaveformSourceHalfHeight,
+                    BottomHeight = WaveformSourceHalfHeight,
+                    BackgroundColor = Color.FromArgb(26, 26, 46),
+                    TopPeakPen = topPen,
+                    BottomPeakPen = bottomPen,
+                };
+
+                var bmp = new NAudio.WaveFormRenderer.WaveFormRenderer()
+                    .Render(reader, new NAudio.WaveFormRenderer.MaxPeakProvider(), settings) as Bitmap;
+
+                topPen.Dispose();
+                bottomPen.Dispose();
+
+                if (bmp == null) return null;
+
+                if ((fadeInMs > 0 || fadeOutMs > 0) && totalDurationSeconds > 0)
+                    DrawFadeEnvelopeOnBitmap(bmp, totalDurationSeconds, fadeInMs, fadeOutMs);
+
+                return bmp;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"GenerateWaveformSvg error: {ex.Message}");
+                Debug.WriteLine($"GenerateWaveformBitmap error: {ex.Message}");
                 return null;
             }
+        }
 
-            if (maxPeak < 0.0001f) return null;
+        /// <summary>
+        /// Draws half-sine fade-in and fade-out envelope curves onto an existing waveform bitmap using GDI+.
+        /// </summary>
+        private static void DrawFadeEnvelopeOnBitmap(Bitmap bmp, double totalDurationSeconds, int fadeInMs, int fadeOutMs)
+        {
+            const int sampleCount = 200;
+            float mid = bmp.Height / 2f;
 
-            // Compute fade bucket counts
-            int fadeInBuckets = 0;
-            int fadeOutBuckets = 0;
-            if (totalDurationSeconds > 0)
-            {
-                fadeInBuckets = (int)Math.Round(Math.Min(1.0, fadeInMs / 1000.0 / totalDurationSeconds) * sampleCount);
-                fadeOutBuckets = (int)Math.Round(Math.Min(1.0, fadeOutMs / 1000.0 / totalDurationSeconds) * sampleCount);
-            }
+            int fadeInBuckets = (int)Math.Round(Math.Min(1.0, fadeInMs / 1000.0 / totalDurationSeconds) * sampleCount);
+            int fadeOutBuckets = (int)Math.Round(Math.Min(1.0, fadeOutMs / 1000.0 / totalDurationSeconds) * sampleCount);
             if (fadeInBuckets + fadeOutBuckets > sampleCount)
             {
                 int total = fadeInBuckets + fadeOutBuckets;
@@ -902,59 +908,45 @@ namespace SFXPlayer
                 fadeOutBuckets = sampleCount - fadeInBuckets;
             }
 
-            // Pre-compute gains
             float[] gains = new float[sampleCount];
             for (int i = 0; i < sampleCount; i++)
                 gains[i] = ComputeSineFadeGain(i, sampleCount, fadeInBuckets, fadeOutBuckets);
 
-            // Build SVG XML in a normalized 200×100 coordinate space
-            // (one x-unit per bucket, mid-line at y=50)
-            var sb = new System.Text.StringBuilder(8192);
-            sb.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 100\" preserveAspectRatio=\"none\">");
+            using var g = Graphics.FromImage(bmp);
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            float penWidth = Math.Max(1f, (float)bmp.Width / 500f);
+            using var fadePen = new Pen(Color.FromArgb(178, 255, 220, 0), penWidth);
 
-            // Background
-            sb.Append("<rect width=\"200\" height=\"100\" fill=\"#1a1a2e\"/>");
-
-            // Waveform bars — single <path> for efficiency
-            sb.Append("<path stroke=\"#64c864\" stroke-opacity=\"0.63\" stroke-width=\"0.8\" fill=\"none\" d=\"");
-            for (int i = 0; i < sampleCount; i++)
+            if (fadeInBuckets > 1)
             {
-                float halfH = peaks[i] / maxPeak * gains[i] * 50f * 0.9f;
-                float x = i + 0.5f;
-                sb.Append($"M{x:F1},{50f - halfH:F2}L{x:F1},{50f + halfH:F2}");
-            }
-            sb.Append("\"/>");
-
-            // Fade envelope curves (upper + lower polylines)
-            if (fadeInBuckets > 1 || fadeOutBuckets > 1)
-            {
-                if (fadeInBuckets > 1)
+                var upper = new PointF[fadeInBuckets];
+                var lower = new PointF[fadeInBuckets];
+                for (int i = 0; i < fadeInBuckets; i++)
                 {
-                    sb.Append("<polyline stroke=\"#ffdc00\" stroke-opacity=\"0.7\" stroke-width=\"1.2\" fill=\"none\" points=\"");
-                    for (int i = 0; i < fadeInBuckets; i++)
-                        sb.Append($"{i + 0.5f:F1},{50f - gains[i] * 50f * 0.9f:F2} ");
-                    sb.Append("\"/>");
-                    sb.Append("<polyline stroke=\"#ffdc00\" stroke-opacity=\"0.7\" stroke-width=\"1.2\" fill=\"none\" points=\"");
-                    for (int i = 0; i < fadeInBuckets; i++)
-                        sb.Append($"{i + 0.5f:F1},{50f + gains[i] * 50f * 0.9f:F2} ");
-                    sb.Append("\"/>");
+                    float x = (i + 0.5f) / sampleCount * bmp.Width;
+                    float halfH = gains[i] * mid * 0.9f;
+                    upper[i] = new PointF(x, mid - halfH);
+                    lower[i] = new PointF(x, mid + halfH);
                 }
-                if (fadeOutBuckets > 1)
-                {
-                    int startBucket = sampleCount - fadeOutBuckets;
-                    sb.Append("<polyline stroke=\"#ffdc00\" stroke-opacity=\"0.7\" stroke-width=\"1.2\" fill=\"none\" points=\"");
-                    for (int i = startBucket; i < sampleCount; i++)
-                        sb.Append($"{i + 0.5f:F1},{50f - gains[i] * 50f * 0.9f:F2} ");
-                    sb.Append("\"/>");
-                    sb.Append("<polyline stroke=\"#ffdc00\" stroke-opacity=\"0.7\" stroke-width=\"1.2\" fill=\"none\" points=\"");
-                    for (int i = startBucket; i < sampleCount; i++)
-                        sb.Append($"{i + 0.5f:F1},{50f + gains[i] * 50f * 0.9f:F2} ");
-                    sb.Append("\"/>");
-                }
+                g.DrawLines(fadePen, upper);
+                g.DrawLines(fadePen, lower);
             }
 
-            sb.Append("</svg>");
-            return SvgDocument.FromSvg<SvgDocument>(sb.ToString());
+            if (fadeOutBuckets > 1)
+            {
+                int startBucket = sampleCount - fadeOutBuckets;
+                var upper = new PointF[fadeOutBuckets];
+                var lower = new PointF[fadeOutBuckets];
+                for (int i = 0; i < fadeOutBuckets; i++)
+                {
+                    float x = (startBucket + i + 0.5f) / sampleCount * bmp.Width;
+                    float halfH = gains[startBucket + i] * mid * 0.9f;
+                    upper[i] = new PointF(x, mid - halfH);
+                    lower[i] = new PointF(x, mid + halfH);
+                }
+                g.DrawLines(fadePen, upper);
+                g.DrawLines(fadePen, lower);
+            }
         }
 
         #endregion

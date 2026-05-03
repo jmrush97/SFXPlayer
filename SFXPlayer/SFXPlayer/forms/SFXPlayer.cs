@@ -3,6 +3,7 @@ using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using NAudio.Midi;
 using NAudio.Wave;
+using NAudio.WaveFormRenderer;
 using SFXPlayer.Properties;
 using System;
 using System.Collections.Concurrent;
@@ -1765,49 +1766,36 @@ namespace SFXPlayer
 
         private static float[] GenerateWaveformPeaks(string fileName, int bucketCount)
         {
-            const int readBufferSize = 4096;
-            const float MinPeakThreshold = 0.0001f;  // minimum detectable audio level
-            float[] peaks = new float[bucketCount];
             try
             {
                 using var reader = new NAudio.Wave.AudioFileReader(fileName);
-                long totalFrames = reader.Length / reader.WaveFormat.BlockAlign;
-                long framesPerBucket = Math.Max(1, totalFrames / bucketCount);
-                float[] buffer = new float[readBufferSize];
-                int bucket = 0;
-                float bucketMax = 0;
-                long bucketFilled = 0;
-                int read;
-                while (bucket < bucketCount && (read = reader.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    for (int i = 0; i < read && bucket < bucketCount; i++)
-                    {
-                        float abs = Math.Abs(buffer[i]);
-                        if (abs > bucketMax) bucketMax = abs;
-                        if (i % reader.WaveFormat.Channels == reader.WaveFormat.Channels - 1)
-                        {
-                            bucketFilled++;
-                            if (bucketFilled >= framesPerBucket)
-                            {
-                                peaks[bucket++] = bucketMax;
-                                bucketFilled = 0;
-                                bucketMax = 0;
-                            }
-                        }
-                    }
-                }
+                // Use the same sampling formula as WaveFormRenderer.Render():
+                //   samplesPerPeak = (reader.Length / bytesPerSample) / width
+                // where bytesPerSample = BitsPerSample/8 and the sample count includes all channels.
+                int bytesPerSample = reader.WaveFormat.BitsPerSample / 8;
+                long totalSamples = reader.Length / bytesPerSample;
+                int samplesPerPeak = (int)Math.Max(1, totalSamples / bucketCount);
+
+                var peakProvider = new NAudio.WaveFormRenderer.MaxPeakProvider();
+                peakProvider.Init(reader, samplesPerPeak);
+
+                float[] peaks = new float[bucketCount];
+                for (int i = 0; i < bucketCount; i++)
+                    peaks[i] = peakProvider.GetNextPeak().Max;
+
                 float maxPeak = 0;
                 foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
-                if (maxPeak < MinPeakThreshold) return null;
+                if (maxPeak < 0.0001f) return null;
                 for (int i = 0; i < bucketCount; i++)
                     peaks[i] = peaks[i] / maxPeak;
+
+                return peaks;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"GenerateWaveformPeaks error: {ex.Message}");
                 return null;
             }
-            return peaks;
         }
 
 

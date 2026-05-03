@@ -33,7 +33,7 @@
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             lbIndex = new System.Windows.Forms.Label();
-            tbDescription = new WaveformTextBox();
+            tbDescription = new System.Windows.Forms.TextBox();
             pnlWaveform = new WaveformTextBox();
             bnPlay = new System.Windows.Forms.PictureBox();
             bnSpeed = new System.Windows.Forms.PictureBox();
@@ -160,6 +160,9 @@
             // 
             // tbDescription
             // 
+            tbDescription.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
+            tbDescription.ForeColor = System.Drawing.Color.White;
+            tbDescription.BorderStyle = System.Windows.Forms.BorderStyle.None;
             tbDescription.Dock = System.Windows.Forms.DockStyle.Fill;
             tbDescription.Location = new System.Drawing.Point(57, 6);
             tbDescription.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
@@ -377,7 +380,7 @@
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.Label lbIndex;
-        private WaveformTextBox tbDescription;
+        private System.Windows.Forms.TextBox tbDescription;
         private WaveformTextBox pnlWaveform;
         private System.Windows.Forms.PictureBox bnPlay;
         private System.Windows.Forms.PictureBox bnSpeed;

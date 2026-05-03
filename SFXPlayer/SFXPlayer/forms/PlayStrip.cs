@@ -153,6 +153,10 @@ namespace SFXPlayer
                 0,
                 (endFrac - startFrac) * SvgWidth,
                 SvgHeight);
+            // Set explicit pixel dimensions so Svg.NET scales the viewBox to fill
+            // the control exactly rather than preserving the document's own aspect ratio.
+            _waveformSvg.Width = new SvgUnit(SvgUnitType.Pixel, Width);
+            _waveformSvg.Height = new SvgUnit(SvgUnitType.Pixel, Height);
 
             _renderCache?.Dispose();
             _renderCache = _waveformSvg.Draw(Math.Max(1, Width), Math.Max(1, Height));
@@ -280,27 +284,25 @@ namespace SFXPlayer
         private void PlayStrip_Load(object sender, EventArgs e)
         {
             AddDnDEventHandlers(this);
-            tbDescription.SizeChanged += (s, ev) => UpdateWaveformBackground();
-            tbDescription.MouseDown += TbDescription_MouseDown;
-            tbDescription.MouseWheel += TbDescription_MouseWheel;
+            pnlWaveform.MouseDown += PnlWaveform_MouseDown;
+            pnlWaveform.MouseWheel += PnlWaveform_MouseWheel;
             UpdateWaveformBackground();
         }
 
-        private void TbDescription_MouseDown(object sender, MouseEventArgs e)
+        private void PnlWaveform_MouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left && tbDescription.Width > 0 && _musicPlayer.Length.TotalSeconds > 0)
+            if (e.Button == MouseButtons.Left && pnlWaveform.Width > 0 && _musicPlayer.Length.TotalSeconds > 0)
             {
-                float fraction = tbDescription.CanvasXToFraction(e.X);
+                float fraction = pnlWaveform.CanvasXToFraction(e.X);
                 SeekToFraction(fraction);
             }
         }
 
-        private void TbDescription_MouseWheel(object sender, MouseEventArgs e)
+        private void PnlWaveform_MouseWheel(object sender, MouseEventArgs e)
         {
             float factor = e.Delta > 0 ? 1.25f : 0.8f;
-            // Zoom centered on the cursor x position as a track fraction
-            float center = tbDescription.CanvasXToFraction(e.X);
-            tbDescription.AdjustZoom(factor, center);
+            float center = pnlWaveform.CanvasXToFraction(e.X);
+            pnlWaveform.AdjustZoom(factor, center);
         }
 
         #endregion
@@ -318,7 +320,7 @@ namespace SFXPlayer
             {
                 _SFX = value;
                 tbDescription.Text = SFX.Description;
-                tbDescription.SetVolume(SFX.Volume);
+                pnlWaveform.SetVolume(SFX.Volume);
                 bnStopAll.Checked = SFX.StopOthers;
                 UpdatePlayerState(PlayerState);
                 UpdateAutoPlayLabel();
@@ -772,7 +774,7 @@ namespace SFXPlayer
         private void UpdateWaveformBackground()
         {
             // Clear first
-            tbDescription.SetWaveform((SvgDocument)null);
+            pnlWaveform.SetWaveform((SvgDocument)null);
             if (SFX == null)
             {
                 Debug.WriteLine("PlayStrip.UpdateWaveformBackground: SFX is null");
@@ -783,7 +785,7 @@ namespace SFXPlayer
             try
             {
                 var svg = GenerateWaveformSvg(SFX.FileName, SFX.FadeInDurationMs, SFX.FadeOutDurationMs);
-                tbDescription.SetWaveform(svg); // null is safe — SetWaveform clears if null
+                pnlWaveform.SetWaveform(svg); // null is safe — SetWaveform clears if null
             }
             catch (Exception ex)
             {
@@ -872,6 +874,9 @@ namespace SFXPlayer
                         }
                     }
                 }
+                // Save any partial final bucket so the tail of the audio is not silently dropped
+                if (bucket < sampleCount && bucketFilled > 0)
+                    peaks[bucket] = bucketMax;
                 foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
             }
             catch (Exception ex)
@@ -1190,13 +1195,13 @@ namespace SFXPlayer
                 if (length > 0)
                 {
                     float frac = (float)(pos / length);
-                    tbDescription.SetPosition(frac, frac); // keep zoom centered on playhead
+                    pnlWaveform.SetPosition(frac, frac); // keep zoom centered on playhead
                 }
             }
             else if (PlayerState == PlayerState.loaded)
             {
                 // Reset position line when stopped
-                tbDescription.SetPosition(-1f);
+                pnlWaveform.SetPosition(-1f);
             }
         }
 

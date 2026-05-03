@@ -10,8 +10,7 @@ using System.IO;
 using System.Diagnostics;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
-using Svg;
-using Svg.FilterEffects;
+using NAudio.WaveFormRenderer;
 using System.Reflection;
 using System.Xml.Linq;
 using System.Linq;
@@ -28,6 +27,201 @@ namespace SFXPlayer
         loading = 3,
         loaded = 4,
 
+    }
+
+    /// <summary>
+    /// A TextBox that paints a waveform bitmap as its background by intercepting
+    /// WM_ERASEBKGND, which the native Win32 EDIT control handles itself (ignoring
+    /// the inherited BackgroundImage property). Dark background + white text.
+    /// The waveform is stored as a full-resolution source <see cref="Bitmap"/> produced by
+    /// <see cref="NAudio.WaveFormRenderer.WaveFormRenderer"/>; zoom/pan is implemented by
+    /// cropping the source bitmap with <see cref="Graphics.DrawImage"/> into a scaled cache
+    /// bitmap that matches the control's pixel size.
+    /// Position and volume overlay lines are drawn in GDI+ on top.
+    /// </summary>
+    internal sealed class WaveformTextBox : TextBox
+    {
+        private static readonly Color WaveformBg = Color.FromArgb(26, 26, 46);
+        private Bitmap _waveformBitmap;  // full-resolution source bitmap (owned here)
+        private Bitmap _renderCache;     // control-size cropped/scaled cache
+        private int _cacheW = -1, _cacheH = -1;
+        private float _cacheZoom = -1f, _cacheZoomCenter = -1f;
+        private const int WM_ERASEBKGND = 0x0014;
+
+        // Overlay state
+        private float _positionFraction = -1f;  // -1 = no line
+        private int _volumePct = 100;            // 0–100
+        private float _zoom = 1f;               // 1 = full view; >1 = zoomed in
+        private float _zoomCenter = 0.5f;       // fractional center of the zoomed view
+
+        public float Zoom
+        {
+            get => _zoom;
+            set { _zoom = Math.Max(1f, Math.Min(8f, value)); Invalidate(); }
+        }
+
+        public WaveformTextBox()
+        {
+            BackColor = WaveformBg;
+            ForeColor = Color.White;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _waveformBitmap?.Dispose();
+                _waveformBitmap = null;
+                _renderCache?.Dispose();
+                _renderCache = null;
+            }
+            base.Dispose(disposing);
+        }
+
+        /// <summary>Sets the waveform source bitmap. Pass null to clear. Takes ownership of the bitmap.</summary>
+        public void SetWaveform(Bitmap bmp)
+        {
+            _waveformBitmap?.Dispose();
+            _waveformBitmap = bmp;
+            InvalidateCache();
+            Invalidate();
+        }
+
+        /// <summary>Sets the playback position fraction (0–1) to draw as an overlay line. Use -1 to hide.</summary>
+        public void SetPosition(float fraction, float zoomCenter = -1f)
+        {
+            _positionFraction = fraction;
+            if (zoomCenter >= 0f) _zoomCenter = Math.Max(0f, Math.Min(1f, zoomCenter));
+            Invalidate();
+        }
+
+        /// <summary>Sets the current volume (0–100) for the horizontal volume-level overlay line.</summary>
+        public void SetVolume(int volume)
+        {
+            _volumePct = Math.Max(0, Math.Min(100, volume));
+            Invalidate();
+        }
+
+        /// <summary>Adjusts zoom by a multiplicative factor (e.g. 1.25 or 0.8) and re-centers on the given fraction.</summary>
+        public void AdjustZoom(float factor, float centerFraction)
+        {
+            _zoom = Math.Max(1f, Math.Min(8f, _zoom * factor));
+            _zoomCenter = Math.Max(0f, Math.Min(1f, centerFraction));
+            Invalidate();
+        }
+
+        /// <summary>
+        /// Maps a canvas X coordinate (pixels) to the corresponding track fraction, taking zoom into account.
+        /// </summary>
+        public float CanvasXToFraction(int canvasX)
+        {
+            float halfWindow = 0.5f / _zoom;
+            float startFrac = Math.Max(0f, _zoomCenter - halfWindow);
+            float endFrac = Math.Min(1f, startFrac + 1f / _zoom);
+            startFrac = endFrac - 1f / _zoom;
+            if (Width <= 0) return 0f;
+            float clickRatio = Math.Max(0f, Math.Min(1f, (float)canvasX / Width));
+            return Math.Max(0f, Math.Min(1f, startFrac + clickRatio * (endFrac - startFrac)));
+        }
+
+        private void InvalidateCache()
+        {
+            _renderCache?.Dispose();
+            _renderCache = null;
+            _cacheW = -1; _cacheH = -1;
+            _cacheZoom = -1f; _cacheZoomCenter = -1f;
+        }
+
+        /// <summary>
+        /// Ensures <see cref="_renderCache"/> is a fresh bitmap cropped and scaled from the
+        /// source waveform bitmap to the current control size and zoom window.
+        /// Re-renders only when size or zoom has changed.
+        /// </summary>
+        private void EnsureRenderedCache()
+        {
+            if (_waveformBitmap == null)
+            {
+                _renderCache?.Dispose();
+                _renderCache = null;
+                return;
+            }
+
+            bool stale = _renderCache == null
+                || _cacheW != Width || _cacheH != Height
+                || Math.Abs(_cacheZoom - _zoom) > 0.001f
+                || Math.Abs(_cacheZoomCenter - _zoomCenter) > 0.001f;
+
+            if (!stale) return;
+
+            // Compute the visible fraction window for zoom/pan
+            float halfWindow = 0.5f / _zoom;
+            float startFrac = Math.Max(0f, _zoomCenter - halfWindow);
+            float endFrac = Math.Min(1f, startFrac + 1f / _zoom);
+            startFrac = endFrac - 1f / _zoom; // re-clamp after end-clamp
+
+            // Map fractional window to source pixel columns
+            int srcX = (int)(startFrac * _waveformBitmap.Width);
+            int srcW = Math.Max(1, (int)((endFrac - startFrac) * _waveformBitmap.Width));
+
+            _renderCache?.Dispose();
+            _renderCache = new Bitmap(Math.Max(1, Width), Math.Max(1, Height));
+            using var g = Graphics.FromImage(_renderCache);
+            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            g.DrawImage(_waveformBitmap,
+                new Rectangle(0, 0, Width, Height),
+                new Rectangle(srcX, 0, srcW, _waveformBitmap.Height),
+                GraphicsUnit.Pixel);
+
+            _cacheW = Width; _cacheH = Height;
+            _cacheZoom = _zoom; _cacheZoomCenter = _zoomCenter;
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_ERASEBKGND && m.WParam != IntPtr.Zero)
+            {
+                using var g = Graphics.FromHdc(m.WParam);
+                EnsureRenderedCache();
+                if (_renderCache != null)
+                    g.DrawImage(_renderCache, 0, 0, Width, Height);
+                else
+                    g.Clear(WaveformBg);
+                DrawOverlays(g);
+                m.Result = (IntPtr)1;
+                return;
+            }
+            base.WndProc(ref m);
+        }
+
+        private void DrawOverlays(Graphics g)
+        {
+            float mid = Height / 2f;
+
+            // Volume level line (dashed horizontal pair at ±volumePct amplitude)
+            if (_volumePct > 0 && _volumePct < 100)
+            {
+                float volH = (_volumePct / 100f) * mid * 0.9f;
+                using var volPen = new Pen(Color.FromArgb(140, 100, 180, 255), 1f);
+                volPen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dash;
+                g.DrawLine(volPen, 0, mid - volH, Width, mid - volH);
+                g.DrawLine(volPen, 0, mid + volH, Width, mid + volH);
+            }
+
+            // Playback position line (white vertical)
+            if (_positionFraction >= 0f && _positionFraction <= 1f)
+            {
+                float halfWindow = 0.5f / _zoom;
+                float startFrac = Math.Max(0f, _zoomCenter - halfWindow);
+                float endFrac = Math.Min(1f, startFrac + 1f / _zoom);
+                startFrac = endFrac - 1f / _zoom;
+                float visibleFrac = (endFrac > startFrac)
+                    ? (_positionFraction - startFrac) / (endFrac - startFrac)
+                    : 0.5f;
+                int x = Math.Max(0, Math.Min(Width - 1, (int)(visibleFrac * Width)));
+                using var pen = new Pen(Color.FromArgb(220, 255, 255, 255), 2f);
+                g.DrawLine(pen, x, 0, x, Height);
+            }
+        }
     }
 
     public partial class PlayStrip : UserControl
@@ -49,6 +243,10 @@ namespace SFXPlayer
         public event EventHandler AddCueBefore;
         /// <summary>Fired when this strip starts or stops playing. Arg = true if now playing.</summary>
         public event EventHandler<bool> PlayingStateChanged;
+        /// <summary>Fired when this cue's file or description changes so the web app can be refreshed.</summary>
+        public event EventHandler CueChanged;
+        /// <summary>Fired when the user clicks this strip to select it as the next cue.</summary>
+        public event EventHandler CueSelected;
         int prevPct = -1;
 
         #region Initialisation
@@ -100,6 +298,38 @@ namespace SFXPlayer
         private void PlayStrip_Load(object sender, EventArgs e)
         {
             AddDnDEventHandlers(this);
+            pnlWaveform.MouseDown += PnlWaveform_MouseDown;
+            pnlWaveform.MouseWheel += PnlWaveform_MouseWheel;
+            // Wire a click on the strip itself (any non-interactive child) to select this cue
+            MouseDown += PlayStrip_MouseDown_SelectCue;
+            foreach (Control c in Controls)
+            {
+                if (c != pnlWaveform)
+                    c.MouseDown += PlayStrip_MouseDown_SelectCue;
+            }
+            UpdateWaveformBackground();
+        }
+
+        private void PlayStrip_MouseDown_SelectCue(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+                CueSelected?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void PnlWaveform_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left && pnlWaveform.Width > 0 && _musicPlayer.Length.TotalSeconds > 0)
+            {
+                float fraction = pnlWaveform.CanvasXToFraction(e.X);
+                SeekToFraction(fraction);
+            }
+        }
+
+        private void PnlWaveform_MouseWheel(object sender, MouseEventArgs e)
+        {
+            float factor = e.Delta > 0 ? 1.25f : 0.8f;
+            float center = pnlWaveform.CanvasXToFraction(e.X);
+            pnlWaveform.AdjustZoom(factor, center);
         }
 
         #endregion
@@ -117,6 +347,7 @@ namespace SFXPlayer
             {
                 _SFX = value;
                 tbDescription.Text = SFX.Description;
+                pnlWaveform.SetVolume(SFX.Volume);
                 bnStopAll.Checked = SFX.StopOthers;
                 UpdatePlayerState(PlayerState);
                 UpdateAutoPlayLabel();
@@ -130,6 +361,7 @@ namespace SFXPlayer
         private void tbDescription_TextChanged(object sender, EventArgs e)
         {
             SFX.Description = tbDescription.Text;
+            CueChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private void bnStopAll_CheckedChanged(object sender, EventArgs e)
@@ -223,14 +455,16 @@ namespace SFXPlayer
         }
 
         /// <summary>
-        /// Returns the loaded-state background color based on cue state:
-        /// White = no file or skipped, Yellow = normal, Green = auto-run
+        /// Returns the loaded-state background color based on cue state (dark theme).
+        /// Dark navy = no file or skipped, dark amber = normal, dark green = auto-run
         /// </summary>
         private Color GetCueStateColor()
         {
             if (SFX == null || string.IsNullOrEmpty(SFX.FileName) || SFX.Skipped)
-                return Color.White;
-            return SFX.AutoPlay ? Color.LightGreen : Color.LightYellow;
+                return SystemColors.Control;                    // default: system background
+            return SFX.AutoPlay
+                ? Color.FromArgb(160, 230, 160)                // medium green  (auto-run)
+                : Color.FromArgb(240, 220, 130);               // medium amber (normal)
         }
 
         /// <summary>
@@ -249,7 +483,7 @@ namespace SFXPlayer
         {
             using Form dialog = new Form();
             dialog.Text = title;
-            dialog.ClientSize = new System.Drawing.Size(300, 110);
+            dialog.ClientSize = new System.Drawing.Size(300, 220);
             dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
             dialog.StartPosition = FormStartPosition.CenterParent;
             dialog.MaximizeBox = false;
@@ -277,6 +511,7 @@ namespace SFXPlayer
         private void PlayStrip_Resize(object sender, EventArgs e)
         {
             ResizeProgressBar();
+            UpdateWaveformBackground();
         }
 
         private void UpdatePlayerState(PlayerState newstate)
@@ -287,20 +522,19 @@ namespace SFXPlayer
                     BackColor = GetCueStateColor();
                     break;
                 case PlayerState.loading:
-                    BackColor = Settings.Default.ColourPlayerLoading;
+                    BackColor = Color.FromArgb(255, 200, 200);         // light coral (loading)
                     break;
                 case PlayerState.loaded:
                     BackColor = GetCueStateColor();
                     break;
                 case PlayerState.play:
-                    //BackColor = Settings.Default.ColourPlayerPlay;
                     BackColor = Color.Transparent;
                     break;
                 case PlayerState.paused:
-                    BackColor = Settings.Default.ColourPlayerPaused;
+                    BackColor = Color.FromArgb(200, 255, 225);         // light green-teal (paused)
                     break;
                 case PlayerState.error:
-                    BackColor = Color.Red;
+                    BackColor = Color.FromArgb(255, 160, 160);          // light red (error)
                     break;
                 default:
                     BackColor = GetCueStateColor();
@@ -447,6 +681,7 @@ namespace SFXPlayer
                 SFX.FileName = "";
                 PlayerState = PlayerState.uninitialised;
                 UpdateWaveformBackground();
+                CueChanged?.Invoke(this, EventArgs.Empty);
             }
             UpdateButtons();
         }
@@ -488,7 +723,36 @@ namespace SFXPlayer
         public void SelectFile(string FileName)
         {
             AppLogger.Info($"PlayStrip.SelectFile: \"{FileName}\" | description: \"{SFX.Description}\"");
+            // If the audio file is on a different drive than the .sfx file, copy it alongside the .sfx file.
+            string sfxDir = Program.mainForm?.ShowDirectory;
+            if (!string.IsNullOrEmpty(sfxDir) && Directory.Exists(sfxDir))
+            {
+                string fileDrive = Path.GetPathRoot(FileName);
+                string sfxDrive  = Path.GetPathRoot(sfxDir);
+                if (!string.IsNullOrEmpty(fileDrive) && !string.IsNullOrEmpty(sfxDrive) &&
+                    !string.Equals(fileDrive, sfxDrive, StringComparison.OrdinalIgnoreCase))
+                {
+                    string destPath = Path.Combine(sfxDir, Path.GetFileName(FileName));
+                    if (!File.Exists(destPath))
+                    {
+                        try
+                        {
+                            File.Copy(FileName, destPath);
+                            AppLogger.Info($"PlayStrip.SelectFile: copied \"{FileName}\" -> \"{destPath}\"");
+                        }
+                        catch (Exception ex)
+                        {
+                            AppLogger.Error($"PlayStrip.SelectFile: failed to copy \"{FileName}\" to \"{destPath}\"", ex);
+                            MessageBox.Show($"Could not copy file to show folder:\n{ex.Message}", "Copy Failed",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    if (File.Exists(destPath))
+                        FileName = destPath;
+                }
+            }
             Settings.Default.LastAudioFolder = Path.GetDirectoryName(FileName); Settings.Default.Save();
+            AddToRecentAudioFiles(FileName);
             if (tbDescription.Text == SFX.ShortFileNameOnly) tbDescription.Text = "";
             SFX.FileName = FileName;
             if (tbDescription.Text == "")
@@ -503,6 +767,7 @@ namespace SFXPlayer
             UpdateButtons();
             PreloadFile();
             UpdateWaveformBackground();
+            CueChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -558,27 +823,27 @@ namespace SFXPlayer
         }
 
         /// <summary>
-        /// Generate a mini waveform bitmap and display it as the background of the
-        /// description text box so the user can see a representation of the audio.
+        /// Generates a high-resolution waveform bitmap and displays it as the background of
+        /// the waveform panel so the user can see a representation of the audio, including
+        /// fade-in and fade-out envelope overlays. The bitmap is produced by
+        /// <see cref="NAudio.WaveFormRenderer.WaveFormRenderer"/> and zoom/pan is handled
+        /// by cropping the source bitmap at render time.
         /// </summary>
         private void UpdateWaveformBackground()
         {
             // Clear first
-            var old = tbDescription.BackgroundImage;
-            tbDescription.BackgroundImage = null;
-            old?.Dispose();
+            pnlWaveform.SetWaveform((Bitmap)null);
+            if (SFX == null)
+            {
+                Debug.WriteLine("PlayStrip.UpdateWaveformBackground: SFX is null");
+                return;
+            }
 
             if (string.IsNullOrEmpty(SFX.FileName) || !File.Exists(SFX.FileName)) return;
             try
             {
-                int w = Math.Max(tbDescription.Width, 1);
-                int h = Math.Max(tbDescription.Height, 1);
-                var bmp = GenerateWaveformBitmap(SFX.FileName, w, h);
-                if (bmp != null)
-                {
-                    tbDescription.BackgroundImage = bmp;
-                    tbDescription.BackgroundImageLayout = ImageLayout.Stretch;
-                }
+                var bmp = GenerateWaveformBitmap(SFX.FileName, SFX.FadeInDurationMs, SFX.FadeOutDurationMs);
+                pnlWaveform.SetWaveform(bmp); // null is safe — SetWaveform clears if null
             }
             catch (Exception ex)
             {
@@ -586,66 +851,167 @@ namespace SFXPlayer
             }
         }
 
-        private static Bitmap GenerateWaveformBitmap(string fileName, int width, int height)
-        {
-            const int sampleCount = 200; // number of x-buckets
-            float[] peaks = new float[sampleCount];
-            float maxPeak = 0;
+        /// <summary>Refresh the waveform background (e.g. after fade settings change).</summary>
+        public void RefreshWaveform() => UpdateWaveformBackground();
 
+        /// <summary>
+        /// Seeks the music player to a fractional position (0.0 = start, 1.0 = end).
+        /// Works whether the player is loaded or playing.
+        /// </summary>
+        public void SeekToFraction(float fraction)
+        {
+            var totalSeconds = _musicPlayer.Length.TotalSeconds;
+            if (totalSeconds <= 0) return;
+            fraction = Math.Max(0f, Math.Min(1f, fraction));
+            _musicPlayer.Seek(fraction);
+            // If the cue is in "loaded" state (not yet actively playing), keep it that way —
+            // Seek handles resume internally if it was already playing.
+        }
+
+        /// <summary>
+        /// Computes the half-sine fade envelope gain (0–1) for a waveform sample point.
+        /// Fade-in: gain rises from 0 to 1 over the first fadeInBuckets buckets.
+        /// Fade-out: gain falls from 1 to 0 over the last fadeOutBuckets buckets.
+        /// </summary>
+        private static float ComputeSineFadeGain(int bucket, int sampleCount, int fadeInBuckets, int fadeOutBuckets)
+        {
+            if (fadeInBuckets > 0 && bucket < fadeInBuckets)
+                return (float)Math.Sin(Math.PI / 2.0 * bucket / Math.Max(1, fadeInBuckets - 1));
+            if (fadeOutBuckets > 0 && bucket >= sampleCount - fadeOutBuckets)
+            {
+                int bucketFromEnd = sampleCount - 1 - bucket;
+                return (float)Math.Sin(Math.PI / 2.0 * bucketFromEnd / Math.Max(1, fadeOutBuckets - 1));
+            }
+            return 1.0f;
+        }
+
+        // Source bitmap dimensions — high resolution so zoom crops look sharp.
+        private const int WaveformSourceWidth = 2000;
+        private const int WaveformSourceHalfHeight = 30; // total height = 60px
+
+        /// <summary>
+        /// Generates a high-resolution waveform bitmap for the given audio file using
+        /// <see cref="NAudio.WaveFormRenderer.WaveFormRenderer"/> with <see cref="NAudio.WaveFormRenderer.MaxPeakProvider"/>
+        /// for accurate peak representation. Fade-in and fade-out envelope curves are drawn
+        /// on top in yellow using GDI+.
+        /// Returns null if the file cannot be read or the audio is silent.
+        /// </summary>
+        private static Bitmap GenerateWaveformBitmap(string fileName, int fadeInMs = 0, int fadeOutMs = 0)
+        {
             try
             {
                 using var reader = new NAudio.Wave.AudioFileReader(fileName);
-                // Use BlockAlign (bytes per sample frame across all channels) for correct frame count
-                long totalFrames = reader.Length / reader.WaveFormat.BlockAlign;
-                long framesPerBucket = Math.Max(1, totalFrames / sampleCount);
-                float[] buffer = new float[4096];
-                int bucket = 0;
-                float bucketMax = 0;
-                long bucketFilled = 0;
-                int read;
-                while (bucket < sampleCount && (read = reader.Read(buffer, 0, buffer.Length)) > 0)
+                double totalDurationSeconds = reader.TotalTime.TotalSeconds;
+                if (totalDurationSeconds <= 0) return null;
+
+                var topPen = new Pen(Color.FromArgb(160, 100, 200, 100));
+                var bottomPen = new Pen(Color.FromArgb(160, 100, 200, 100));
+                var settings = new NAudio.WaveFormRenderer.StandardWaveFormRendererSettings
                 {
-                    for (int i = 0; i < read && bucket < sampleCount; i++)
-                    {
-                        float abs = Math.Abs(buffer[i]);
-                        if (abs > bucketMax) bucketMax = abs;
-                        // Count in mono-equivalent frames (divide by channel count)
-                        if (i % reader.WaveFormat.Channels == reader.WaveFormat.Channels - 1)
-                        {
-                            bucketFilled++;
-                            if (bucketFilled >= framesPerBucket)
-                            {
-                                peaks[bucket++] = bucketMax;
-                                bucketFilled = 0;
-                                bucketMax = 0;
-                            }
-                        }
-                    }
-                }
-                foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
+                    Width = WaveformSourceWidth,
+                    TopHeight = WaveformSourceHalfHeight,
+                    BottomHeight = WaveformSourceHalfHeight,
+                    BackgroundColor = Color.FromArgb(26, 26, 46),
+                    TopPeakPen = topPen,
+                    BottomPeakPen = bottomPen,
+                };
+
+                var bmp = new NAudio.WaveFormRenderer.WaveFormRenderer()
+                    .Render(reader, new NAudio.WaveFormRenderer.MaxPeakProvider(), settings) as Bitmap;
+
+                topPen.Dispose();
+                bottomPen.Dispose();
+
+                if (bmp == null) return null;
+
+                if ((fadeInMs > 0 || fadeOutMs > 0) && totalDurationSeconds > 0)
+                    DrawFadeEnvelopeOnBitmap(bmp, totalDurationSeconds, fadeInMs, fadeOutMs);
+
+                return bmp;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"GenerateWaveformBitmap error: {ex.Message}");
                 return null;
             }
+        }
 
-            if (maxPeak < 0.0001f) return null;
+        /// <summary>
+        /// Draws half-sine fade-in and fade-out envelope curves onto an existing waveform bitmap using GDI+.
+        /// </summary>
+        private static void DrawFadeEnvelopeOnBitmap(Bitmap bmp, double totalDurationSeconds, int fadeInMs, int fadeOutMs)
+        {
+            const int sampleCount = 200;
+            float mid = bmp.Height / 2f;
 
-            var bitmap = new Bitmap(width, height);
-            using var g = Graphics.FromImage(bitmap);
-            g.Clear(Color.Transparent);
-            using var pen = new Pen(Color.FromArgb(80, 100, 160, 100), 1f);
-            float scaleX = (float)width / sampleCount;
-            float mid = height / 2f;
-            for (int i = 0; i < sampleCount; i++)
+            int fadeInBuckets = (int)Math.Round(Math.Min(1.0, fadeInMs / 1000.0 / totalDurationSeconds) * sampleCount);
+            int fadeOutBuckets = (int)Math.Round(Math.Min(1.0, fadeOutMs / 1000.0 / totalDurationSeconds) * sampleCount);
+            if (fadeInBuckets + fadeOutBuckets > sampleCount)
             {
-                float normalised = peaks[i] / maxPeak;
-                float halfH = normalised * mid * 0.9f;
-                float x = i * scaleX + scaleX / 2f;
-                g.DrawLine(pen, x, mid - halfH, x, mid + halfH);
+                int total = fadeInBuckets + fadeOutBuckets;
+                fadeInBuckets = (int)Math.Round((double)fadeInBuckets / total * sampleCount);
+                fadeOutBuckets = sampleCount - fadeInBuckets;
             }
-            return bitmap;
+
+            float[] gains = new float[sampleCount];
+            for (int i = 0; i < sampleCount; i++)
+                gains[i] = ComputeSineFadeGain(i, sampleCount, fadeInBuckets, fadeOutBuckets);
+
+            using var g = Graphics.FromImage(bmp);
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            float penWidth = Math.Max(1f, (float)bmp.Width / 500f);
+            using var fadePen = new Pen(Color.FromArgb(178, 255, 220, 0), penWidth);
+
+            if (fadeInBuckets > 1)
+            {
+                var upper = new PointF[fadeInBuckets];
+                var lower = new PointF[fadeInBuckets];
+                for (int i = 0; i < fadeInBuckets; i++)
+                {
+                    float x = (i + 0.5f) / sampleCount * bmp.Width;
+                    float halfH = gains[i] * mid * 0.9f;
+                    upper[i] = new PointF(x, mid - halfH);
+                    lower[i] = new PointF(x, mid + halfH);
+                }
+                g.DrawLines(fadePen, upper);
+                g.DrawLines(fadePen, lower);
+            }
+
+            if (fadeOutBuckets > 1)
+            {
+                int startBucket = sampleCount - fadeOutBuckets;
+                var upper = new PointF[fadeOutBuckets];
+                var lower = new PointF[fadeOutBuckets];
+                for (int i = 0; i < fadeOutBuckets; i++)
+                {
+                    float x = (startBucket + i + 0.5f) / sampleCount * bmp.Width;
+                    float halfH = gains[startBucket + i] * mid * 0.9f;
+                    upper[i] = new PointF(x, mid - halfH);
+                    lower[i] = new PointF(x, mid + halfH);
+                }
+                g.DrawLines(fadePen, upper);
+                g.DrawLines(fadePen, lower);
+            }
+        }
+
+        /// <summary>
+        /// Adds a file path to the top of the recent audio files list (max 10 entries).
+        /// </summary>
+        internal static void AddToRecentAudioFiles(string filePath)
+        {
+            var recent = Settings.Default.RecentAudioFiles
+                         ?? new System.Collections.Specialized.StringCollection();
+            // Remove existing entry for this file (case-insensitive) so it moves to top
+            for (int i = recent.Count - 1; i >= 0; i--)
+            {
+                if (string.Equals(recent[i], filePath, StringComparison.OrdinalIgnoreCase))
+                    recent.RemoveAt(i);
+            }
+            recent.Insert(0, filePath);
+            while (recent.Count > 10)
+                recent.RemoveAt(recent.Count - 1);
+            Settings.Default.RecentAudioFiles = recent;
+            Settings.Default.Save();
         }
 
         #endregion
@@ -671,6 +1037,7 @@ namespace SFXPlayer
 
         public TimeSpan PlaybackPosition => _musicPlayer.Position;
         public TimeSpan PlaybackLength => _musicPlayer.Length;
+        public float CurrentFadeGain => _musicPlayer.CurrentFadeGain;
 
         private void bnPlay_Click(object sender, EventArgs e)
         {
@@ -709,7 +1076,7 @@ namespace SFXPlayer
                 _PreviewPlayer.Volume = SFX.Volume; _PreviewPlayer.Position = TimeSpan.Zero;  //this resets the volume!
                 _PreviewPlayer.Volume = SFX.Volume;
                 _PreviewPlayer.Play();
-                BackColor = Settings.Default.ColourPreview;
+                BackColor = Color.FromArgb(255, 205, 130);         // light orange (preview)
             }
             UpdatePreviewButton();
         }
@@ -878,7 +1245,21 @@ namespace SFXPlayer
 
         internal void ProgressUpdate(object sender, EventArgs e)
         {
-            //UpdatePosition(_musicPlayer.Position);
+            if (IsPlaying)
+            {
+                double length = _musicPlayer.Length.TotalSeconds;
+                double pos = _musicPlayer.Position.TotalSeconds;
+                if (length > 0)
+                {
+                    float frac = (float)(pos / length);
+                    pnlWaveform.SetPosition(frac, frac); // keep zoom centered on playhead
+                }
+            }
+            else if (PlayerState == PlayerState.loaded)
+            {
+                // Reset position line when stopped
+                pnlWaveform.SetPosition(-1f);
+            }
         }
 
         private int Progress = 0;
@@ -986,7 +1367,7 @@ namespace SFXPlayer
                 Debug.WriteLine("This = " + this.ToString());
                 Debug.WriteLine("Parent = " + Parent.ToString());
                 Debug.WriteLine("Parent.Parent = " + Parent.Parent.ToString());
-                BackColor = SystemColors.Highlight;
+                BackColor = SystemColors.Highlight;            // system highlight colour
             }
         }
 
@@ -1002,6 +1383,12 @@ namespace SFXPlayer
         {
             if (SFX == null) return;
             toolTip1.SetToolTip(bnVolume, $"Vol={SFX.Volume}");
+        }
+
+        internal void RefreshVolumeDisplay()
+        {
+            UpdateVolumeTooltip();
+            bnVolume.Invalidate();
         }
 
         private void BnVolume_Paint(object sender, PaintEventArgs e)
@@ -1060,7 +1447,7 @@ namespace SFXPlayer
                 speedControl.Location = Loc;
                 speedControl.Speed = SFX.Speed;
                 speedControl.Focus();
-                BackColor = SystemColors.Highlight;
+                BackColor = SystemColors.Highlight;            // system highlight colour
             }
         }
 
@@ -1188,6 +1575,7 @@ namespace SFXPlayer
                 SFX.FadeOutDurationMs = (int)nudOut.Value;
                 SFX.FadeCurve = cbCurve.SelectedIndex == 1 ? classes.FadeCurve.Logarithmic : classes.FadeCurve.Linear;
                 UpdateFadeTooltip();
+                UpdateWaveformBackground();
 
                 // Reload so the new fade chain takes effect immediately
                 if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play)

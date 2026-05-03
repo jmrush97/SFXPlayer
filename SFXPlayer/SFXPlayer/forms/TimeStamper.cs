@@ -46,6 +46,11 @@ namespace SFXPlayer
                     WaveLength = waveStream.TotalTime;
                     Length.Text = WaveLength.ToString(@"mm\:ss\.ff");
                     volDisplayLabel.Text = $"Volume: {SFX.Volume}";
+                    volSlider.Value = Math.Max(volSlider.Minimum, Math.Min(volSlider.Maximum, SFX.Volume));
+                    lblVolumeValue.Text = SFX.Volume.ToString();
+                    int speedInt = (int)Math.Round(SFX.Speed * 100f);
+                    speedSlider.Value = Math.Max(speedSlider.Minimum, Math.Min(speedSlider.Maximum, speedInt));
+                    lblSpeedValue.Text = SFX.Speed.ToString("F2") + "x";
                     pictureBox1.BackgroundImageLayout = ImageLayout.Stretch;
                     pictureBox1.BackgroundImage = renderer.Render(waveStream, maxPeakProvider, myRendererSettings);
                     bm = new Bitmap(pictureBox1.BackgroundImage.Width, pictureBox1.BackgroundImage.Height);
@@ -190,6 +195,20 @@ namespace SFXPlayer
             ActiveTrigger.TimeTicks = PositionToTicks(newval);
             SFX.Triggers.ResetBindings();
             RedrawTriggers();
+        }
+
+        private void volSlider_Scroll(object sender, EventArgs e)
+        {
+            SFX.Volume = volSlider.Value;
+            lblVolumeValue.Text = volSlider.Value.ToString();
+            volDisplayLabel.Text = $"Volume: {SFX.Volume}";
+        }
+
+        private void speedSlider_Scroll(object sender, EventArgs e)
+        {
+            float speed = speedSlider.Value / 100f;
+            SFX.Speed = speed;
+            lblSpeedValue.Text = speed.ToString("F2") + "x";
         }
 
     }

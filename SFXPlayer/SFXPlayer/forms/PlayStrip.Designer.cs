@@ -34,6 +34,7 @@
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             lbIndex = new System.Windows.Forms.Label();
             tbDescription = new System.Windows.Forms.TextBox();
+            pnlWaveform = new WaveformTextBox();
             bnPlay = new System.Windows.Forms.PictureBox();
             bnSpeed = new System.Windows.Forms.PictureBox();
             bnVolume = new System.Windows.Forms.PictureBox();
@@ -99,13 +100,15 @@
             tableLayoutPanel2.ColumnCount = 1;
             tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             tableLayoutPanel2.Controls.Add(tableLayoutPanel1, 0, 0);
-            tableLayoutPanel2.Controls.Add(lbAutoPlay, 0, 1);
+            tableLayoutPanel2.Controls.Add(pnlWaveform, 0, 1);
+            tableLayoutPanel2.Controls.Add(lbAutoPlay, 0, 2);
             tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
             tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
-            tableLayoutPanel2.RowCount = 2;
+            tableLayoutPanel2.RowCount = 3;
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 52F));
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 28F));
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 15F));
             tableLayoutPanel2.Size = new System.Drawing.Size(643, 95);
             tableLayoutPanel2.TabIndex = 1;
@@ -157,12 +160,25 @@
             // 
             // tbDescription
             // 
+            tbDescription.BorderStyle = System.Windows.Forms.BorderStyle.None;
             tbDescription.Dock = System.Windows.Forms.DockStyle.Fill;
             tbDescription.Location = new System.Drawing.Point(57, 6);
             tbDescription.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             tbDescription.Name = "tbDescription";
             tbDescription.Size = new System.Drawing.Size(266, 31);
             tbDescription.TabIndex = 1;
+            // 
+            // pnlWaveform
+            // 
+            pnlWaveform.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
+            pnlWaveform.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            pnlWaveform.Cursor = System.Windows.Forms.Cursors.Hand;
+            pnlWaveform.Dock = System.Windows.Forms.DockStyle.Fill;
+            pnlWaveform.Margin = new System.Windows.Forms.Padding(0);
+            pnlWaveform.Name = "pnlWaveform";
+            pnlWaveform.ReadOnly = true;
+            pnlWaveform.TabIndex = 20;
+            pnlWaveform.TabStop = false;
             // 
             // bnPlay
             // 
@@ -245,7 +261,7 @@
             // 
             lbAutoPlay.Dock = System.Windows.Forms.DockStyle.Fill;
             lbAutoPlay.Font = new System.Drawing.Font("Microsoft Sans Serif", 7F);
-            lbAutoPlay.ForeColor = System.Drawing.Color.DarkGreen;
+            lbAutoPlay.ForeColor = System.Drawing.Color.FromArgb(0, 100, 0);
             lbAutoPlay.Location = new System.Drawing.Point(2, 52);
             lbAutoPlay.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             lbAutoPlay.Name = "lbAutoPlay";
@@ -363,6 +379,7 @@
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.Label lbIndex;
         private System.Windows.Forms.TextBox tbDescription;
+        private WaveformTextBox pnlWaveform;
         private System.Windows.Forms.PictureBox bnPlay;
         private System.Windows.Forms.PictureBox bnSpeed;
         private System.Windows.Forms.CheckBox bnStopAll;

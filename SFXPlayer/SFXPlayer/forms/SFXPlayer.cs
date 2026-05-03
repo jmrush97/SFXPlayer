@@ -3,6 +3,7 @@ using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using NAudio.Midi;
 using NAudio.Wave;
+using NAudio.WaveFormRenderer;
 using SFXPlayer.Properties;
 using System;
 using System.Collections.Concurrent;
@@ -18,6 +19,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Management;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Svg.FilterEffects;
 using SFXPlayer.classes;
@@ -91,6 +93,21 @@ namespace SFXPlayer
         public static Control lastFocused;
         string[] filters;
 
+        /// <summary>
+        /// Returns the directory of the currently-open .sfx file, or the application directory if
+        /// no file is open. Used when copying audio files from a different drive.
+        /// </summary>
+        public string ShowDirectory
+        {
+            get
+            {
+                string sfxFile = ShowFileHandler.CurrentFileName;
+                if (!string.IsNullOrEmpty(sfxFile) && File.Exists(sfxFile))
+                    return Path.GetDirectoryName(sfxFile);
+                return Path.GetDirectoryName(Application.ExecutablePath);
+            }
+        }
+
         public SFXPlayer()
         {
             // Initialize Forms Designer generated code.
@@ -106,46 +123,8 @@ namespace SFXPlayer
         private void InitializeControls()
         {
             ShowFileHandler.FileExtensions = FileExtensions;
-            bnStopAll.Top = bnPrev.Top = CueList.Top + TOPGAP - bnPrev.Height;
-            bnPlayNext.Top = CueList.Top + TOPGAP;
-            bnPlayNext.Height = PlayStripControlHeight;
-            bnPlayNext.BackColor = Settings.Default.ColourPlayerPlay;
-            pictureBox1.BackColor = Settings.Default.ColourPlayerPlay;
-            pictureBox2.BackColor = Settings.Default.ColourPlayerPlay;
-            pictureBox1.Top = bnPlayNext.Top - pictureBox1.Height;
-            pictureBox2.Top = bnPlayNext.Bottom;
-            bnDeleteCue.Top = bnAddCue.Top = bnPlayNext.Top + (bnPlayNext.Height - bnAddCue.Height) / 2;
-            bnNext.Top = CueList.Top + TOPGAP + bnPlayNext.Height;
-            bnStopAll.Height = bnNext.Top + bnNext.Height - bnStopAll.Top;
-
-            // Reserve space for detail label below rtPrevMainText
-            const int detailLabelHeight = 32;
-            rtPrevMainText.Height = bnStopAll.Top - bnStopAll.Margin.Top - detailLabelHeight - rtPrevMainText.Margin.Bottom - rtPrevMainText.Top;
-
-            // Position prev cue detail label between rtPrevMainText and bnStopAll
-            lbPrevCueInfo.Left = rtPrevMainText.Left;
-            lbPrevCueInfo.Width = rtPrevMainText.Width;
-            lbPrevCueInfo.Top = rtPrevMainText.Bottom + rtPrevMainText.Margin.Bottom;
-            lbPrevCueInfo.Height = detailLabelHeight;
-            lbPrevCueInfo.AutoSize = false;
-            lbPrevCueInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5f);
-            lbPrevCueInfo.BackColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            lbPrevCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-
-            rtMainText.Top = bnStopAll.Bottom + rtMainText.Margin.Top + bnStopAll.Margin.Bottom;
-            int nextInfoTop = Math.Min(statusStrip.Top - rtMainText.Margin.Bottom - detailLabelHeight, rtMainText.Top + rtPrevMainText.Height);
-            rtMainText.Height = nextInfoTop - rtMainText.Top;
-
-            // Position next cue detail label below rtMainText
-            lbNextCueInfo.Left = rtMainText.Left;
-            lbNextCueInfo.Width = rtMainText.Width;
-            lbNextCueInfo.Top = nextInfoTop;
-            lbNextCueInfo.Height = detailLabelHeight;
-            lbNextCueInfo.AutoSize = false;
-            lbNextCueInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.5f);
-            lbNextCueInfo.BackColor = System.Drawing.Color.FromArgb(240, 240, 240);
-            lbNextCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-
+            // Keep web-app green regardless of the legacy colour setting
+            bnPlayNext.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
             PlayStrip.OFD = dlgOpenAudioFile;
             autoLoadLastsfxCuelistToolStripMenuItem.Checked = Settings.Default.AutoLoadLastSession;
             confirmDeleteCueToolStripMenuItem.Checked = Settings.Default.ConfirmDeleteCue;
@@ -184,7 +163,7 @@ namespace SFXPlayer
         {
             get
             {
-                Point pt = new Point(0, bnPlayNext.Top - CueList.Top - CueListSpacing);
+                Point pt = new Point(0, TOPGAP - CueListSpacing);
                 Control ctl = CueList.GetChildAtPoint(pt);
                 if (ctl is Spacer)
                 {
@@ -199,7 +178,7 @@ namespace SFXPlayer
         {
             get
             {
-                Point pt = new Point(0, bnPlayNext.Top - CueList.Top);
+                Point pt = new Point(0, TOPGAP);
                 Control ctl = CueList.GetChildAtPoint(pt);
                 if (ctl is Spacer)
                 {
@@ -245,6 +224,7 @@ namespace SFXPlayer
                 MainText = rtMainText.Text,
                 TrackName = Path.GetFileName(next?.SFX.FileName),
                 TrackInfo = BuildTrackInfoString(next),
+                TrackDurationSeconds = next?.PlaybackLength.TotalSeconds ?? 0.0,
                 CurrentVolume = next?.SFX.Volume ?? 50,
                 CurrentSpeed = next?.SFX.Speed ?? 1.0f,
                 StopOthers = next?.SFX.StopOthers ?? false,
@@ -258,7 +238,17 @@ namespace SFXPlayer
                 CueFadeCurve = (next?.SFX.FadeCurve ?? classes.FadeCurve.Linear) == classes.FadeCurve.Logarithmic ? "Logarithmic" : "Linear",
                 PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
                 PrevCueDescription = prev?.SFX.Description ?? "",
-                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? "")
+                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? ""),
+                IsPlaying = false,
+                PlayingVolume = next?.SFX.Volume ?? 50,
+                PlayingSpeed = next?.SFX.Speed ?? 1.0f,
+                PlayingFadeGain = 1.0f,
+                AvailablePlaybackDevices = string.Join("|", CurrentAudioOutDevices),
+                CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
+                AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
+                CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
+                WaveformData = GetWaveformData(next),
+                CueListJson = GetCueListJson()
             };
             OnDisplayChanged(disp);
         }
@@ -360,6 +350,7 @@ namespace SFXPlayer
             }
             ResetDisplay();
             PreloadAll();
+            UpdateRecentAudioFilesMenu();
 
             //Form1_Resize(this, new EventArgs());
             //MouseWheel += CueList_MouseWheel;
@@ -607,6 +598,15 @@ namespace SFXPlayer
             if (ShowFileHandler.Dirty) Title += "*";
             Title += " - ";
             Title += Application.ProductName;
+            var ver = Assembly.GetExecutingAssembly().GetName().Version;
+            if (ver != null)
+                Title += $" v{ver.Major}.{ver.Minor}.{ver.Build}";
+            try
+            {
+                var buildDate = File.GetLastWriteTime(Assembly.GetExecutingAssembly().Location);
+                Title += $" (Built {buildDate:yyyy-MM-dd})";
+            }
+            catch { }
             Text = Title;
         }
 
@@ -846,6 +846,8 @@ namespace SFXPlayer
                 else
                     bnPlayNext_Click(null, null);
             });
+            ps.CueChanged += (s, e) => _commandQueue.Enqueue(() => { UpdateWebApp(); UpdateRecentAudioFilesMenu(); });
+            ps.CueSelected += (s, e) => GotoCue((s as PlayStrip)?.PlayStripIndex ?? -1);
         }
 
         private void AddPlaystrip(SFX sfx, int cueIndex)
@@ -1210,6 +1212,8 @@ namespace SFXPlayer
         {
             PlayStrip next = NextPlayCue;
             PlayStrip prev = PrevPlayCue;
+            // Find the currently playing strip for live volume/speed/fade data
+            PlayStrip playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
@@ -1232,7 +1236,17 @@ namespace SFXPlayer
                 CueFadeCurve = (next?.SFX.FadeCurve ?? classes.FadeCurve.Linear) == classes.FadeCurve.Logarithmic ? "Logarithmic" : "Linear",
                 PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
                 PrevCueDescription = prev?.SFX.Description ?? "",
-                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? "")
+                PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? ""),
+                IsPlaying = playing != null,
+                PlayingVolume = playing?.SFX.Volume ?? (next?.SFX.Volume ?? 50),
+                PlayingSpeed = playing?.SFX.Speed ?? (next?.SFX.Speed ?? 1.0f),
+                PlayingFadeGain = playing?.CurrentFadeGain ?? 1.0f,
+                AvailablePlaybackDevices = string.Join("|", CurrentAudioOutDevices),
+                CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
+                AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
+                CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
+                WaveformData = GetWaveformData(playing ?? next),
+                CueListJson = GetCueListJson()
             };
             OnDisplayChanged(disp);
         }
@@ -1318,15 +1332,7 @@ namespace SFXPlayer
         private void Form1_Resize(object sender, EventArgs e)
         {
             if (WindowState == FormWindowState.Minimized) return;
-            Debug.WriteLine("CueList_Resize");
-            //cuelistrows = (Height - cuelistFormSpacing) / cueListSpacing;
-            //CueList.Height = cuelistrows * cueListSpacing - 8;
-            //this.statusBar.Panels[0].Text = "NumberOfPlaceholders = " + (BottomPlaceholders + TOP_PLACEHOLDERS).ToString();
             PadCueList();
-
-            rtMainText.Height = Math.Min(statusStrip.Top - rtMainText.Margin.Bottom - rtMainText.Top, rtPrevMainText.Height);
-            pictureBox1.Top = bnPlayNext.Top - pictureBox1.Height;
-            pictureBox2.Top = bnPlayNext.Bottom;
         }
 
         private void CueList_ClientSizeChanged(object sender, EventArgs e)
@@ -1518,6 +1524,68 @@ namespace SFXPlayer
             ShowDeviceSelectionDialog();
         }
 
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            string version = ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}.{ver.Revision}" : "Unknown";
+            string buildDate = "Unknown";
+            try
+            {
+                buildDate = File.GetLastWriteTime(System.Reflection.Assembly.GetExecutingAssembly().Location)
+                    .ToString("yyyy-MM-dd HH:mm");
+            }
+            catch { }
+            string gitHub = "https://github.com/jmrush97/SFXPlayer";
+            string message = $"SFX Player\n\nVersion: {version}\nBuild Date: {buildDate}\n\nGitHub: {gitHub}";
+            MessageBox.Show(message, "About SFX Player", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        /// <summary>
+        /// Rebuilds the "Recent Audio Files" submenu from the stored settings list.
+        /// Called after any file selection and on form load.
+        /// </summary>
+        private void UpdateRecentAudioFilesMenu()
+        {
+            var recent = Settings.Default.RecentAudioFiles;
+            recentAudioFilesToolStripMenuItem.DropDownItems.Clear();
+            if (recent == null || recent.Count == 0)
+            {
+                recentAudioFilesToolStripMenuItem.Visible = false;
+                recentAudioFilesSeparator.Visible = false;
+                return;
+            }
+            foreach (string filePath in recent)
+            {
+                if (string.IsNullOrWhiteSpace(filePath)) continue;
+                var item = new ToolStripMenuItem(Path.GetFileName(filePath))
+                {
+                    ToolTipText = filePath,
+                    Tag = filePath
+                };
+                item.Click += RecentAudioFileMenuItem_Click;
+                recentAudioFilesToolStripMenuItem.DropDownItems.Add(item);
+            }
+            recentAudioFilesToolStripMenuItem.Visible = recentAudioFilesToolStripMenuItem.DropDownItems.Count > 0;
+            recentAudioFilesSeparator.Visible = recentAudioFilesToolStripMenuItem.Visible;
+        }
+
+        private void RecentAudioFileMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem item && item.Tag is string filePath)
+            {
+                PlayStrip target = NextPlayCue;
+                if (target == null) return;
+                if (!File.Exists(filePath))
+                {
+                    MessageBox.Show($"File not found:\n{filePath}", "Recent Audio Files",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                target.SelectFile(filePath);
+                UpdateRecentAudioFilesMenu();
+            }
+        }
+
         internal void PlayNextCue()
         {
             AppLogger.Info("SFXPlayer.PlayNextCue");
@@ -1549,6 +1617,8 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.Volume = Math.Max(0, Math.Min(100, vol));
+                    NextPlayCue.RefreshVolumeDisplay();
+                    UpdateWebApp();
                 }
             });
         }
@@ -1560,6 +1630,7 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.Speed = Math.Max(0.1f, Math.Min(20.0f, speed));
+                    UpdateWebApp();
                 }
             });
         }
@@ -1609,6 +1680,7 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.FadeInDurationMs = Math.Max(0, ms);
+                    NextPlayCue.RefreshWaveform();
                     UpdateWebApp();
                 }
             });
@@ -1621,6 +1693,7 @@ namespace SFXPlayer
                 if (NextPlayCue != null)
                 {
                     NextPlayCue.SFX.FadeOutDurationMs = Math.Max(0, ms);
+                    NextPlayCue.RefreshWaveform();
                     UpdateWebApp();
                 }
             });
@@ -1640,7 +1713,139 @@ namespace SFXPlayer
             });
         }
 
-        // Drag & drop helpers
+        internal void SetPlaybackDevice(string deviceName)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (!string.IsNullOrEmpty(deviceName) && CurrentAudioOutDevices.Contains(deviceName))
+                {
+                    Settings.Default.LastPlaybackDevice = deviceName;
+                    Settings.Default.Save();
+                    UpdateDevices();
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SetPreviewDevice(string deviceName)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (!string.IsNullOrEmpty(deviceName) && CurrentAudioOutDevices.Contains(deviceName))
+                {
+                    Settings.Default.LastPreviewDevice = deviceName;
+                    Settings.Default.Save();
+                    UpdateDevices();
+                    UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SeekPosition(double fraction)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                fraction = Math.Max(0.0, Math.Min(1.0, fraction));
+                var playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
+                if (playing != null)
+                {
+                    playing.SeekToFraction((float)fraction);
+                }
+                else if (NextPlayCue != null && NextPlayCue.PlaybackLength.TotalSeconds > 0)
+                {
+                    NextPlayCue.SeekToFraction((float)fraction);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Moves the "next cue" pointer to the specified 0-based index without stopping any playing audio.
+        /// </summary>
+        internal void GotoCue(int index)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                int count = CurrentShow?.Cues?.Count ?? 0;
+                if (index < 0 || index >= count) return;
+                NextPlayCueIndex = index;
+                UpdateWebApp();
+            });
+        }
+
+        private static string _lastWaveformFile = null;
+        private static string _cachedWaveformData = null;
+
+        private static string GetWaveformData(PlayStrip strip)
+        {
+            if (strip == null) return "";
+            string filePath = strip.SFX?.FileName;
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return "";
+            if (filePath == _lastWaveformFile) return _cachedWaveformData ?? "";
+            var peaks = GenerateWaveformPeaks(filePath, 200);
+            _lastWaveformFile = filePath;
+            _cachedWaveformData = peaks != null
+                ? string.Join(",", peaks.Select(p => p.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)))
+                : "";
+            return _cachedWaveformData;
+        }
+
+        private string GetCueListJson()
+        {
+            var sb = new System.Text.StringBuilder("[");
+            bool first = true;
+            int nextIdx = NextPlayCue?.PlayStripIndex ?? -1;
+            foreach (PlayStrip ps in CueList.Controls.OfType<PlayStrip>().OrderBy(p => p.PlayStripIndex))
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                string desc = EscapeJsonString(ps.SFX.Description ?? "");
+                string file = EscapeJsonString(Path.GetFileName(ps.SFX.FileName ?? ""));
+                string spd = ps.SFX.Speed.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                string isCur = ps.PlayStripIndex == nextIdx ? "true" : "false";
+                sb.Append($"{{\"i\":{ps.PlayStripIndex + 1},\"idx\":{ps.PlayStripIndex},\"d\":\"{desc}\",\"f\":\"{file}\",\"v\":{ps.SFX.Volume},\"s\":{spd},\"c\":{isCur}}}");
+            }
+            sb.Append(']');
+            return sb.ToString();
+        }
+
+        private static string EscapeJsonString(string s)
+            => s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r");
+
+        private static float[] GenerateWaveformPeaks(string fileName, int bucketCount)
+        {
+            try
+            {
+                using var reader = new NAudio.Wave.AudioFileReader(fileName);
+                // Use the same sampling formula as WaveFormRenderer.Render():
+                //   samplesPerPeak = (reader.Length / bytesPerSample) / width
+                // where bytesPerSample = BitsPerSample/8 and the sample count includes all channels.
+                int bytesPerSample = reader.WaveFormat.BitsPerSample / 8;
+                long totalSamples = reader.Length / bytesPerSample;
+                int samplesPerPeak = (int)Math.Max(1, totalSamples / bucketCount);
+
+                var peakProvider = new NAudio.WaveFormRenderer.MaxPeakProvider();
+                peakProvider.Init(reader, samplesPerPeak);
+
+                float[] peaks = new float[bucketCount];
+                for (int i = 0; i < bucketCount; i++)
+                    peaks[i] = peakProvider.GetNextPeak().Max;
+
+                float maxPeak = 0;
+                foreach (var p in peaks) if (p > maxPeak) maxPeak = p;
+                if (maxPeak < 0.0001f) return null;
+                for (int i = 0; i < bucketCount; i++)
+                    peaks[i] = peaks[i] / maxPeak;
+
+                return peaks;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"GenerateWaveformPeaks error: {ex.Message}");
+                return null;
+            }
+        }
+
+
         Control LastHovered;
         Color LastHoveredColor;
         bool ReplaceOK;

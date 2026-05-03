@@ -11,60 +11,300 @@
 html, body {
     height: 100%;
     width: 100%;
+    overflow: hidden;
     background-color: #1a1a2e;
     color: #e0e0e0;
     font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
 }
 
-.sfx-container {
+/* ─── App shell ─────────────────────────────────────────────────────────────── */
+.app-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
     width: 100%;
-    border: 2px solid #444;
+    min-width: 900px;
+    min-height: 600px;
 }
 
-/* Previous cue text area (40% of height) */
-.prev-cue {
-    flex: 4;
+/* ─── Title bar ──────────────────────────────────────────────────────────────── */
+.title-bar {
+    height: 40px;
+    flex-shrink: 0;
+    background-color: #0f0f1e;
+    border-bottom: 2px solid #444;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 16px;
+    font-size: 1em;
+    font-weight: bold;
+    color: #c8c8f0;
+}
+
+.playing-info {
+    display: flex;
+    gap: 10px;
+    font-size: 0.78em;
+    font-weight: normal;
+    color: #8f8;
+    margin-left: auto;
+}
+
+/* ─── Main three-column area ─────────────────────────────────────────────────── */
+.main-area {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ─── Left panel: cue list ───────────────────────────────────────────────────── */
+.left-panel {
+    width: 220px;
+    min-width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid #444;
+    background-color: #111122;
+    overflow: hidden;
+}
+
+.panel-header {
+    background-color: #0f3460;
+    color: #a0c4ff;
+    font-size: 0.8em;
+    font-weight: bold;
+    padding: 4px 8px;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.cue-list-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.cue-list-item {
+    padding: 4px 6px;
+    border-bottom: 1px solid #222;
+    cursor: pointer;
+    font-size: 0.75em;
+    line-height: 1.4;
+}
+
+.cue-list-item:hover {
+    background-color: #1e2a4a;
+}
+
+.cue-list-item.current-cue {
+    background-color: #1a3a6a;
+    border-left: 3px solid #4af;
+}
+
+.cue-num {
+    color: #7af;
+    font-weight: bold;
+    margin-right: 4px;
+}
+
+.cue-desc {
+    color: #e0e0e0;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.cue-file {
+    color: #888;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.cue-meta {
+    color: #afa;
+    font-size: 0.9em;
+}
+
+/* ─── Center panel ───────────────────────────────────────────────────────────── */
+.center-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.cue-detail {
+    font-size: 0.75em;
+    color: #ccc;
+    padding: 2px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+
+.cue-detail span { margin-right: 6px; }
+
+.prev-cue-bar {
+    background-color: #2a2a3a;
+}
+
+.next-cue-bar {
+    background-color: #1a1a2e;
+}
+
+.cue-text {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    font-size: clamp(1rem, 3vw, 2.2rem);
+    font-weight: bold;
+    text-align: center;
+    overflow: hidden;
+    word-break: break-word;
+    min-height: 0;
+}
+
+.cue-text.prev-cue {
     background-color: #3a3a4a;
     color: #aaaacc;
 }
 
-/* Current cue text area (40% of height) */
-.current-cue {
-    flex: 4;
+.cue-text.current-cue {
     background-color: #16213e;
     color: #ffffff;
     border-top: 2px solid #444;
 }
 
-.cue-text {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    font-size: clamp(1rem, 4vw, 2.5rem);
-    font-weight: bold;
-    text-align: center;
-    overflow: hidden;
-    word-break: break-word;
+/* Waveform */
+#waveformContainer {
+    height: 80px;
+    flex-shrink: 0;
+    position: relative;
+    background-color: #1a1a2e;
+    border-top: 1px solid #333;
 }
 
-/* Track name + cue mode row (10% of height) */
-.cue-info {
-    flex: 1;
+#waveformCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: pointer;
+}
+
+#waveformPositionLine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: rgba(255, 255, 255, 0.85);
+    pointer-events: none;
+    left: 0%;
+    transition: left 0.1s linear;
+}
+
+/* Zoom bar overlaid at bottom-right of waveform */
+#waveformZoomBar {
+    position: absolute;
+    bottom: 3px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    pointer-events: all;
+}
+
+#waveformZoomBar button {
+    background: rgba(0,0,0,0.55);
+    color: #aef;
+    border: 1px solid #556;
+    border-radius: 3px;
+    width: 18px;
+    height: 18px;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+#waveformZoomBar button:hover { background: rgba(30,80,160,0.7); }
+
+#waveZoomLabel {
+    color: #aef;
+    font-size: 0.7em;
+    min-width: 30px;
+    text-align: center;
+    pointer-events: none;
+}
+
+/* Fade gain strip */
+#fadeGainBar {
+    height: 5px;
+    flex-shrink: 0;
+    background-color: #333;
+    position: relative;
+}
+
+#fadeGainFill {
+    height: 100%;
+    background: linear-gradient(to right, #f00, #ff0, #0f0);
+    width: 100%;
+    transition: width 0.1s linear;
+}
+
+/* Progress */
+#progressContainer {
+    height: 28px;
+    flex-shrink: 0;
+    background-color: #444;
+    position: relative;
+}
+
+#progressBar {
+    height: 100%;
+    width: 0%;
+    background-color: limegreen;
+    transition: width 0.1s linear;
+}
+
+#progressTime {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 0.82em;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* Info row */
+.info-row {
+    height: 28px;
+    flex-shrink: 0;
+    background-color: #0f3460;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
-    background-color: #0f3460;
-    border-top: 2px solid #444;
+    padding: 0 8px;
     gap: 8px;
 }
 
-.track-name {
-    font-size: clamp(0.75rem, 2.5vw, 1.1rem);
+.track-info {
+    font-size: 0.78em;
     color: #a0c4ff;
     white-space: nowrap;
     overflow: hidden;
@@ -72,65 +312,108 @@ html, body {
 }
 
 .cue-mode {
-    font-size: clamp(0.7rem, 2vw, 0.95rem);
+    font-size: 0.72em;
     font-weight: bold;
-    padding: 4px 10px;
-    border-radius: 12px;
+    padding: 2px 8px;
+    border-radius: 10px;
     white-space: nowrap;
     flex-shrink: 0;
 }
 
-.cue-mode.stop-others {
-    background-color: #c0392b;
-    color: #ffffff;
+.cue-mode.stop-others { background-color: #c0392b; color: #fff; }
+.cue-mode.parallel    { background-color: #27ae60; color: #fff; }
+
+/* ─── Right panel: cue properties ───────────────────────────────────────────── */
+.right-panel {
+    width: 240px;
+    min-width: 180px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid #444;
+    background-color: #0d0d1c;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-.cue-mode.parallel {
-    background-color: #27ae60;
-    color: #ffffff;
+.prop-group-header {
+    background-color: #1a2a4a;
+    color: #8ab4e8;
+    font-size: 0.72em;
+    font-weight: bold;
+    padding: 3px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 4px;
 }
 
-/* Controls row (10% of height) */
-.controls {
+.prop-row {
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.prop-row label {
+    font-size: 0.8em;
+    white-space: nowrap;
+    color: #bbb;
+    min-width: 55px;
+}
+
+.prop-row input[type="range"] {
     flex: 1;
+    min-width: 60px;
+}
+
+.prop-val {
+    font-size: 0.78em;
+    color: #afa;
+    min-width: 30px;
+    text-align: right;
+}
+
+.prop-row.small {
+    font-size: 0.78em;
+    padding: 3px 8px;
+    gap: 4px;
+}
+
+.prop-row.small label  { font-size: 0.9em; }
+.prop-row.small input  { font-size: 0.9em; }
+.prop-row.small select { font-size: 0.9em; max-width: 100%; }
+.prop-row.small button { font-size: 0.85em; padding: 2px 6px; cursor: pointer; }
+
+.prop-row select {
+    font-size: 0.82em;
+    max-width: 100%;
+    flex: 1;
+}
+
+/* ─── Navigation bar ─────────────────────────────────────────────────────────── */
+.nav-bar {
+    height: 60px;
+    flex-shrink: 0;
     display: flex;
     border-top: 2px solid #444;
-    min-height: 48px;
 }
 
-.btn {
+.nav-btn {
     flex: 1;
     border: none;
     border-right: 1px solid #333;
     cursor: pointer;
-    font-size: clamp(0.85rem, 2.5vw, 1.2rem);
+    font-size: clamp(0.85rem, 2vw, 1.1rem);
     font-weight: bold;
     color: #ffffff;
     transition: filter 0.1s ease;
     outline: none;
-    padding: 0;
 }
 
-.btn:last-child {
-    border-right: none;
-}
-
-.btn:active {
-    filter: brightness(0.75);
-}
-
-.btn-prev {
-    background-color: #555566;
-}
-
-.btn-stop {
-    background-color: #c0392b;
-}
-
-.btn-go {
-    background-color: #27ae60;
-}
-
-.btn-next {
-    background-color: #555566;
-}
+.nav-btn:last-child { border-right: none; }
+.nav-btn:active     { filter: brightness(0.75); }
+.btn-prev { background-color: #555566; }
+.btn-stop { background-color: #c0392b; }
+.btn-go   { background-color: #27ae60; }
+.btn-next { background-color: #555566; }

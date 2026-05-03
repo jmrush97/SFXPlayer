@@ -347,7 +347,8 @@ namespace SFXPlayer.classes
                         var nodes = xml.SelectNodes("command");
                         foreach (XmlNode childrenNode in nodes)
                         {
-                            string command = childrenNode.InnerText.ToLower();
+                            string rawCommand = childrenNode.InnerText;
+                            string command = rawCommand.ToLower();
                             if (Program.mainForm != null)
                             {
                                 switch (command)
@@ -408,6 +409,29 @@ namespace SFXPlayer.classes
                                         else if (command.StartsWith("fadecurve:"))
                                         {
                                             Program.mainForm.SetNextCueFadeCurve(command.Substring(10));
+                                        }
+                                        else if (command.StartsWith("device:"))
+                                        {
+                                            // Use rawCommand to preserve original case of device name
+                                            Program.mainForm.SetPlaybackDevice(rawCommand.Substring(7));
+                                        }
+                                        else if (command.StartsWith("previewdevice:"))
+                                        {
+                                            // Use rawCommand to preserve original case of device name
+                                            Program.mainForm.SetPreviewDevice(rawCommand.Substring(14));
+                                        }
+                                        else if (command.StartsWith("seek:") &&
+                                            double.TryParse(rawCommand.Substring(5),
+                                                System.Globalization.NumberStyles.Float,
+                                                System.Globalization.CultureInfo.InvariantCulture,
+                                                out double seekFraction))
+                                        {
+                                            Program.mainForm.SeekPosition(seekFraction);
+                                        }
+                                        else if (command.StartsWith("goto:") &&
+                                            int.TryParse(command.Substring(5), out int gotoIndex))
+                                        {
+                                            Program.mainForm.GotoCue(gotoIndex);
                                         }
                                         break;
                                 }

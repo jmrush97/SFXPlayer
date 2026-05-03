@@ -8,7 +8,7 @@ Sound Effects Player for theatrical use.
 
 by Adrian Wadey
 
-Latest release 2.0.0.5
+Latest release 2.0.0.9
 
 ![Screenshot](SFXPlayer/SFXPlayer/SFXPlayer.PNG)
 
@@ -44,8 +44,32 @@ audio device for the main output)
 *    Drag cues around to reorder them
 *    Export Show will create a zip file with all the audio and the sfx file
 *    Import Show will decompress a ZIP file and load the sfx file
+*    **Cross-drive file copy** – when you select an audio file stored on a different drive
+     from the open .sfx file, SFX Player automatically copies it alongside the show file so
+     your cue list remains self-contained
+*    **Recent Audio Files** – the File menu keeps a list of up to 10 recently loaded audio
+     files; click any entry to assign that file to the currently-selected cue
+*    **Click a cue in the cue list to focus it** – on the web remote and on the WinForms
+     application, clicking a row in the cue list moves the "next cue" pointer to that row
+     without stopping any audio that is already playing
+*    **Help › About** – shows the application version, build date and GitHub repository URL
 
+## Web Remote
 
+The built-in web server hosts a browser-based remote control (default port 3030).
+Open `http://<machine-ip>:3030` on any device on the same network.
+
+*    The left panel lists all cues — **click any cue** to make it the next cue without
+     interrupting playback
+*    The centre panel shows the waveform of the upcoming cue with zoom and click-to-seek
+*    The right panel lets you adjust volume, speed, fades, and output devices in real-time
+
+## About / Version
+
+Go to **Help › About SFX Player** to see:
+*    Application version number
+*    Build date
+*    GitHub repository URL (https://github.com/jmrush97/SFXPlayer)
 
 ## To do:
 

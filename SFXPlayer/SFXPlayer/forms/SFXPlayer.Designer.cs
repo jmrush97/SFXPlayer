@@ -90,7 +90,9 @@ namespace SFXPlayer
             this.cbPreview = new System.Windows.Forms.ToolStripComboBox();
             this.bnPlayback = new System.Windows.Forms.ToolStripDropDownButton();
             this.cbPlayback = new System.Windows.Forms.ToolStripComboBox();
-            this.menuStrip1.SuspendLayout();
+            this.recentAudioFilesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.recentAudioFilesSeparator = new System.Windows.Forms.ToolStripSeparator();
+            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.statusStrip.SuspendLayout();
@@ -100,15 +102,10 @@ namespace SFXPlayer
             // CueList
             // 
             this.CueList.AllowDrop = true;
-            this.CueList.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.CueList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.CueList.AutoScroll = true;
-            this.CueList.BackColor = System.Drawing.SystemColors.ControlDark;
-            this.CueList.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 556F));
-            this.CueList.Location = new System.Drawing.Point(305, 34);
+            this.CueList.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.CueList.Name = "CueList";
-            this.CueList.Size = new System.Drawing.Size(556, 394);
             this.CueList.TabIndex = 4;
             this.CueList.Scroll += new System.Windows.Forms.ScrollEventHandler(this.CueList_Scroll);
             this.CueList.ClientSizeChanged += new System.EventHandler(this.CueList_ClientSizeChanged);
@@ -126,20 +123,19 @@ namespace SFXPlayer
             // 
             // rtMainText
             // 
-            this.rtMainText.Location = new System.Drawing.Point(12, 244);
+            this.rtMainText.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rtMainText.Name = "rtMainText";
-            this.rtMainText.Size = new System.Drawing.Size(287, 178);
             this.rtMainText.TabIndex = 2;
             this.rtMainText.Text = "";
             this.rtMainText.TextChanged += new System.EventHandler(this.rtMainText_TextChanged);
             // 
             // bnStopAll
             // 
-            this.bnStopAll.BackColor = System.Drawing.Color.Red;
-            this.bnStopAll.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.bnStopAll.Location = new System.Drawing.Point(12, 142);
+            this.bnStopAll.BackColor = System.Drawing.Color.FromArgb(192, 57, 43);
+            this.bnStopAll.ForeColor = System.Drawing.Color.White;
+            this.bnStopAll.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.bnStopAll.Dock = System.Windows.Forms.DockStyle.Fill;
             this.bnStopAll.Name = "bnStopAll";
-            this.bnStopAll.Size = new System.Drawing.Size(177, 81);
             this.bnStopAll.TabIndex = 17;
             this.bnStopAll.Text = "STOP";
             this.toolTip1.SetToolTip(this.bnStopAll, "Esc");
@@ -152,10 +148,11 @@ namespace SFXPlayer
             // 
             // bnPlayNext
             // 
-            this.bnPlayNext.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
-            this.bnPlayNext.Location = new System.Drawing.Point(256, 172);
+            this.bnPlayNext.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
+            this.bnPlayNext.ForeColor = System.Drawing.Color.White;
+            this.bnPlayNext.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.bnPlayNext.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.bnPlayNext.Name = "bnPlayNext";
-            this.bnPlayNext.Size = new System.Drawing.Size(48, 21);
             this.bnPlayNext.TabIndex = 3;
             this.bnPlayNext.Text = "&Go ˃";
             this.toolTip1.SetToolTip(this.bnPlayNext, "F5");
@@ -164,9 +161,10 @@ namespace SFXPlayer
             // 
             // bnAddCue
             // 
-            this.bnAddCue.Location = new System.Drawing.Point(232, 174);
+            this.bnAddCue.Location = new System.Drawing.Point(218, 3);
             this.bnAddCue.Name = "bnAddCue";
-            this.bnAddCue.Size = new System.Drawing.Size(18, 19);
+            this.bnAddCue.Size = new System.Drawing.Size(28, 26);
+            this.bnAddCue.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.bnAddCue.TabIndex = 6;
             this.bnAddCue.Text = "+";
             this.toolTip1.SetToolTip(this.bnAddCue, "Add Cue");
@@ -175,9 +173,10 @@ namespace SFXPlayer
             // 
             // bnDeleteCue
             // 
-            this.bnDeleteCue.Location = new System.Drawing.Point(215, 174);
+            this.bnDeleteCue.Location = new System.Drawing.Point(188, 3);
             this.bnDeleteCue.Name = "bnDeleteCue";
-            this.bnDeleteCue.Size = new System.Drawing.Size(18, 19);
+            this.bnDeleteCue.Size = new System.Drawing.Size(28, 26);
+            this.bnDeleteCue.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.bnDeleteCue.TabIndex = 7;
             this.bnDeleteCue.Text = "-";
             this.toolTip1.SetToolTip(this.bnDeleteCue, "Delete Cue");
@@ -186,7 +185,7 @@ namespace SFXPlayer
             // 
             // menuStrip1
             // 
-            this.menuStrip1.Dock = System.Windows.Forms.DockStyle.None;
+            this.menuStrip1.Dock = System.Windows.Forms.DockStyle.Top;
             this.menuStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
@@ -194,9 +193,7 @@ namespace SFXPlayer
             this.settingsToolStripMenuItem,
             this.helpToolStripMenuItem});
             this.menuStrip1.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
-            this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(338, 24);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -208,6 +205,8 @@ namespace SFXPlayer
             this.saveToolStripMenuItem,
             this.saveAsToolStripMenuItem,
             this.toolStripSeparator1,
+            this.recentAudioFilesSeparator,
+            this.recentAudioFilesToolStripMenuItem,
             this.createSampleProjectToolStripMenuItem,
             this.exportShowFileToolStripMenuItem,
             this.importShowFileToolStripMenuItem,
@@ -253,6 +252,19 @@ namespace SFXPlayer
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
             this.toolStripSeparator1.Size = new System.Drawing.Size(207, 6);
+            // 
+            // recentAudioFilesSeparator
+            // 
+            this.recentAudioFilesSeparator.Name = "recentAudioFilesSeparator";
+            this.recentAudioFilesSeparator.Size = new System.Drawing.Size(207, 6);
+            this.recentAudioFilesSeparator.Visible = false;
+            // 
+            // recentAudioFilesToolStripMenuItem
+            // 
+            this.recentAudioFilesToolStripMenuItem.Name = "recentAudioFilesToolStripMenuItem";
+            this.recentAudioFilesToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.recentAudioFilesToolStripMenuItem.Text = "Recent &Audio Files";
+            this.recentAudioFilesToolStripMenuItem.Visible = false;
             // 
             // createSampleProjectToolStripMenuItem
             // 
@@ -374,10 +386,18 @@ namespace SFXPlayer
             // 
             // helpToolStripMenuItem
             // 
+            this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "Help";
-            this.helpToolStripMenuItem.Click += new System.EventHandler(this.helpToolStripMenuItem_Click);
+            // 
+            // aboutToolStripMenuItem
+            // 
+            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.aboutToolStripMenuItem.Text = "&About SFX Player...";
+            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
             // ScrollTimer
             // 
@@ -386,29 +406,26 @@ namespace SFXPlayer
             // 
             // bnPrev
             // 
-            this.bnPrev.Location = new System.Drawing.Point(256, 146);
+            this.bnPrev.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.bnPrev.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.bnPrev.Name = "bnPrev";
-            this.bnPrev.Size = new System.Drawing.Size(23, 23);
             this.bnPrev.TabIndex = 26;
-            this.bnPrev.Text = "˄";
-            this.bnPrev.UseVisualStyleBackColor = true;
+            this.bnPrev.Text = "˄ Prev";
             this.bnPrev.Click += new System.EventHandler(this.bnPrev_Click);
             // 
             // bnNext
             // 
-            this.bnNext.Location = new System.Drawing.Point(256, 199);
+            this.bnNext.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.bnNext.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.bnNext.Name = "bnNext";
-            this.bnNext.Size = new System.Drawing.Size(23, 23);
             this.bnNext.TabIndex = 27;
-            this.bnNext.Text = "˅";
-            this.bnNext.UseVisualStyleBackColor = true;
+            this.bnNext.Text = "˅ Next";
             this.bnNext.Click += new System.EventHandler(this.bnNext_Click);
             // 
             // rtPrevMainText
             // 
-            this.rtPrevMainText.Location = new System.Drawing.Point(12, 34);
+            this.rtPrevMainText.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rtPrevMainText.Name = "rtPrevMainText";
-            this.rtPrevMainText.Size = new System.Drawing.Size(287, 102);
             this.rtPrevMainText.TabIndex = 28;
             this.rtPrevMainText.Text = "";
             // 
@@ -492,32 +509,28 @@ namespace SFXPlayer
             // 
             // toolStrip1
             // 
-            this.toolStrip1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.toolStrip1.Dock = System.Windows.Forms.DockStyle.None;
+            this.toolStrip1.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.toolStrip1.Dock = System.Windows.Forms.DockStyle.Top;
             this.toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.toolStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.bnMIDI,
             this.bnPreview,
             this.bnPlayback});
-            this.toolStrip1.Location = new System.Drawing.Point(299, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(87, 31);
             this.toolStrip1.TabIndex = 36;
             this.toolStrip1.Text = "toolStrip1";
             // 
             // bnMIDI
             // 
             this.bnMIDI.BackColor = System.Drawing.Color.Red;
-            this.bnMIDI.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.bnMIDI.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.bnMIDI.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.cbMIDI});
-            this.bnMIDI.Image = ((System.Drawing.Image)(resources.GetObject("bnMIDI.Image")));
-            this.bnMIDI.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.bnMIDI.Name = "bnMIDI";
             this.bnMIDI.ShowDropDownArrow = false;
-            this.bnMIDI.Size = new System.Drawing.Size(28, 28);
-            this.bnMIDI.Text = "toolStripDropDownButton1";
+            this.bnMIDI.Size = new System.Drawing.Size(48, 28);
+            this.bnMIDI.Text = "MIDI";
             this.bnMIDI.ToolTipText = "MIDI Out";
             // 
             // cbMIDI
@@ -531,15 +544,13 @@ namespace SFXPlayer
             // bnPreview
             // 
             this.bnPreview.BackColor = System.Drawing.Color.Red;
-            this.bnPreview.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.bnPreview.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.bnPreview.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.cbPreview});
-            this.bnPreview.Image = ((System.Drawing.Image)(resources.GetObject("bnPreview.Image")));
-            this.bnPreview.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.bnPreview.Name = "bnPreview";
             this.bnPreview.ShowDropDownArrow = false;
-            this.bnPreview.Size = new System.Drawing.Size(28, 28);
-            this.bnPreview.Text = "toolStripDropDownButton2";
+            this.bnPreview.Size = new System.Drawing.Size(58, 28);
+            this.bnPreview.Text = "Preview";
             this.bnPreview.ToolTipText = "Preview Device";
             // 
             // cbPreview
@@ -553,15 +564,13 @@ namespace SFXPlayer
             // bnPlayback
             // 
             this.bnPlayback.BackColor = System.Drawing.Color.Red;
-            this.bnPlayback.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.bnPlayback.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             this.bnPlayback.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.cbPlayback});
-            this.bnPlayback.Image = ((System.Drawing.Image)(resources.GetObject("bnPlayback.Image")));
-            this.bnPlayback.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.bnPlayback.Name = "bnPlayback";
             this.bnPlayback.ShowDropDownArrow = false;
-            this.bnPlayback.Size = new System.Drawing.Size(28, 28);
-            this.bnPlayback.Text = "toolStripDropDownButton3";
+            this.bnPlayback.Size = new System.Drawing.Size(65, 28);
+            this.bnPlayback.Text = "Playback";
             this.bnPlayback.ToolTipText = "Playback Device";
             // 
             // cbPlayback
@@ -576,18 +585,22 @@ namespace SFXPlayer
             // 
             this.lbPrevCueInfo = new System.Windows.Forms.Label();
             this.lbPrevCueInfo.AutoSize = false;
-            this.lbPrevCueInfo.Location = new System.Drawing.Point(12, 136);
+            this.lbPrevCueInfo.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lbPrevCueInfo.Font = new System.Drawing.Font("Segoe UI", 7.5f);
+            this.lbPrevCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lbPrevCueInfo.Padding = new System.Windows.Forms.Padding(4, 0, 0, 0);
             this.lbPrevCueInfo.Name = "lbPrevCueInfo";
-            this.lbPrevCueInfo.Size = new System.Drawing.Size(287, 30);
             this.lbPrevCueInfo.TabIndex = 40;
             // 
             // lbNextCueInfo
             // 
             this.lbNextCueInfo = new System.Windows.Forms.Label();
             this.lbNextCueInfo.AutoSize = false;
-            this.lbNextCueInfo.Location = new System.Drawing.Point(12, 400);
+            this.lbNextCueInfo.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lbNextCueInfo.Font = new System.Drawing.Font("Segoe UI", 7.5f);
+            this.lbNextCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lbNextCueInfo.Padding = new System.Windows.Forms.Padding(4, 0, 0, 0);
             this.lbNextCueInfo.Name = "lbNextCueInfo";
-            this.lbNextCueInfo.Size = new System.Drawing.Size(287, 30);
             this.lbNextCueInfo.TabIndex = 41;
             // 
             // SFXPlayer
@@ -595,30 +608,155 @@ namespace SFXPlayer
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(861, 450);
-            this.Controls.Add(this.toolStrip1);
-            this.Controls.Add(this.statusStrip);
-            this.Controls.Add(this.pictureBox2);
-            this.Controls.Add(this.pictureBox1);
-            this.Controls.Add(this.rtPrevMainText);
-            this.Controls.Add(this.lbPrevCueInfo);
-            this.Controls.Add(this.lbNextCueInfo);
-            this.Controls.Add(this.bnNext);
-            this.Controls.Add(this.bnPrev);
-            this.Controls.Add(this.bnDeleteCue);
-            this.Controls.Add(this.bnAddCue);
-            this.Controls.Add(this.bnPlayNext);
-            this.Controls.Add(this.bnStopAll);
-            this.Controls.Add(this.rtMainText);
-            this.Controls.Add(this.CueList);
+            this.ClientSize = new System.Drawing.Size(920, 600);
+            // 
+            // ── New layout containers ──────────────────────────────────────────────
+            // 
+            // pnlNavBar – bottom bar with four equal transport buttons
+            // 
+            this.pnlNavBar = new System.Windows.Forms.TableLayoutPanel();
+            this.pnlNavBar.SuspendLayout();
+            this.pnlNavBar.ColumnCount = 4;
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.pnlNavBar.RowCount = 1;
+            this.pnlNavBar.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.pnlNavBar.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlNavBar.Height = 55;
+            this.pnlNavBar.Name = "pnlNavBar";
+            this.pnlNavBar.TabIndex = 50;
+            // 
+            // pnlContent – three-column main area
+            // 
+            this.pnlContent = new System.Windows.Forms.TableLayoutPanel();
+            this.pnlContent.SuspendLayout();
+            this.pnlContent.ColumnCount = 3;
+            this.pnlContent.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 250F));
+            this.pnlContent.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.pnlContent.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 220F));
+            this.pnlContent.RowCount = 1;
+            this.pnlContent.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.pnlContent.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlContent.Name = "pnlContent";
+            this.pnlContent.TabIndex = 51;
+            // 
+            // pnlLeft – left column: cue list
+            // 
+            this.pnlLeft = new System.Windows.Forms.Panel();
+            this.pnlLeft.SuspendLayout();
+            this.pnlLeft.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlLeft.Name = "pnlLeft";
+            this.pnlLeft.TabIndex = 0;
+            // 
+            // pnlCueListHeader
+            // 
+            this.pnlCueListHeader = new System.Windows.Forms.Panel();
+            this.pnlCueListHeader.SuspendLayout();
+            this.pnlCueListHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlCueListHeader.Height = 32;
+            this.pnlCueListHeader.Name = "pnlCueListHeader";
+            this.pnlCueListHeader.TabIndex = 0;
+            // 
+            // lblCueListHeader
+            // 
+            this.lblCueListHeader = new System.Windows.Forms.Label();
+            this.lblCueListHeader.Location = new System.Drawing.Point(5, 0);
+            this.lblCueListHeader.Size = new System.Drawing.Size(180, 32);
+            this.lblCueListHeader.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Bottom)));
+            this.lblCueListHeader.Text = "CUE LIST";
+            this.lblCueListHeader.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblCueListHeader.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lblCueListHeader.Name = "lblCueListHeader";
+            this.lblCueListHeader.TabIndex = 0;
+            // 
+            // pnlCenterLayout – center column: prev text / next text
+            // 
+            this.pnlCenterLayout = new System.Windows.Forms.TableLayoutPanel();
+            this.pnlCenterLayout.SuspendLayout();
+            this.pnlCenterLayout.ColumnCount = 1;
+            this.pnlCenterLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.pnlCenterLayout.RowCount = 4;
+            this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
+            this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
+            this.pnlCenterLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlCenterLayout.Name = "pnlCenterLayout";
+            this.pnlCenterLayout.TabIndex = 0;
+            // 
+            // pnlRight – right column: cue properties / device selectors
+            // 
+            this.pnlRight = new System.Windows.Forms.Panel();
+            this.pnlRight.SuspendLayout();
+            this.pnlRight.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlRight.Name = "pnlRight";
+            this.pnlRight.TabIndex = 0;
+            // 
+            // pnlRightHeader
+            // 
+            this.pnlRightHeader = new System.Windows.Forms.Panel();
+            this.pnlRightHeader.SuspendLayout();
+            this.pnlRightHeader.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlRightHeader.Height = 32;
+            this.pnlRightHeader.Name = "pnlRightHeader";
+            this.pnlRightHeader.TabIndex = 0;
+            // 
+            // lblPropsHeader
+            // 
+            this.lblPropsHeader = new System.Windows.Forms.Label();
+            this.lblPropsHeader.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lblPropsHeader.Text = "CUE PROPERTIES";
+            this.lblPropsHeader.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblPropsHeader.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lblPropsHeader.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
+            this.lblPropsHeader.Name = "lblPropsHeader";
+            this.lblPropsHeader.TabIndex = 0;
+            // 
+            // ── Build control hierarchy ────────────────────────────────────────────
+            // 
+            // pnlCueListHeader: label + add/delete buttons
+            this.pnlCueListHeader.Controls.Add(this.lblCueListHeader);
+            this.pnlCueListHeader.Controls.Add(this.bnDeleteCue);
+            this.pnlCueListHeader.Controls.Add(this.bnAddCue);
+            // pnlLeft: header + cue list
+            this.pnlLeft.Controls.Add(this.CueList);
+            this.pnlLeft.Controls.Add(this.pnlCueListHeader);
+            // pnlCenterLayout: prev text / prev info / next text / next info
+            this.pnlCenterLayout.Controls.Add(this.rtPrevMainText, 0, 0);
+            this.pnlCenterLayout.Controls.Add(this.lbPrevCueInfo, 0, 1);
+            this.pnlCenterLayout.Controls.Add(this.rtMainText, 0, 2);
+            this.pnlCenterLayout.Controls.Add(this.lbNextCueInfo, 0, 3);
+            // pnlRightHeader: properties label
+            this.pnlRightHeader.Controls.Add(this.lblPropsHeader);
+            // pnlRight: device toolstrip added first (docked after header), header added last (docks first = at top)
+            this.pnlRight.Controls.Add(this.toolStrip1);
+            this.pnlRight.Controls.Add(this.pnlRightHeader);
+            // pnlContent: three columns
+            this.pnlContent.Controls.Add(this.pnlLeft, 0, 0);
+            this.pnlContent.Controls.Add(this.pnlCenterLayout, 1, 0);
+            this.pnlContent.Controls.Add(this.pnlRight, 2, 0);
+            // pnlNavBar: transport buttons
+            this.pnlNavBar.Controls.Add(this.bnPrev, 0, 0);
+            this.pnlNavBar.Controls.Add(this.bnStopAll, 1, 0);
+            this.pnlNavBar.Controls.Add(this.bnPlayNext, 2, 0);
+            this.pnlNavBar.Controls.Add(this.bnNext, 3, 0);
+            // Form: dock order → menuStrip (top), statusStrip (bottom), navBar (above status), content (fill)
             this.Controls.Add(this.menuStrip1);
+            this.Controls.Add(this.statusStrip);
+            this.Controls.Add(this.pnlNavBar);
+            this.Controls.Add(this.pnlContent);
+            this.Controls.Add(this.pictureBox1);
+            this.Controls.Add(this.pictureBox2);
             this.DoubleBuffered = true;
+            this.AutoScroll = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.MainMenuStrip = this.menuStrip1;
-            this.MinimumSize = new System.Drawing.Size(875, 482);
+            this.MinimumSize = new System.Drawing.Size(720, 450);
             this.Name = "SFXPlayer";
-            this.RightToLeftLayout = true;
+            this.RightToLeftLayout = false;
             this.Text = "Form1";
             this.toolTip1.SetToolTip(this, "Playback");
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
@@ -635,6 +773,13 @@ namespace SFXPlayer
             this.statusStrip.PerformLayout();
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
+            this.pnlRightHeader.ResumeLayout(false);
+            this.pnlRight.ResumeLayout(false);
+            this.pnlCenterLayout.ResumeLayout(false);
+            this.pnlCueListHeader.ResumeLayout(false);
+            this.pnlLeft.ResumeLayout(false);
+            this.pnlContent.ResumeLayout(false);
+            this.pnlNavBar.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -824,6 +969,8 @@ namespace SFXPlayer
                         CurrentShow.Cues.Move(src, dest);
                         RemovePlaystrip(src);
                         InsertPlaystrip(ps.SFX, dest);
+                        PadCueList();
+                        NextPlayCueChanged();
                     }
                 }
             }
@@ -960,6 +1107,9 @@ namespace SFXPlayer
         private System.Windows.Forms.Button bnNext;
         private System.Windows.Forms.RichTextBox rtPrevMainText;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem recentAudioFilesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator recentAudioFilesSeparator;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem autoLoadLastsfxCuelistToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem confirmDeleteCueToolStripMenuItem;
@@ -985,6 +1135,15 @@ namespace SFXPlayer
         private System.Windows.Forms.ToolStripComboBox cbPlayback;
         private System.Windows.Forms.Label lbPrevCueInfo;
         private System.Windows.Forms.Label lbNextCueInfo;
+        private System.Windows.Forms.TableLayoutPanel pnlNavBar;
+        private System.Windows.Forms.TableLayoutPanel pnlContent;
+        private System.Windows.Forms.Panel pnlLeft;
+        private System.Windows.Forms.Panel pnlCueListHeader;
+        private System.Windows.Forms.Label lblCueListHeader;
+        private System.Windows.Forms.TableLayoutPanel pnlCenterLayout;
+        private System.Windows.Forms.Panel pnlRight;
+        private System.Windows.Forms.Panel pnlRightHeader;
+        private System.Windows.Forms.Label lblPropsHeader;
     }
 }
 

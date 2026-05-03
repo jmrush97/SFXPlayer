@@ -261,7 +261,7 @@
             // 
             lbAutoPlay.Dock = System.Windows.Forms.DockStyle.Fill;
             lbAutoPlay.Font = new System.Drawing.Font("Microsoft Sans Serif", 7F);
-            lbAutoPlay.ForeColor = System.Drawing.Color.FromArgb(0, 128, 0);
+            lbAutoPlay.ForeColor = System.Drawing.Color.FromArgb(0, 100, 0);
             lbAutoPlay.Location = new System.Drawing.Point(2, 52);
             lbAutoPlay.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             lbAutoPlay.Name = "lbAutoPlay";

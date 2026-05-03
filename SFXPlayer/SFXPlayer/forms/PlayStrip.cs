@@ -463,8 +463,8 @@ namespace SFXPlayer
             if (SFX == null || string.IsNullOrEmpty(SFX.FileName) || SFX.Skipped)
                 return SystemColors.Control;                    // default: system background
             return SFX.AutoPlay
-                ? Color.FromArgb(200, 255, 200)                // light green  (auto-run)
-                : Color.FromArgb(255, 250, 205);               // lemon chiffon (normal)
+                ? Color.FromArgb(160, 230, 160)                // medium green  (auto-run)
+                : Color.FromArgb(240, 220, 130);               // medium amber (normal)
         }
 
         /// <summary>
@@ -1367,7 +1367,7 @@ namespace SFXPlayer
                 Debug.WriteLine("This = " + this.ToString());
                 Debug.WriteLine("Parent = " + Parent.ToString());
                 Debug.WriteLine("Parent.Parent = " + Parent.Parent.ToString());
-                BackColor = Color.FromArgb(173, 214, 255);         // light blue highlight
+                BackColor = SystemColors.Highlight;            // system highlight colour
             }
         }
 
@@ -1447,7 +1447,7 @@ namespace SFXPlayer
                 speedControl.Location = Loc;
                 speedControl.Speed = SFX.Speed;
                 speedControl.Focus();
-                BackColor = Color.FromArgb(173, 214, 255);         // light blue highlight
+                BackColor = SystemColors.Highlight;            // system highlight colour
             }
         }
 

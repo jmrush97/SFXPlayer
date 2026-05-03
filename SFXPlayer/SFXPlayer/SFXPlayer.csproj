@@ -26,10 +26,10 @@
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <ManifestCertificateThumbprint>3362641467EB56FD08481546565B76E905BC3259</ManifestCertificateThumbprint>
     <ManifestKeyFile />
-    <GenerateManifests Condition="'$(OS)' == 'Windows_NT'">true</GenerateManifests>
+    <GenerateManifests>false</GenerateManifests>
     <TargetZone>LocalIntranet</TargetZone>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
-    <SignManifests Condition="'$(OS)' == 'Windows_NT'">true</SignManifests>
+    <SignManifests>false</SignManifests>
     <ApplicationIcon>FXPlayer.ico</ApplicationIcon>
     <Version>2.0.0.9</Version>
     <AssemblyVersion>2.0.0.9</AssemblyVersion>

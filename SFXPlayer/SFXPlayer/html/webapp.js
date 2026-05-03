@@ -264,6 +264,13 @@ function drawWaveform() {
         fadeOutBuckets = Math.round(Math.min(1, (_cueFadeOutMs / 1000) / _trackDurationSeconds) * count);
     }
 
+    // Clamp so fade-in and fade-out regions don't overlap
+    if (fadeInBuckets + fadeOutBuckets > count) {
+        var total = fadeInBuckets + fadeOutBuckets;
+        fadeInBuckets = Math.round(fadeInBuckets / total * count);
+        fadeOutBuckets = count - fadeInBuckets;
+    }
+
     // Pre-compute gains for all buckets
     var gains = [];
     for (var i = 0; i < count; i++) {

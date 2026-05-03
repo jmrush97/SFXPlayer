@@ -733,6 +733,14 @@ namespace SFXPlayer
                 fadeOutBuckets = (int)Math.Round(Math.Min(1.0, fadeOutMs / 1000.0 / totalDurationSeconds) * sampleCount);
             }
 
+            // Clamp so fade-in and fade-out regions don't overlap
+            if (fadeInBuckets + fadeOutBuckets > sampleCount)
+            {
+                int total = fadeInBuckets + fadeOutBuckets;
+                fadeInBuckets = (int)Math.Round((double)fadeInBuckets / total * sampleCount);
+                fadeOutBuckets = sampleCount - fadeInBuckets;
+            }
+
             var bitmap = new Bitmap(width, height);
             using var g = Graphics.FromImage(bitmap);
             g.Clear(Color.FromArgb(26, 26, 46));

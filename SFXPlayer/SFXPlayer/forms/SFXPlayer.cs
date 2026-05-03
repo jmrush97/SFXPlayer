@@ -123,49 +123,8 @@ namespace SFXPlayer
         private void InitializeControls()
         {
             ShowFileHandler.FileExtensions = FileExtensions;
-            bnStopAll.Top = bnPrev.Top = CueList.Top + TOPGAP - bnPrev.Height;
-            bnPlayNext.Top = CueList.Top + TOPGAP;
-            bnPlayNext.Height = PlayStripControlHeight;
             // Keep web-app green regardless of the legacy colour setting
             bnPlayNext.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
-            pictureBox1.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
-            pictureBox2.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
-            pictureBox1.Top = bnPlayNext.Top - pictureBox1.Height;
-            pictureBox2.Top = bnPlayNext.Bottom;
-            bnDeleteCue.Top = bnAddCue.Top = bnPlayNext.Top + (bnPlayNext.Height - bnAddCue.Height) / 2;
-            bnNext.Top = CueList.Top + TOPGAP + bnPlayNext.Height;
-            bnStopAll.Height = bnNext.Top + bnNext.Height - bnStopAll.Top;
-
-            // Reserve space for detail label below rtPrevMainText
-            const int detailLabelHeight = 32;
-            rtPrevMainText.Height = bnStopAll.Top - bnStopAll.Margin.Top - detailLabelHeight - rtPrevMainText.Margin.Bottom - rtPrevMainText.Top;
-
-            // Position prev cue detail label between rtPrevMainText and bnStopAll
-            lbPrevCueInfo.Left = rtPrevMainText.Left;
-            lbPrevCueInfo.Width = rtPrevMainText.Width;
-            lbPrevCueInfo.Top = rtPrevMainText.Bottom + rtPrevMainText.Margin.Bottom;
-            lbPrevCueInfo.Height = detailLabelHeight;
-            lbPrevCueInfo.AutoSize = false;
-            lbPrevCueInfo.Font = new System.Drawing.Font("Segoe UI", 7.5f);
-            lbPrevCueInfo.BackColor = System.Drawing.Color.FromArgb(15, 52, 96);
-            lbPrevCueInfo.ForeColor = System.Drawing.Color.FromArgb(160, 196, 255);
-            lbPrevCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-
-            rtMainText.Top = bnStopAll.Bottom + rtMainText.Margin.Top + bnStopAll.Margin.Bottom;
-            int nextInfoTop = Math.Min(statusStrip.Top - rtMainText.Margin.Bottom - detailLabelHeight, rtMainText.Top + rtPrevMainText.Height);
-            rtMainText.Height = nextInfoTop - rtMainText.Top;
-
-            // Position next cue detail label below rtMainText
-            lbNextCueInfo.Left = rtMainText.Left;
-            lbNextCueInfo.Width = rtMainText.Width;
-            lbNextCueInfo.Top = nextInfoTop;
-            lbNextCueInfo.Height = detailLabelHeight;
-            lbNextCueInfo.AutoSize = false;
-            lbNextCueInfo.Font = new System.Drawing.Font("Segoe UI", 7.5f);
-            lbNextCueInfo.BackColor = System.Drawing.Color.FromArgb(15, 52, 96);
-            lbNextCueInfo.ForeColor = System.Drawing.Color.FromArgb(160, 196, 255);
-            lbNextCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-
             PlayStrip.OFD = dlgOpenAudioFile;
             autoLoadLastsfxCuelistToolStripMenuItem.Checked = Settings.Default.AutoLoadLastSession;
             confirmDeleteCueToolStripMenuItem.Checked = Settings.Default.ConfirmDeleteCue;
@@ -204,7 +163,7 @@ namespace SFXPlayer
         {
             get
             {
-                Point pt = new Point(0, bnPlayNext.Top - CueList.Top - CueListSpacing);
+                Point pt = new Point(0, TOPGAP - CueListSpacing);
                 Control ctl = CueList.GetChildAtPoint(pt);
                 if (ctl is Spacer)
                 {
@@ -219,7 +178,7 @@ namespace SFXPlayer
         {
             get
             {
-                Point pt = new Point(0, bnPlayNext.Top - CueList.Top);
+                Point pt = new Point(0, TOPGAP);
                 Control ctl = CueList.GetChildAtPoint(pt);
                 if (ctl is Spacer)
                 {
@@ -1373,15 +1332,7 @@ namespace SFXPlayer
         private void Form1_Resize(object sender, EventArgs e)
         {
             if (WindowState == FormWindowState.Minimized) return;
-            Debug.WriteLine("CueList_Resize");
-            //cuelistrows = (Height - cuelistFormSpacing) / cueListSpacing;
-            //CueList.Height = cuelistrows * cueListSpacing - 8;
-            //this.statusBar.Panels[0].Text = "NumberOfPlaceholders = " + (BottomPlaceholders + TOP_PLACEHOLDERS).ToString();
             PadCueList();
-
-            rtMainText.Height = Math.Min(statusStrip.Top - rtMainText.Margin.Bottom - rtMainText.Top, rtPrevMainText.Height);
-            pictureBox1.Top = bnPlayNext.Top - pictureBox1.Height;
-            pictureBox2.Top = bnPlayNext.Bottom;
         }
 
         private void CueList_ClientSizeChanged(object sender, EventArgs e)

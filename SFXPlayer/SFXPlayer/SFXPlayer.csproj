@@ -31,6 +31,9 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
     <SignManifests Condition="'$(OS)' == 'Windows_NT'">true</SignManifests>
     <ApplicationIcon>FXPlayer.ico</ApplicationIcon>
+    <Version>2.0.0.9</Version>
+    <AssemblyVersion>2.0.0.9</AssemblyVersion>
+    <FileVersion>2.0.0.9</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="html\styles.css" />

@@ -214,5 +214,16 @@ namespace SFXPlayer.Properties {
                 this["ConfirmDeleteCue"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public global::System.Collections.Specialized.StringCollection RecentAudioFiles {
+            get {
+                return ((global::System.Collections.Specialized.StringCollection)(this["RecentAudioFiles"]));
+            }
+            set {
+                this["RecentAudioFiles"] = value;
+            }
+        }
     }
 }

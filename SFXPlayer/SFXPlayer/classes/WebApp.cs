@@ -428,6 +428,11 @@ namespace SFXPlayer.classes
                                         {
                                             Program.mainForm.SeekPosition(seekFraction);
                                         }
+                                        else if (command.StartsWith("goto:") &&
+                                            int.TryParse(command.Substring(5), out int gotoIndex))
+                                        {
+                                            Program.mainForm.GotoCue(gotoIndex);
+                                        }
                                         break;
                                 }
                             }

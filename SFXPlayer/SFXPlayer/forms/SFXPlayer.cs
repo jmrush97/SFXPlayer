@@ -93,6 +93,21 @@ namespace SFXPlayer
         public static Control lastFocused;
         string[] filters;
 
+        /// <summary>
+        /// Returns the directory of the currently-open .sfx file, or the application directory if
+        /// no file is open. Used when copying audio files from a different drive.
+        /// </summary>
+        public string ShowDirectory
+        {
+            get
+            {
+                string sfxFile = ShowFileHandler.CurrentFileName;
+                if (!string.IsNullOrEmpty(sfxFile) && File.Exists(sfxFile))
+                    return Path.GetDirectoryName(sfxFile);
+                return Path.GetDirectoryName(Application.ExecutablePath);
+            }
+        }
+
         public SFXPlayer()
         {
             // Initialize Forms Designer generated code.
@@ -373,6 +388,7 @@ namespace SFXPlayer
             }
             ResetDisplay();
             PreloadAll();
+            UpdateRecentAudioFilesMenu();
 
             //Form1_Resize(this, new EventArgs());
             //MouseWheel += CueList_MouseWheel;
@@ -868,7 +884,8 @@ namespace SFXPlayer
                 else
                     bnPlayNext_Click(null, null);
             });
-            ps.CueChanged += (s, e) => _commandQueue.Enqueue(() => UpdateWebApp());
+            ps.CueChanged += (s, e) => _commandQueue.Enqueue(() => { UpdateWebApp(); UpdateRecentAudioFilesMenu(); });
+            ps.CueSelected += (s, e) => GotoCue((s as PlayStrip)?.PlayStripIndex ?? -1);
         }
 
         private void AddPlaystrip(SFX sfx, int cueIndex)
@@ -1553,6 +1570,68 @@ namespace SFXPlayer
             ShowDeviceSelectionDialog();
         }
 
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            string version = ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}.{ver.Revision}" : "Unknown";
+            string buildDate = "Unknown";
+            try
+            {
+                buildDate = File.GetLastWriteTime(System.Reflection.Assembly.GetExecutingAssembly().Location)
+                    .ToString("yyyy-MM-dd HH:mm");
+            }
+            catch { }
+            string gitHub = "https://github.com/jmrush97/SFXPlayer";
+            string message = $"SFX Player\n\nVersion: {version}\nBuild Date: {buildDate}\n\nGitHub: {gitHub}";
+            MessageBox.Show(message, "About SFX Player", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        /// <summary>
+        /// Rebuilds the "Recent Audio Files" submenu from the stored settings list.
+        /// Called after any file selection and on form load.
+        /// </summary>
+        private void UpdateRecentAudioFilesMenu()
+        {
+            var recent = Settings.Default.RecentAudioFiles;
+            recentAudioFilesToolStripMenuItem.DropDownItems.Clear();
+            if (recent == null || recent.Count == 0)
+            {
+                recentAudioFilesToolStripMenuItem.Visible = false;
+                recentAudioFilesSeparator.Visible = false;
+                return;
+            }
+            foreach (string filePath in recent)
+            {
+                if (string.IsNullOrWhiteSpace(filePath)) continue;
+                var item = new ToolStripMenuItem(Path.GetFileName(filePath))
+                {
+                    ToolTipText = filePath,
+                    Tag = filePath
+                };
+                item.Click += RecentAudioFileMenuItem_Click;
+                recentAudioFilesToolStripMenuItem.DropDownItems.Add(item);
+            }
+            recentAudioFilesToolStripMenuItem.Visible = recentAudioFilesToolStripMenuItem.DropDownItems.Count > 0;
+            recentAudioFilesSeparator.Visible = recentAudioFilesToolStripMenuItem.Visible;
+        }
+
+        private void RecentAudioFileMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem item && item.Tag is string filePath)
+            {
+                PlayStrip target = NextPlayCue;
+                if (target == null) return;
+                if (!File.Exists(filePath))
+                {
+                    MessageBox.Show($"File not found:\n{filePath}", "Recent Audio Files",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                target.SelectFile(filePath);
+                UpdateRecentAudioFilesMenu();
+            }
+        }
+
         internal void PlayNextCue()
         {
             AppLogger.Info("SFXPlayer.PlayNextCue");
@@ -1725,6 +1804,20 @@ namespace SFXPlayer
             });
         }
 
+        /// <summary>
+        /// Moves the "next cue" pointer to the specified 0-based index without stopping any playing audio.
+        /// </summary>
+        internal void GotoCue(int index)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                int count = CurrentShow?.Cues?.Count ?? 0;
+                if (index < 0 || index >= count) return;
+                NextPlayCueIndex = index;
+                UpdateWebApp();
+            });
+        }
+
         private static string _lastWaveformFile = null;
         private static string _cachedWaveformData = null;
 
@@ -1755,7 +1848,7 @@ namespace SFXPlayer
                 string file = EscapeJsonString(Path.GetFileName(ps.SFX.FileName ?? ""));
                 string spd = ps.SFX.Speed.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
                 string isCur = ps.PlayStripIndex == nextIdx ? "true" : "false";
-                sb.Append($"{{\"i\":{ps.PlayStripIndex + 1},\"d\":\"{desc}\",\"f\":\"{file}\",\"v\":{ps.SFX.Volume},\"s\":{spd},\"c\":{isCur}}}");
+                sb.Append($"{{\"i\":{ps.PlayStripIndex + 1},\"idx\":{ps.PlayStripIndex},\"d\":\"{desc}\",\"f\":\"{file}\",\"v\":{ps.SFX.Volume},\"s\":{spd},\"c\":{isCur}}}");
             }
             sb.Append(']');
             return sb.ToString();

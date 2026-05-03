@@ -245,6 +245,8 @@ namespace SFXPlayer
         public event EventHandler<bool> PlayingStateChanged;
         /// <summary>Fired when this cue's file or description changes so the web app can be refreshed.</summary>
         public event EventHandler CueChanged;
+        /// <summary>Fired when the user clicks this strip to select it as the next cue.</summary>
+        public event EventHandler CueSelected;
         int prevPct = -1;
 
         #region Initialisation
@@ -298,7 +300,20 @@ namespace SFXPlayer
             AddDnDEventHandlers(this);
             pnlWaveform.MouseDown += PnlWaveform_MouseDown;
             pnlWaveform.MouseWheel += PnlWaveform_MouseWheel;
+            // Wire a click on the strip itself (any non-interactive child) to select this cue
+            MouseDown += PlayStrip_MouseDown_SelectCue;
+            foreach (Control c in Controls)
+            {
+                if (c != pnlWaveform)
+                    c.MouseDown += PlayStrip_MouseDown_SelectCue;
+            }
             UpdateWaveformBackground();
+        }
+
+        private void PlayStrip_MouseDown_SelectCue(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+                CueSelected?.Invoke(this, EventArgs.Empty);
         }
 
         private void PnlWaveform_MouseDown(object sender, MouseEventArgs e)
@@ -707,7 +722,36 @@ namespace SFXPlayer
         public void SelectFile(string FileName)
         {
             AppLogger.Info($"PlayStrip.SelectFile: \"{FileName}\" | description: \"{SFX.Description}\"");
+            // If the audio file is on a different drive than the .sfx file, copy it alongside the .sfx file.
+            string sfxDir = Program.mainForm?.ShowDirectory;
+            if (!string.IsNullOrEmpty(sfxDir) && Directory.Exists(sfxDir))
+            {
+                string fileDrive = Path.GetPathRoot(FileName);
+                string sfxDrive  = Path.GetPathRoot(sfxDir);
+                if (!string.IsNullOrEmpty(fileDrive) && !string.IsNullOrEmpty(sfxDrive) &&
+                    !string.Equals(fileDrive, sfxDrive, StringComparison.OrdinalIgnoreCase))
+                {
+                    string destPath = Path.Combine(sfxDir, Path.GetFileName(FileName));
+                    if (!File.Exists(destPath))
+                    {
+                        try
+                        {
+                            File.Copy(FileName, destPath);
+                            AppLogger.Info($"PlayStrip.SelectFile: copied \"{FileName}\" -> \"{destPath}\"");
+                        }
+                        catch (Exception ex)
+                        {
+                            AppLogger.Error($"PlayStrip.SelectFile: failed to copy \"{FileName}\" to \"{destPath}\"", ex);
+                            MessageBox.Show($"Could not copy file to show folder:\n{ex.Message}", "Copy Failed",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    if (File.Exists(destPath))
+                        FileName = destPath;
+                }
+            }
             Settings.Default.LastAudioFolder = Path.GetDirectoryName(FileName); Settings.Default.Save();
+            AddToRecentAudioFiles(FileName);
             if (tbDescription.Text == SFX.ShortFileNameOnly) tbDescription.Text = "";
             SFX.FileName = FileName;
             if (tbDescription.Text == "")
@@ -947,6 +991,26 @@ namespace SFXPlayer
                 g.DrawLines(fadePen, upper);
                 g.DrawLines(fadePen, lower);
             }
+        }
+
+        /// <summary>
+        /// Adds a file path to the top of the recent audio files list (max 10 entries).
+        /// </summary>
+        internal static void AddToRecentAudioFiles(string filePath)
+        {
+            var recent = Settings.Default.RecentAudioFiles
+                         ?? new System.Collections.Specialized.StringCollection();
+            // Remove existing entry for this file (case-insensitive) so it moves to top
+            for (int i = recent.Count - 1; i >= 0; i--)
+            {
+                if (string.Equals(recent[i], filePath, StringComparison.OrdinalIgnoreCase))
+                    recent.RemoveAt(i);
+            }
+            recent.Insert(0, filePath);
+            while (recent.Count > 10)
+                recent.RemoveAt(recent.Count - 1);
+            Settings.Default.RecentAudioFiles = recent;
+            Settings.Default.Save();
         }
 
         #endregion

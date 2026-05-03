@@ -90,7 +90,9 @@ namespace SFXPlayer
             this.cbPreview = new System.Windows.Forms.ToolStripComboBox();
             this.bnPlayback = new System.Windows.Forms.ToolStripDropDownButton();
             this.cbPlayback = new System.Windows.Forms.ToolStripComboBox();
-            this.menuStrip1.SuspendLayout();
+            this.recentAudioFilesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.recentAudioFilesSeparator = new System.Windows.Forms.ToolStripSeparator();
+            this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.statusStrip.SuspendLayout();
@@ -208,6 +210,8 @@ namespace SFXPlayer
             this.saveToolStripMenuItem,
             this.saveAsToolStripMenuItem,
             this.toolStripSeparator1,
+            this.recentAudioFilesSeparator,
+            this.recentAudioFilesToolStripMenuItem,
             this.createSampleProjectToolStripMenuItem,
             this.exportShowFileToolStripMenuItem,
             this.importShowFileToolStripMenuItem,
@@ -253,6 +257,19 @@ namespace SFXPlayer
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
             this.toolStripSeparator1.Size = new System.Drawing.Size(207, 6);
+            // 
+            // recentAudioFilesSeparator
+            // 
+            this.recentAudioFilesSeparator.Name = "recentAudioFilesSeparator";
+            this.recentAudioFilesSeparator.Size = new System.Drawing.Size(207, 6);
+            this.recentAudioFilesSeparator.Visible = false;
+            // 
+            // recentAudioFilesToolStripMenuItem
+            // 
+            this.recentAudioFilesToolStripMenuItem.Name = "recentAudioFilesToolStripMenuItem";
+            this.recentAudioFilesToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.recentAudioFilesToolStripMenuItem.Text = "Recent &Audio Files";
+            this.recentAudioFilesToolStripMenuItem.Visible = false;
             // 
             // createSampleProjectToolStripMenuItem
             // 
@@ -374,10 +391,18 @@ namespace SFXPlayer
             // 
             // helpToolStripMenuItem
             // 
+            this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "Help";
-            this.helpToolStripMenuItem.Click += new System.EventHandler(this.helpToolStripMenuItem_Click);
+            // 
+            // aboutToolStripMenuItem
+            // 
+            this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.aboutToolStripMenuItem.Text = "&About SFX Player...";
+            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
             // ScrollTimer
             // 
@@ -956,6 +981,9 @@ namespace SFXPlayer
         private System.Windows.Forms.Button bnNext;
         private System.Windows.Forms.RichTextBox rtPrevMainText;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem recentAudioFilesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator recentAudioFilesSeparator;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem autoLoadLastsfxCuelistToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem confirmDeleteCueToolStripMenuItem;

@@ -487,6 +487,12 @@ function renderCueList(json) {
             "<span class='cue-desc'>" + desc + "</span>" +
             (file ? "<span class='cue-file'>" + file + "</span>" : "") +
             "<span class='cue-meta'>" + cueInfo + "</span>";
+        // Clicking a cue row moves focus to that cue without stopping playback
+        (function(idx) {
+            row.addEventListener("click", function() {
+                webapp.sendCommand("goto:" + idx);
+            });
+        })(c.idx !== undefined ? c.idx : i);
         container.appendChild(row);
     }
     // Scroll the current cue into view

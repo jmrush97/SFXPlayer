@@ -104,7 +104,6 @@ namespace SFXPlayer
             this.CueList.AllowDrop = true;
             this.CueList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.CueList.AutoScroll = true;
-            this.CueList.BackColor = System.Drawing.Color.FromArgb(17, 17, 34);
             this.CueList.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.CueList.Name = "CueList";
             this.CueList.TabIndex = 4;
@@ -126,8 +125,6 @@ namespace SFXPlayer
             // 
             this.rtMainText.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rtMainText.Name = "rtMainText";
-            this.rtMainText.BackColor = System.Drawing.Color.FromArgb(22, 33, 62);
-            this.rtMainText.ForeColor = System.Drawing.Color.White;
             this.rtMainText.TabIndex = 2;
             this.rtMainText.Text = "";
             this.rtMainText.TextChanged += new System.EventHandler(this.rtMainText_TextChanged);
@@ -170,8 +167,6 @@ namespace SFXPlayer
             this.bnAddCue.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.bnAddCue.TabIndex = 6;
             this.bnAddCue.Text = "+";
-            this.bnAddCue.BackColor = System.Drawing.Color.FromArgb(39, 174, 96);
-            this.bnAddCue.ForeColor = System.Drawing.Color.White;
             this.toolTip1.SetToolTip(this.bnAddCue, "Add Cue");
             this.bnAddCue.UseVisualStyleBackColor = true;
             this.bnAddCue.Click += new System.EventHandler(this.bnAddCue_Click);
@@ -184,8 +179,6 @@ namespace SFXPlayer
             this.bnDeleteCue.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.bnDeleteCue.TabIndex = 7;
             this.bnDeleteCue.Text = "-";
-            this.bnDeleteCue.BackColor = System.Drawing.Color.FromArgb(85, 85, 102);
-            this.bnDeleteCue.ForeColor = System.Drawing.Color.White;
             this.toolTip1.SetToolTip(this.bnDeleteCue, "Delete Cue");
             this.bnDeleteCue.UseVisualStyleBackColor = true;
             this.bnDeleteCue.Click += new System.EventHandler(this.bnDeleteCue_Click);
@@ -194,9 +187,6 @@ namespace SFXPlayer
             // 
             this.menuStrip1.Dock = System.Windows.Forms.DockStyle.Top;
             this.menuStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
-            this.menuStrip1.BackColor = System.Drawing.Color.FromArgb(15, 15, 30);
-            this.menuStrip1.ForeColor = System.Drawing.Color.FromArgb(200, 200, 240);
-            this.menuStrip1.Renderer = new System.Windows.Forms.ToolStripProfessionalRenderer(new global::SFXPlayer.classes.DarkToolStripColorTable());
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
             this.transportToolStripMenuItem,
@@ -421,8 +411,6 @@ namespace SFXPlayer
             this.bnPrev.Name = "bnPrev";
             this.bnPrev.TabIndex = 26;
             this.bnPrev.Text = "˄ Prev";
-            this.bnPrev.BackColor = System.Drawing.Color.FromArgb(85, 85, 102);
-            this.bnPrev.ForeColor = System.Drawing.Color.White;
             this.bnPrev.Click += new System.EventHandler(this.bnPrev_Click);
             // 
             // bnNext
@@ -432,16 +420,12 @@ namespace SFXPlayer
             this.bnNext.Name = "bnNext";
             this.bnNext.TabIndex = 27;
             this.bnNext.Text = "˅ Next";
-            this.bnNext.BackColor = System.Drawing.Color.FromArgb(85, 85, 102);
-            this.bnNext.ForeColor = System.Drawing.Color.White;
             this.bnNext.Click += new System.EventHandler(this.bnNext_Click);
             // 
             // rtPrevMainText
             // 
             this.rtPrevMainText.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rtPrevMainText.Name = "rtPrevMainText";
-            this.rtPrevMainText.BackColor = System.Drawing.Color.FromArgb(58, 58, 74);
-            this.rtPrevMainText.ForeColor = System.Drawing.Color.FromArgb(170, 170, 204);
             this.rtPrevMainText.TabIndex = 28;
             this.rtPrevMainText.Text = "";
             // 
@@ -467,8 +451,6 @@ namespace SFXPlayer
             // 
             // statusStrip
             // 
-            this.statusStrip.BackColor = System.Drawing.Color.FromArgb(15, 15, 30);
-            this.statusStrip.ForeColor = System.Drawing.Color.FromArgb(200, 200, 240);
             this.statusStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusBar,
@@ -531,9 +513,6 @@ namespace SFXPlayer
             this.toolStrip1.Dock = System.Windows.Forms.DockStyle.Top;
             this.toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.toolStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
-            this.toolStrip1.BackColor = System.Drawing.Color.FromArgb(15, 15, 30);
-            this.toolStrip1.ForeColor = System.Drawing.Color.FromArgb(200, 200, 240);
-            this.toolStrip1.Renderer = new System.Windows.Forms.ToolStripProfessionalRenderer(new global::SFXPlayer.classes.DarkToolStripColorTable());
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.bnMIDI,
             this.bnPreview,
@@ -607,8 +586,6 @@ namespace SFXPlayer
             this.lbPrevCueInfo = new System.Windows.Forms.Label();
             this.lbPrevCueInfo.AutoSize = false;
             this.lbPrevCueInfo.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lbPrevCueInfo.BackColor = System.Drawing.Color.FromArgb(15, 52, 96);
-            this.lbPrevCueInfo.ForeColor = System.Drawing.Color.FromArgb(160, 196, 255);
             this.lbPrevCueInfo.Font = new System.Drawing.Font("Segoe UI", 7.5f);
             this.lbPrevCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.lbPrevCueInfo.Padding = new System.Windows.Forms.Padding(4, 0, 0, 0);
@@ -620,8 +597,6 @@ namespace SFXPlayer
             this.lbNextCueInfo = new System.Windows.Forms.Label();
             this.lbNextCueInfo.AutoSize = false;
             this.lbNextCueInfo.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lbNextCueInfo.BackColor = System.Drawing.Color.FromArgb(15, 52, 96);
-            this.lbNextCueInfo.ForeColor = System.Drawing.Color.FromArgb(160, 196, 255);
             this.lbNextCueInfo.Font = new System.Drawing.Font("Segoe UI", 7.5f);
             this.lbNextCueInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.lbNextCueInfo.Padding = new System.Windows.Forms.Padding(4, 0, 0, 0);
@@ -633,8 +608,6 @@ namespace SFXPlayer
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
-            this.ForeColor = System.Drawing.Color.FromArgb(224, 224, 224);
             this.ClientSize = new System.Drawing.Size(920, 600);
             // 
             // ── New layout containers ──────────────────────────────────────────────
@@ -651,7 +624,6 @@ namespace SFXPlayer
             this.pnlNavBar.RowCount = 1;
             this.pnlNavBar.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.pnlNavBar.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnlNavBar.BackColor = System.Drawing.Color.FromArgb(10, 10, 20);
             this.pnlNavBar.Height = 55;
             this.pnlNavBar.Name = "pnlNavBar";
             this.pnlNavBar.TabIndex = 50;
@@ -675,7 +647,6 @@ namespace SFXPlayer
             this.pnlLeft = new System.Windows.Forms.Panel();
             this.pnlLeft.SuspendLayout();
             this.pnlLeft.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlLeft.BackColor = System.Drawing.Color.FromArgb(17, 17, 34);
             this.pnlLeft.Name = "pnlLeft";
             this.pnlLeft.TabIndex = 0;
             // 
@@ -685,7 +656,6 @@ namespace SFXPlayer
             this.pnlCueListHeader.SuspendLayout();
             this.pnlCueListHeader.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlCueListHeader.Height = 32;
-            this.pnlCueListHeader.BackColor = System.Drawing.Color.FromArgb(15, 52, 96);
             this.pnlCueListHeader.Name = "pnlCueListHeader";
             this.pnlCueListHeader.TabIndex = 0;
             // 
@@ -696,7 +666,6 @@ namespace SFXPlayer
             this.lblCueListHeader.Size = new System.Drawing.Size(180, 32);
             this.lblCueListHeader.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Bottom)));
             this.lblCueListHeader.Text = "CUE LIST";
-            this.lblCueListHeader.ForeColor = System.Drawing.Color.FromArgb(200, 200, 240);
             this.lblCueListHeader.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblCueListHeader.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.lblCueListHeader.Name = "lblCueListHeader";
@@ -714,7 +683,6 @@ namespace SFXPlayer
             this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
             this.pnlCenterLayout.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlCenterLayout.BackColor = System.Drawing.Color.FromArgb(26, 26, 46);
             this.pnlCenterLayout.Name = "pnlCenterLayout";
             this.pnlCenterLayout.TabIndex = 0;
             // 
@@ -723,7 +691,6 @@ namespace SFXPlayer
             this.pnlRight = new System.Windows.Forms.Panel();
             this.pnlRight.SuspendLayout();
             this.pnlRight.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlRight.BackColor = System.Drawing.Color.FromArgb(13, 13, 28);
             this.pnlRight.Name = "pnlRight";
             this.pnlRight.TabIndex = 0;
             // 
@@ -733,7 +700,6 @@ namespace SFXPlayer
             this.pnlRightHeader.SuspendLayout();
             this.pnlRightHeader.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlRightHeader.Height = 32;
-            this.pnlRightHeader.BackColor = System.Drawing.Color.FromArgb(15, 52, 96);
             this.pnlRightHeader.Name = "pnlRightHeader";
             this.pnlRightHeader.TabIndex = 0;
             // 
@@ -742,7 +708,6 @@ namespace SFXPlayer
             this.lblPropsHeader = new System.Windows.Forms.Label();
             this.lblPropsHeader.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lblPropsHeader.Text = "CUE PROPERTIES";
-            this.lblPropsHeader.ForeColor = System.Drawing.Color.FromArgb(200, 200, 240);
             this.lblPropsHeader.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblPropsHeader.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.lblPropsHeader.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
@@ -765,9 +730,9 @@ namespace SFXPlayer
             this.pnlCenterLayout.Controls.Add(this.lbNextCueInfo, 0, 3);
             // pnlRightHeader: properties label
             this.pnlRightHeader.Controls.Add(this.lblPropsHeader);
-            // pnlRight: header + device toolstrip
-            this.pnlRight.Controls.Add(this.toolStrip1);
+            // pnlRight: header at top (added first), device toolstrip below (added second)
             this.pnlRight.Controls.Add(this.pnlRightHeader);
+            this.pnlRight.Controls.Add(this.toolStrip1);
             // pnlContent: three columns
             this.pnlContent.Controls.Add(this.pnlLeft, 0, 0);
             this.pnlContent.Controls.Add(this.pnlCenterLayout, 1, 0);

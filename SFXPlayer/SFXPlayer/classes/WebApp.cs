@@ -420,6 +420,14 @@ namespace SFXPlayer.classes
                                             // Use rawCommand to preserve original case of device name
                                             Program.mainForm.SetPreviewDevice(rawCommand.Substring(14));
                                         }
+                                        else if (command.StartsWith("seek:") &&
+                                            double.TryParse(rawCommand.Substring(5),
+                                                System.Globalization.NumberStyles.Float,
+                                                System.Globalization.CultureInfo.InvariantCulture,
+                                                out double seekFraction))
+                                        {
+                                            Program.mainForm.SeekPosition(seekFraction);
+                                        }
                                         break;
                                 }
                             }

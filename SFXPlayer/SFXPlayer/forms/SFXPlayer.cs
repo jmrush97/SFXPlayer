@@ -246,6 +246,7 @@ namespace SFXPlayer
                 MainText = rtMainText.Text,
                 TrackName = Path.GetFileName(next?.SFX.FileName),
                 TrackInfo = BuildTrackInfoString(next),
+                TrackDurationSeconds = next?.PlaybackLength.TotalSeconds ?? 0.0,
                 CurrentVolume = next?.SFX.Volume ?? 50,
                 CurrentSpeed = next?.SFX.Speed ?? 1.0f,
                 StopOthers = next?.SFX.StopOthers ?? false,
@@ -1702,6 +1703,23 @@ namespace SFXPlayer
                     Settings.Default.Save();
                     UpdateDevices();
                     UpdateWebApp();
+                }
+            });
+        }
+
+        internal void SeekPosition(double fraction)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                fraction = Math.Max(0.0, Math.Min(1.0, fraction));
+                var playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
+                if (playing != null)
+                {
+                    playing.SeekToFraction((float)fraction);
+                }
+                else if (NextPlayCue != null && NextPlayCue.PlaybackLength.TotalSeconds > 0)
+                {
+                    NextPlayCue.SeekToFraction((float)fraction);
                 }
             });
         }

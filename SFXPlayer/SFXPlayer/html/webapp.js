@@ -203,7 +203,16 @@ var _waveformPeaks = null;
 var _cueFadeInMs = 0;
 var _cueFadeOutMs = 0;
 var _trackDurationSeconds = 0;
-var FADE_OVERLAY_OPACITY = 0.78;
+
+function computeSineFadeGain(i, count, fadeInBuckets, fadeOutBuckets) {
+    if (fadeInBuckets > 0 && i < fadeInBuckets)
+        return Math.sin(Math.PI / 2 * i / Math.max(1, fadeInBuckets - 1));
+    if (fadeOutBuckets > 0 && i >= count - fadeOutBuckets) {
+        var bucketFromEnd = count - 1 - i;
+        return Math.sin(Math.PI / 2 * bucketFromEnd / Math.max(1, fadeOutBuckets - 1));
+    }
+    return 1.0;
+}
 
 function updateWaveform(csvData) {
     if (!csvData || csvData.length === 0) {
@@ -246,41 +255,71 @@ function drawWaveform() {
     ctx.fillRect(0, 0, w, h);
     var count = _waveformPeaks.length;
     var mid = h / 2;
+
+    // Compute fade bucket counts from ms and total duration
+    var fadeInBuckets = 0;
+    var fadeOutBuckets = 0;
+    if (_trackDurationSeconds > 0) {
+        fadeInBuckets = Math.round(Math.min(1, (_cueFadeInMs / 1000) / _trackDurationSeconds) * count);
+        fadeOutBuckets = Math.round(Math.min(1, (_cueFadeOutMs / 1000) / _trackDurationSeconds) * count);
+    }
+
+    // Pre-compute gains for all buckets
+    var gains = [];
+    for (var i = 0; i < count; i++) {
+        gains.push(computeSineFadeGain(i, count, fadeInBuckets, fadeOutBuckets));
+    }
+
+    // Draw waveform bars scaled by the half-sine fade envelope
     ctx.strokeStyle = "rgba(100, 200, 100, 0.8)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (var i = 0; i < count; i++) {
         var x = (i / count) * w;
-        var halfH = _waveformPeaks[i] * mid * 0.9;
+        var halfH = _waveformPeaks[i] * gains[i] * mid * 0.9;
         ctx.moveTo(x, mid - halfH);
         ctx.lineTo(x, mid + halfH);
     }
     ctx.stroke();
 
-    // Overlay fade-in region (dark gradient from left edge)
-    if (_cueFadeInMs > 0 && _trackDurationSeconds > 0) {
-        var fadeInPct = Math.min(1, (_cueFadeInMs / 1000) / _trackDurationSeconds);
-        var fadeInWidth = fadeInPct * w;
-        if (fadeInWidth > 1) {
-            var grad = ctx.createLinearGradient(0, 0, fadeInWidth, 0);
-            grad.addColorStop(0, "rgba(0,0,0," + FADE_OVERLAY_OPACITY + ")");
-            grad.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, fadeInWidth, h);
-        }
-    }
+    // Draw half-sine envelope curves (upper + lower) in fade regions
+    if (fadeInBuckets > 1 || fadeOutBuckets > 1) {
+        ctx.strokeStyle = "rgba(255, 220, 0, 0.7)";
+        ctx.lineWidth = 1.5;
 
-    // Overlay fade-out region (dark gradient toward right edge)
-    if (_cueFadeOutMs > 0 && _trackDurationSeconds > 0) {
-        var fadeOutPct = Math.min(1, (_cueFadeOutMs / 1000) / _trackDurationSeconds);
-        var fadeOutWidth = fadeOutPct * w;
-        if (fadeOutWidth > 1) {
-            var fadeOutStart = w - fadeOutWidth;
-            var grad2 = ctx.createLinearGradient(fadeOutStart, 0, w, 0);
-            grad2.addColorStop(0, "rgba(0,0,0,0)");
-            grad2.addColorStop(1, "rgba(0,0,0," + FADE_OVERLAY_OPACITY + ")");
-            ctx.fillStyle = grad2;
-            ctx.fillRect(fadeOutStart, 0, fadeOutWidth, h);
+        if (fadeInBuckets > 1) {
+            ctx.beginPath();
+            for (var i = 0; i < fadeInBuckets; i++) {
+                var x = (i / count) * w;
+                var y = mid - gains[i] * mid * 0.9;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.beginPath();
+            for (var i = 0; i < fadeInBuckets; i++) {
+                var x = (i / count) * w;
+                var y = mid + gains[i] * mid * 0.9;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        if (fadeOutBuckets > 1) {
+            var startBucket = count - fadeOutBuckets;
+            ctx.beginPath();
+            for (var i = startBucket; i < count; i++) {
+                var x = (i / count) * w;
+                var y = mid - gains[i] * mid * 0.9;
+                if (i === startBucket) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.beginPath();
+            for (var i = startBucket; i < count; i++) {
+                var x = (i / count) * w;
+                var y = mid + gains[i] * mid * 0.9;
+                if (i === startBucket) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
         }
     }
 }
@@ -378,6 +417,16 @@ function init() {
     window.addEventListener("resize", function() {
         if (_waveformPeaks) drawWaveform();
     });
+    var canvas = document.getElementById("waveformCanvas");
+    if (canvas) {
+        canvas.addEventListener("mousedown", function(e) {
+            if (!_waveformPeaks) return;
+            var rect = canvas.getBoundingClientRect();
+            var fraction = (e.clientX - rect.left) / rect.width;
+            fraction = Math.max(0, Math.min(1, fraction));
+            webapp.sendCommand("seek:" + fraction.toFixed(4));
+        });
+    }
 }
 
 function updateCueMode(stopOthers) {

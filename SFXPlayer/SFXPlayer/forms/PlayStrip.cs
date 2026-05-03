@@ -141,7 +141,17 @@ namespace SFXPlayer
         {
             AddDnDEventHandlers(this);
             tbDescription.SizeChanged += (s, ev) => UpdateWaveformBackground();
+            tbDescription.MouseDown += TbDescription_MouseDown;
             UpdateWaveformBackground();
+        }
+
+        private void TbDescription_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left && tbDescription.Width > 0 && _musicPlayer.Length.TotalSeconds > 0)
+            {
+                float fraction = (float)e.X / tbDescription.Width;
+                SeekToFraction(fraction);
+            }
         }
 
         #endregion
@@ -635,6 +645,37 @@ namespace SFXPlayer
         /// <summary>Refresh the waveform background (e.g. after fade settings change).</summary>
         public void RefreshWaveform() => UpdateWaveformBackground();
 
+        /// <summary>
+        /// Seeks the music player to a fractional position (0.0 = start, 1.0 = end).
+        /// Works whether the player is loaded or playing.
+        /// </summary>
+        public void SeekToFraction(float fraction)
+        {
+            var totalSeconds = _musicPlayer.Length.TotalSeconds;
+            if (totalSeconds <= 0) return;
+            fraction = Math.Max(0f, Math.Min(1f, fraction));
+            bool wasPlaying = IsPlaying;
+            _musicPlayer.Position = TimeSpan.FromSeconds(fraction * totalSeconds);
+            if (wasPlaying) _musicPlayer.Play();
+        }
+
+        /// <summary>
+        /// Computes the half-sine fade envelope gain (0–1) for a waveform bucket.
+        /// Fade-in: gain rises from 0 to 1 over the first fadeInBuckets buckets.
+        /// Fade-out: gain falls from 1 to 0 over the last fadeOutBuckets buckets.
+        /// </summary>
+        private static float ComputeSineFadeGain(int bucket, int sampleCount, int fadeInBuckets, int fadeOutBuckets)
+        {
+            if (fadeInBuckets > 0 && bucket < fadeInBuckets)
+                return (float)Math.Sin(Math.PI / 2.0 * bucket / Math.Max(1, fadeInBuckets - 1));
+            if (fadeOutBuckets > 0 && bucket >= sampleCount - fadeOutBuckets)
+            {
+                int bucketFromEnd = sampleCount - 1 - bucket;
+                return (float)Math.Sin(Math.PI / 2.0 * bucketFromEnd / Math.Max(1, fadeOutBuckets - 1));
+            }
+            return 1.0f;
+        }
+
         private static Bitmap GenerateWaveformBitmap(string fileName, int width, int height, int fadeInMs = 0, int fadeOutMs = 0)
         {
             const int sampleCount = 200; // number of x-buckets
@@ -683,48 +724,65 @@ namespace SFXPlayer
 
             if (maxPeak < 0.0001f) return null;
 
+            // Compute fade bucket counts from ms and total duration
+            int fadeInBuckets = 0;
+            int fadeOutBuckets = 0;
+            if (totalDurationSeconds > 0)
+            {
+                fadeInBuckets = (int)Math.Round(Math.Min(1.0, fadeInMs / 1000.0 / totalDurationSeconds) * sampleCount);
+                fadeOutBuckets = (int)Math.Round(Math.Min(1.0, fadeOutMs / 1000.0 / totalDurationSeconds) * sampleCount);
+            }
+
             var bitmap = new Bitmap(width, height);
             using var g = Graphics.FromImage(bitmap);
             g.Clear(Color.FromArgb(26, 26, 46));
             using var pen = new Pen(Color.FromArgb(160, 100, 200, 100), 1f);
             float scaleX = (float)width / sampleCount;
             float mid = height / 2f;
+
+            // Compute gain for each bucket and draw bars scaled by the half-sine envelope
+            float[] gains = new float[sampleCount];
             for (int i = 0; i < sampleCount; i++)
             {
+                gains[i] = ComputeSineFadeGain(i, sampleCount, fadeInBuckets, fadeOutBuckets);
                 float normalised = peaks[i] / maxPeak;
-                float halfH = normalised * mid * 0.9f;
+                float halfH = normalised * gains[i] * mid * 0.9f;
                 float x = i * scaleX + scaleX / 2f;
                 g.DrawLine(pen, x, mid - halfH, x, mid + halfH);
             }
 
-            const int FadeOverlayAlpha = 200;
-
-            // Overlay fade-in region (dark gradient from the left edge)
-            if (fadeInMs > 0 && totalDurationSeconds > 0)
+            // Draw the half-sine envelope curves (upper + lower) in fade regions
+            if (fadeInBuckets > 1 || fadeOutBuckets > 1)
             {
-                float fadeInPct = Math.Min(1f, (float)(fadeInMs / 1000.0 / totalDurationSeconds));
-                int fadeInWidth = (int)(fadeInPct * width);
-                if (fadeInWidth > 1)
+                using var envPen = new Pen(Color.FromArgb(180, 255, 220, 0), 1.5f);
+
+                if (fadeInBuckets > 1)
                 {
-                    using var fadeBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
-                        new Point(0, 0), new Point(fadeInWidth, 0),
-                        Color.FromArgb(FadeOverlayAlpha, 0, 0, 0), Color.FromArgb(0, 0, 0, 0));
-                    g.FillRectangle(fadeBrush, 0, 0, fadeInWidth, height);
+                    var upperPts = new PointF[fadeInBuckets];
+                    var lowerPts = new PointF[fadeInBuckets];
+                    for (int i = 0; i < fadeInBuckets; i++)
+                    {
+                        float x = i * scaleX + scaleX / 2f;
+                        upperPts[i] = new PointF(x, mid - gains[i] * mid * 0.9f);
+                        lowerPts[i] = new PointF(x, mid + gains[i] * mid * 0.9f);
+                    }
+                    g.DrawLines(envPen, upperPts);
+                    g.DrawLines(envPen, lowerPts);
                 }
-            }
 
-            // Overlay fade-out region (dark gradient toward the right edge)
-            if (fadeOutMs > 0 && totalDurationSeconds > 0)
-            {
-                float fadeOutPct = Math.Min(1f, (float)(fadeOutMs / 1000.0 / totalDurationSeconds));
-                int fadeOutWidth = (int)(fadeOutPct * width);
-                if (fadeOutWidth > 1)
+                if (fadeOutBuckets > 1)
                 {
-                    int fadeOutStart = width - fadeOutWidth;
-                    using var fadeBrush = new System.Drawing.Drawing2D.LinearGradientBrush(
-                        new Point(fadeOutStart, 0), new Point(width, 0),
-                        Color.FromArgb(0, 0, 0, 0), Color.FromArgb(FadeOverlayAlpha, 0, 0, 0));
-                    g.FillRectangle(fadeBrush, fadeOutStart, 0, fadeOutWidth, height);
+                    var upperPts = new PointF[fadeOutBuckets];
+                    var lowerPts = new PointF[fadeOutBuckets];
+                    int startBucket = sampleCount - fadeOutBuckets;
+                    for (int i = 0; i < fadeOutBuckets; i++)
+                    {
+                        float x = (startBucket + i) * scaleX + scaleX / 2f;
+                        upperPts[i] = new PointF(x, mid - gains[startBucket + i] * mid * 0.9f);
+                        lowerPts[i] = new PointF(x, mid + gains[startBucket + i] * mid * 0.9f);
+                    }
+                    g.DrawLines(envPen, upperPts);
+                    g.DrawLines(envPen, lowerPts);
                 }
             }
 

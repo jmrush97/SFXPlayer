@@ -22,8 +22,11 @@ namespace SFXPlayer.classes
         private FadeCurve _fadeCurve;
         private FadeSampleProvider _fadeProvider;
 
-        // Suppresses the PlaybackStopped event while a seek re-init is in progress
+        // Suppresses the PlaybackStopped event while a seek re-init is in progress.
+        // Reset is posted through _seekSyncContext (same context NAudio uses) to guarantee
+        // it runs AFTER any queued spurious PlaybackStopped that Stop() may have posted.
         private bool _isSeeking = false;
+        private SynchronizationContext _seekSyncContext;
         private EventHandler<StoppedEventArgs> _externalPlaybackStopped;
 
         /// <summary>
@@ -102,6 +105,9 @@ namespace SFXPlayer.classes
         {
             CleanupPlayback();
             AppLogger.Info($"MusicPlayer.Open: file=\"{filename}\", device={deviceNumber}, speed={speed}, fadeIn={fadeInMs}ms, fadeOut={fadeOutMs}ms, curve={fadeCurve}");
+            // Capture the calling thread's SynchronizationContext so Seek() can post the
+            // _isSeeking reset to the same queue NAudio uses for PlaybackStopped delivery.
+            _seekSyncContext = SynchronizationContext.Current;
             _waveSource = new AudioFileReader(filename);
             _soundOut = new WaveOutEvent();
             _soundOut.DeviceNumber = deviceNumber;
@@ -154,10 +160,13 @@ namespace SFXPlayer.classes
             fraction = Math.Max(0.0, Math.Min(1.0, fraction));
             var targetTime = TimeSpan.FromSeconds(fraction * _waveSource.TotalTime.TotalSeconds);
             bool wasPlaying = _soundOut.PlaybackState == PlaybackState.Playing;
+            bool wasPaused  = _soundOut.PlaybackState == PlaybackState.Paused;
             _isSeeking = true;
             try
             {
-                if (wasPlaying) _soundOut.Stop();
+                // NAudio's WaveOutEvent.Init() requires the device to be in Stopped state.
+                // Stop any active (playing or paused) output before reinitialising.
+                if (wasPlaying || wasPaused) _soundOut.Stop();
                 _waveSource.CurrentTime = targetTime;
                 // NAudio's WaveOutEvent requires re-initialization after Stop() because
                 // Stop() releases the internal buffer; without re-Init the next Play()
@@ -167,7 +176,17 @@ namespace SFXPlayer.classes
             }
             finally
             {
-                _isSeeking = false;
+                // NAudio delivers PlaybackStopped via SynchronizationContext.Post() when a
+                // sync context was captured at WaveOutEvent construction time (which happens
+                // when Open() is called on the UI thread).  Post() is FIFO, so posting our
+                // reset HERE guarantees it is processed AFTER the spurious PlaybackStopped
+                // that Stop() enqueued — keeping _isSeeking == true long enough to suppress
+                // that event.  Without this the finally block would reset _isSeeking before
+                // the queued event arrived, causing a spurious playback-stopped notification.
+                if (_seekSyncContext != null)
+                    _seekSyncContext.Post(_ => _isSeeking = false, null);
+                else
+                    _isSeeking = false;
             }
         }
 

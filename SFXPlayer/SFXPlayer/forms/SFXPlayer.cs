@@ -1135,14 +1135,22 @@ namespace SFXPlayer
                 double duration = playingStrip.PlaybackLength.TotalSeconds;
                 double position = playingStrip.PlaybackPosition.TotalSeconds;
                 double remaining = Math.Max(0, duration - position);
-
-                if (duration > 0)
+                try
                 {
-                    playbackProgressBar.Value = (int)(position / duration * 1000);
-                }
-                else
-                {
+                    if (duration > 0)
+                    {
+                        playbackProgressBar.Value = (int)(position / duration * 1000);
+                    }
+                    else
+                    {
+                        playbackProgressBar.Value = 0;
+                    }
+                } catch (ArgumentOutOfRangeException) {
+                    // In case of any timing issues, just reset the progress bar to 0
                     playbackProgressBar.Value = 0;
+                } catch (Exception ex) {
+                    // Log any unexpected exceptions without crashing the app
+                    AppLogger.Error($"Error updating progress bar position={position}, duration={duration}", ex);
                 }
 
                 playbackTimeLabel.Text = string.Format("{0} / -{1}",

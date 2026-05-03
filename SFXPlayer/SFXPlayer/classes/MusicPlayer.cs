@@ -159,6 +159,9 @@ namespace SFXPlayer.classes
             {
                 if (wasPlaying) _soundOut.Stop();
                 _waveSource.CurrentTime = targetTime;
+                // NAudio's WaveOutEvent requires re-initialization after Stop() because
+                // Stop() releases the internal buffer; without re-Init the next Play()
+                // would throw an InvalidOperationException.
                 _soundOut.Init(new SampleToWaveProvider(BuildChain()));
                 if (wasPlaying) _soundOut.Play();
             }

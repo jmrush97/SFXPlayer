@@ -410,7 +410,7 @@ namespace SFXPlayer
         {
             using Form dialog = new Form();
             dialog.Text = title;
-            dialog.ClientSize = new System.Drawing.Size(300, 110);
+            dialog.ClientSize = new System.Drawing.Size(300, 220);
             dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
             dialog.StartPosition = FormStartPosition.CenterParent;
             dialog.MaximizeBox = false;

@@ -287,6 +287,8 @@ namespace SFXPlayer
                 LastSaveTimestamp = CurrentShow?.History?.LastOrDefault()?.Timestamp.ToString("o") ?? "",
                 LastSaveReason = CurrentShow?.History?.LastOrDefault()?.Reason ?? "",
                 SaveHistoryJson = BuildSaveHistoryJson(CurrentShow),
+                PlayUsageHistoryJson = BuildPlayUsageHistoryJson(CurrentShow),
+                ConnectedClients = GetConnectedClientsString(),
             };
             OnDisplayChanged(disp);
         }
@@ -321,6 +323,7 @@ namespace SFXPlayer
             CurrentShow.NextPlayCueIndex = NextPlayCueIndex;
             UpdateTrackInfoLabel(null);
             UpdateWebApp();
+            PreloadNeighborCues();
         }
 
         private void UpdateCueDetailLabels()
@@ -571,6 +574,9 @@ namespace SFXPlayer
             AppLogger.Info("SFXPlayer.StartWebApp");
             Debug.WriteLine("MouseWheelScrollLines = " + SystemInformation.MouseWheelScrollLines);
 
+            // Subscribe to connected-client changes so the status bar stays current
+            classes.SfxHub.ConnectedClientsChanged += SfxHub_ConnectedClientsChanged;
+
             // Start WebApp asynchronously
             _ = Task.Run(async () =>
             {
@@ -593,6 +599,24 @@ namespace SFXPlayer
                     }
                 }));
             });
+        }
+
+        private void SfxHub_ConnectedClientsChanged(object sender, EventArgs e)
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            try
+            {
+                BeginInvoke(new Action(UpdateConnectedClientsLabel));
+            }
+            catch (Exception) { }
+        }
+
+        private void UpdateConnectedClientsLabel()
+        {
+            var ips = classes.SfxHub.ConnectedClientIPs.Values.Distinct().ToList();
+            trackInfoLabel.Text = ips.Count == 0
+                ? ""
+                : "Web clients: " + string.Join(", ", ips);
         }
 
         private string GetLocalIPAddress()
@@ -778,6 +802,7 @@ namespace SFXPlayer
             {
                 int tempNextPlayCueIndex = CurrentShow.NextPlayCueIndex;
                 CurrentShow.UpdateShow += UpdateDisplay;
+                CurrentShow.RecordUsage();
                 ResetDisplay();
                 NextPlayCueIndex = tempNextPlayCueIndex;
                 RestoreDevicesFromShow(CurrentShow);
@@ -1081,6 +1106,38 @@ namespace SFXPlayer
                 Player.PreloadFile();
             }
             Cursor.Current = prev;
+        }
+
+        /// <summary>
+        /// Pre-loads the two cues before and two cues after the current position
+        /// so that navigation feels instant and a loading indicator is rarely needed.
+        /// </summary>
+        private void PreloadNeighborCues()
+        {
+            int current = NextPlayCue?.PlayStripIndex ?? -1;
+            foreach (PlayStrip ps in CueList.Controls.OfType<PlayStrip>())
+            {
+                int dist = Math.Abs(ps.PlayStripIndex - current);
+                if (dist <= 2 && !ps.IsDisposed)
+                    ps.PreloadFile();
+            }
+        }
+
+        /// <summary>
+        /// Stops all playback and immediately plays the cue at <paramref name="index"/>.
+        /// Called by the web-app "instant play" button on each cue row.
+        /// </summary>
+        public void InstantPlayCue(int index)
+        {
+            StopAllPlayingSounds(null);
+            GotoCue(index);
+            PlayStrip target = NextPlayCue;
+            if (target != null)
+            {
+                _currentActiveTrack = target;
+                target.Play();
+                NextPlayCueIndex += 1;
+            }
         }
 
         /// <summary>
@@ -1398,6 +1455,8 @@ namespace SFXPlayer
                 LastSaveTimestamp = CurrentShow?.History?.LastOrDefault()?.Timestamp.ToString("o") ?? "",
                 LastSaveReason = CurrentShow?.History?.LastOrDefault()?.Reason ?? "",
                 SaveHistoryJson = BuildSaveHistoryJson(CurrentShow),
+                PlayUsageHistoryJson = BuildPlayUsageHistoryJson(CurrentShow),
+                ConnectedClients = GetConnectedClientsString(),
             };
             OnDisplayChanged(disp);
         }
@@ -1713,6 +1772,23 @@ namespace SFXPlayer
             string gitHub = "https://github.com/jmrush97/SFXPlayer";
             string message = $"SFX Player\n\nVersion: {version}\nBuild Date: {buildDate}\n\nGitHub: {gitHub}";
             MessageBox.Show(message, "About SFX Player", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void instructionsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (WebApp.Serving)
+            {
+                string localIP = GetLocalIPAddress();
+                string url = $"http://{localIP}:{WebApp.wsPort}/help.html";
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            else
+            {
+                MessageBox.Show(
+                    "The web server is not running. Start the application as administrator to enable the web app, then try again.",
+                    "Instructions",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         /// <summary>
@@ -2054,6 +2130,27 @@ namespace SFXPlayer
             return sb.ToString();
         }
 
+        private static string BuildPlayUsageHistoryJson(classes.Show show)
+        {
+            if (show?.UsageLog == null || show.UsageLog.Count == 0) return "[]";
+            var sb = new System.Text.StringBuilder("[");
+            bool first = true;
+            foreach (var r in show.UsageLog)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                string u = EscapeJsonString(r.User ?? "");
+                string m = EscapeJsonString(r.Machine ?? "");
+                string ts = EscapeJsonString(r.Timestamp == DateTime.MinValue ? "" : r.Timestamp.ToString("o"));
+                sb.Append($"{{\"user\":\"{u}\",\"machine\":\"{m}\",\"ts\":\"{ts}\"}}");
+            }
+            sb.Append(']');
+            return sb.ToString();
+        }
+
+        private static string GetConnectedClientsString()
+            => string.Join("|", classes.SfxHub.ConnectedClientIPs.Values.Distinct());
+
         /// <summary>
         /// Opens a dialog that lets the user view and edit the cue list description.
         /// </summary>
@@ -2223,11 +2320,16 @@ namespace SFXPlayer
             {
                 if (!first) sb.Append(',');
                 first = false;
-                string desc = EscapeJsonString(ps.SFX.Description ?? "");
+                // Use filename (without extension) as fallback when description is empty
+                string rawDesc = ps.SFX.Description ?? "";
+                if (string.IsNullOrWhiteSpace(rawDesc) && !string.IsNullOrEmpty(ps.SFX.FileName))
+                    rawDesc = Path.GetFileNameWithoutExtension(ps.SFX.FileName);
+                string desc = EscapeJsonString(rawDesc);
                 string file = EscapeJsonString(Path.GetFileName(ps.SFX.FileName ?? ""));
                 string spd = ps.SFX.Speed.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
                 string isCur = ps.PlayStripIndex == nextIdx ? "true" : "false";
-                sb.Append($"{{\"i\":{ps.PlayStripIndex + 1},\"idx\":{ps.PlayStripIndex},\"d\":\"{desc}\",\"f\":\"{file}\",\"v\":{ps.SFX.Volume},\"s\":{spd},\"c\":{isCur}}}");
+                string isLoading = ps.IsLoading ? "true" : "false";
+                sb.Append($"{{\"i\":{ps.PlayStripIndex + 1},\"idx\":{ps.PlayStripIndex},\"d\":\"{desc}\",\"f\":\"{file}\",\"v\":{ps.SFX.Volume},\"s\":{spd},\"c\":{isCur},\"loading\":{isLoading}}}");
             }
             sb.Append(']');
             return sb.ToString();

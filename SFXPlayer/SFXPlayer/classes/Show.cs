@@ -27,6 +27,17 @@ namespace SFXPlayer.classes {
         public string Reason = "";
     }
 
+    /// <summary>
+    /// Records one occasion when the show file was opened/played.
+    /// At most three records are kept (oldest dropped when a fourth is added).
+    /// </summary>
+    [Serializable]
+    public class UsageRecord {
+        public string User = "";
+        public string Machine = "";
+        public DateTime Timestamp = DateTime.MinValue;
+    }
+
     [Serializable]
     public class Show {
         public ObservableCollection<SFX> Cues = new ObservableCollection<SFX>();
@@ -49,6 +60,27 @@ namespace SFXPlayer.classes {
 
         /// <summary>Chronological log of each save operation.</summary>
         public List<SaveRecord> History = new List<SaveRecord>();
+
+        /// <summary>
+        /// Log of the last three occasions when the show was opened/played (oldest dropped).
+        /// </summary>
+        public List<UsageRecord> UsageLog = new List<UsageRecord>();
+
+        /// <summary>
+        /// Records the current user/machine/time as a usage entry.
+        /// Drops the oldest entry when more than three are present.
+        /// </summary>
+        public void RecordUsage()
+        {
+            var rec = new UsageRecord
+            {
+                User    = Environment.UserName,
+                Machine = Environment.MachineName,
+                Timestamp = DateTime.UtcNow
+            };
+            UsageLog.Add(rec);
+            while (UsageLog.Count > 3) UsageLog.RemoveAt(0);
+        }
 
         public Show() {
             Cues.CollectionChanged += Cues_CollectionChanged;

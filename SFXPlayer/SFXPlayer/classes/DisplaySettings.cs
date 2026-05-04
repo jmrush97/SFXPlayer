@@ -58,6 +58,10 @@ namespace SFXPlayer.classes
         public string LastSaveTimestamp = "";
         public string LastSaveReason = "";
         public string SaveHistoryJson = "[]";
+        public string PlayUsageHistoryJson = "[]";
+
+        // Connected web clients (pipe-separated IP addresses)
+        public string ConnectedClients = "";
 
         // Waveform peak data for the current/next track (comma-separated normalised 0-1 values)
         public string WaveformData = "";

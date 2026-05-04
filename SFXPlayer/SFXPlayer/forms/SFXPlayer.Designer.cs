@@ -73,6 +73,7 @@ namespace SFXPlayer
             this.confirmDeleteCueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.audioMidiDevicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.instructionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ScrollTimer = new System.Windows.Forms.Timer(this.components);
             this.bnPrev = new System.Windows.Forms.Button();
             this.bnNext = new System.Windows.Forms.Button();
@@ -419,7 +420,8 @@ namespace SFXPlayer
             // helpToolStripMenuItem
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.aboutToolStripMenuItem});
+            this.aboutToolStripMenuItem,
+            this.instructionsToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "Help";
@@ -430,6 +432,13 @@ namespace SFXPlayer
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.aboutToolStripMenuItem.Text = "&About SFX Player...";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
+            // 
+            // instructionsToolStripMenuItem
+            // 
+            this.instructionsToolStripMenuItem.Name = "instructionsToolStripMenuItem";
+            this.instructionsToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.instructionsToolStripMenuItem.Text = "&Instructions...";
+            this.instructionsToolStripMenuItem.Click += new System.EventHandler(this.instructionsToolStripMenuItem_Click);
             // 
             // ScrollTimer
             // 
@@ -1109,6 +1118,7 @@ namespace SFXPlayer
         private System.Windows.Forms.RichTextBox rtPrevMainText;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem instructionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem recentAudioFilesToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator recentAudioFilesSeparator;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;

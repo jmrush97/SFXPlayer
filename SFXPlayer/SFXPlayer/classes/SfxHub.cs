@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 
@@ -6,8 +8,23 @@ namespace SFXPlayer.classes
 {
     public class SfxHub : Hub
     {
+        /// <summary>
+        /// Thread-safe set of connected client IP addresses (RemoteIpAddress or Connection id).
+        /// </summary>
+        public static readonly ConcurrentDictionary<string, string> ConnectedClientIPs
+            = new ConcurrentDictionary<string, string>();
+
+        /// <summary>Raised when the connected client count changes.</summary>
+        public static event EventHandler ConnectedClientsChanged;
+
         public override async Task OnConnectedAsync()
         {
+            // Record the client's IP address
+            var ip = Context.GetHttpContext()?.Connection?.RemoteIpAddress;
+            string ipStr = ip != null ? ip.MapToIPv4().ToString() : "unknown";
+            ConnectedClientIPs[Context.ConnectionId] = ipStr;
+            ConnectedClientsChanged?.Invoke(null, EventArgs.Empty);
+
             // Send the current display state to the newly connected client
             var lastMessage = WebApp.LastMessage;
             if (lastMessage != null)
@@ -16,6 +33,13 @@ namespace SFXPlayer.classes
                     System.Text.Encoding.UTF8.GetString(lastMessage));
             }
             await base.OnConnectedAsync();
+        }
+
+        public override Task OnDisconnectedAsync(Exception exception)
+        {
+            ConnectedClientIPs.TryRemove(Context.ConnectionId, out _);
+            ConnectedClientsChanged?.Invoke(null, EventArgs.Empty);
+            return base.OnDisconnectedAsync(exception);
         }
 
         public void SendCommand(string rawCommand)
@@ -111,6 +135,11 @@ namespace SFXPlayer.classes
                     else if (rawCommand.StartsWith("description:", StringComparison.OrdinalIgnoreCase))
                     {
                         Program.mainForm.SetShowDescription(rawCommand.Substring(12));
+                    }
+                    else if (command.StartsWith("instantplay:") &&
+                        int.TryParse(command.Substring(12), out int instantIdx))
+                    {
+                        Program.mainForm.InstantPlayCue(instantIdx);
                     }
                     break;
             }

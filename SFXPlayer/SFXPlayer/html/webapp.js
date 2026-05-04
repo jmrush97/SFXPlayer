@@ -258,10 +258,23 @@ var WebApp = function () {
                         } else if (nodeName === "SaveHistoryJson") {
                             window._saveHistoryJson = nodeValue;
                             if (window._descriptionPopupOpen) renderSaveHistory(nodeValue);
-                        } else {
+                        } else if (nodeName === "PlayUsageHistoryJson") {
+                            window._playUsageHistoryJson = nodeValue;
+                            if (window._descriptionPopupOpen) renderPlayUsageHistory(nodeValue);
+                        } else if (nodeName === "ConnectedClients") {
+                            updateConnectedClients(nodeValue);
+                        } else if (nodeName === "MainText" || nodeName === "PrevMainText") {
+                            // Render as Markdown HTML so formatted cue text displays correctly
                             var field = document.getElementById(nodeName);
-                            if (field != null) {
-                                field.textContent = nodeValue;
+                            if (field != null) field.innerHTML = markdownToHtml(nodeValue);
+                        } else if (nodeName === "CueDescription") {
+                            // Description bar: plain text (markdown stripped)
+                            var cdField = document.getElementById("CueDescription");
+                            if (cdField != null) cdField.textContent = nodeValue;
+                        } else {
+                            var field3 = document.getElementById(nodeName);
+                            if (field3 != null) {
+                                field3.textContent = nodeValue;
                                 // Also update browser tab when Title changes
                                 if (nodeName === "Title" && nodeValue) {
                                     document.title = nodeValue;
@@ -377,6 +390,7 @@ function openDescriptionPopup() {
     var ta = document.getElementById("descriptionTextarea");
     if (ta) ta.value = window._showDescription || "";
     renderSaveHistory(window._saveHistoryJson || "[]");
+    renderPlayUsageHistory(window._playUsageHistoryJson || "[]");
     popup.style.display = "flex";
     if (ta) ta.focus();
 }
@@ -410,6 +424,73 @@ function renderSaveHistory(jsonStr) {
             tbody.appendChild(tr);
         }
     } catch(e) { console.error("renderSaveHistory:", e); }
+}
+
+function renderPlayUsageHistory(jsonStr) {
+    var tbody = document.getElementById("playUsageHistoryBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    try {
+        var rows = JSON.parse(jsonStr || "[]");
+        for (var i = rows.length - 1; i >= 0; i--) {
+            var r = rows[i];
+            var tr = document.createElement("tr");
+            var tsDisplay = "";
+            try { tsDisplay = r.ts ? new Date(r.ts).toLocaleString() : ""; } catch(e) { tsDisplay = r.ts || ""; }
+            tr.innerHTML = "<td>" + escapeHtml(tsDisplay) + "</td><td>" + escapeHtml(r.user || "") + "</td><td>" + escapeHtml(r.machine || "") + "</td>";
+            tbody.appendChild(tr);
+        }
+    } catch(e) { console.error("renderPlayUsageHistory:", e); }
+}
+
+function updateConnectedClients(ipsStr) {
+    var el = document.getElementById("connectedClientsInfo");
+    if (!el) return;
+    if (!ipsStr) { el.textContent = ""; return; }
+    var ips = ipsStr.split("|").filter(function(s) { return s; });
+    el.textContent = ips.length > 0 ? ("Web clients: " + ips.join(", ")) : "";
+}
+
+// ---- Simple Markdown renderer ----
+// Converts a subset of Markdown to safe HTML (headings, bold, italic, lists, code).
+function markdownToHtml(md) {
+    if (!md) return "";
+    // Escape HTML first so that user content cannot inject tags
+    var s = escapeHtml(md);
+    // Headings
+    s = s.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
+    s = s.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+    s = s.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+    s = s.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+    // Horizontal rule
+    s = s.replace(/^---+$/gm, "<hr />");
+    // Unordered list items (convert runs of lines to a list)
+    s = s.replace(/((?:^[*\-] .+\n?)+)/gm, function(block) {
+        var items = block.replace(/^[*\-] (.+)$/gm, "<li>$1</li>");
+        return "<ul>" + items + "</ul>";
+    });
+    // Ordered list items
+    s = s.replace(/((?:^\d+\. .+\n?)+)/gm, function(block) {
+        var items = block.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
+        return "<ol>" + items + "</ol>";
+    });
+    // Code blocks (```...```)
+    s = s.replace(/```[\w]*\n([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+    // Inline code
+    s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // Bold and italic
+    s = s.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
+    s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/\*(.+?)\*/g, "<em>$1</em>");
+    s = s.replace(/_(.+?)_/g, "<em>$1</em>");
+    // Line breaks: two spaces at end of line = <br>
+    s = s.replace(/  \n/g, "<br />\n");
+    // Paragraphs: blank line separates paragraphs
+    s = s.replace(/\n\n+/g, "</p><p>");
+    s = "<p>" + s + "</p>";
+    // Clean up empty paragraphs that wrap block elements
+    s = s.replace(/<p>(<(?:h[1-4]|ul|ol|pre|hr)[\s\S]*?(?:<\/(?:h[1-4]|ul|ol|pre)>|>))<\/p>/g, "$1");
+    return s;
 }
 
 function escapeHtml(s) {
@@ -733,21 +814,34 @@ function renderCueList(json) {
     for (var i = 0; i < cues.length; i++) {
         var c = cues[i];
         var row = document.createElement("div");
-        row.className = "cue-list-item" + (c.c ? " current-cue" : "");
-        var desc = c.d ? htmlEscape(c.d) : "<em style='color:#666'>—</em>";
+        var classList = "cue-list-item" + (c.c ? " current-cue" : "");
+        if (c.loading) classList += " cue-loading";
+        row.className = classList;
+        var descHtml = c.d ? markdownToHtml(c.d) : "<em style='color:#666'>—</em>";
         var file = c.f ? htmlEscape(c.f) : "";
         var cueInfo = "Vol:" + c.v + "  " + c.s + "x";
+        var loadingBadge = c.loading ? "<span class='cue-loading-badge' title='Loading\u2026'>\u29D7</span>" : "";
+        var idx = c.idx !== undefined ? c.idx : i;
         row.innerHTML =
             "<span class='cue-num'>" + c.i + "</span>" +
-            "<span class='cue-desc'>" + desc + "</span>" +
+            "<span class='cue-instant-play' title='Instant Play' data-idx='" + idx + "'>&#9654;</span>" +
+            loadingBadge +
+            "<span class='cue-desc'>" + descHtml + "</span>" +
             (file ? "<span class='cue-file'>" + file + "</span>" : "") +
             "<span class='cue-meta'>" + cueInfo + "</span>";
-        // Clicking a cue row moves focus to that cue without stopping playback
-        (function(idx) {
+        // Instant play button: stop all and play this cue immediately
+        (function(cueIdx) {
+            var btn = row.querySelector(".cue-instant-play");
+            if (btn) {
+                btn.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    webapp.sendCommand("instantplay:" + cueIdx);
+                });
+            }
             row.addEventListener("click", function() {
-                webapp.sendCommand("goto:" + idx);
+                webapp.sendCommand("goto:" + cueIdx);
             });
-        })(c.idx !== undefined ? c.idx : i);
+        })(idx);
         container.appendChild(row);
     }
     // Scroll the current cue into view

@@ -1111,7 +1111,14 @@ namespace SFXPlayer
 
         private void bnStopAll_Click(object sender, EventArgs e)
         {
-            StopAll(sender, e);
+            // Stop all strips unconditionally (playing and paused). Using a direct loop
+            // over all PlayStrips is more robust than relying on the _playingSounds set,
+            // which may not reflect paused strips or strips mid-speed-change.
+            foreach (PlayStrip ps in CueList.Controls.OfType<PlayStrip>())
+            {
+                if (!ps.IsDisposed)
+                    ps.Stop();
+            }
             StopPreviews(sender, e);
             bnPause.Text = "Pause";
         }

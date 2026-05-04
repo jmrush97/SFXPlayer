@@ -95,6 +95,8 @@ var WebApp = function () {
                             if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
                             var volSpan = document.getElementById("CurrentVolume");
                             if (volSpan) volSpan.textContent = nodeValue;
+                            var volInput = document.getElementById("volumeInput");
+                            if (volInput) volInput.value = parseInt(nodeValue) || 50;
                             var cueVolSpan = document.getElementById("CueVolume");
                             if (cueVolSpan) cueVolSpan.textContent = "Vol: " + nodeValue;
                         } else if (nodeName === "CurrentSpeed") {
@@ -103,6 +105,8 @@ var WebApp = function () {
                             if (spdSlider) spdSlider.value = Math.round(spd * 100);
                             var spdSpan = document.getElementById("CurrentSpeed");
                             if (spdSpan) spdSpan.textContent = spd.toFixed(2);
+                            var spdInput = document.getElementById("speedInput");
+                            if (spdInput) spdInput.value = spd.toFixed(2);
                         } else if (nodeName === "CueAutoRun") {
                             var isAutoRun = nodeValue === "true";
                             window._cueAutoRun = isAutoRun;
@@ -270,6 +274,26 @@ function setPause() {
     var pi = document.getElementById("pauseInput");
     var secs = parseFloat(pi ? pi.value : "0") || 0;
     webapp.sendCommand("pause:" + secs.toFixed(1));
+}
+
+function setVolume() {
+    var vi = document.getElementById("volumeInput");
+    var vol = Math.max(0, Math.min(100, parseInt(vi ? vi.value : "50") || 0));
+    var slider = document.getElementById("volumeSlider");
+    if (slider) slider.value = vol;
+    var span = document.getElementById("CurrentVolume");
+    if (span) span.textContent = vol;
+    webapp.sendCommand("volume:" + vol);
+}
+
+function setSpeed() {
+    var si = document.getElementById("speedInput");
+    var spd = Math.max(0.1, Math.min(8.0, parseFloat(si ? si.value : "1.0") || 1.0));
+    var slider = document.getElementById("speedSlider");
+    if (slider) slider.value = Math.round(spd * 100);
+    var span = document.getElementById("CurrentSpeed");
+    if (span) span.textContent = spd.toFixed(2);
+    webapp.sendCommand("speed:" + spd.toFixed(2));
 }
 
 function setFade() {

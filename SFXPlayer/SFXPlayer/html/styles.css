@@ -106,6 +106,39 @@ html, body {
     border-left: 3px solid #4af;
 }
 
+.cue-list-item.cue-loading {
+    opacity: 0.7;
+}
+
+.cue-instant-play {
+    display: inline-block;
+    margin-right: 4px;
+    color: #4f4;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 0 3px;
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
+.cue-instant-play:hover {
+    background: #4f4;
+    color: #000;
+}
+
+.cue-loading-badge {
+    display: inline-block;
+    margin-right: 4px;
+    color: #fa8;
+    font-size: 0.85em;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
 .cue-num {
     color: #7af;
     font-weight: bold;
@@ -133,6 +166,12 @@ html, body {
 .cue-meta {
     color: #afa;
     font-size: 0.9em;
+}
+
+.connected-clients-info {
+    font-size: 0.75em;
+    color: #8cf;
+    margin: 0 6px;
 }
 
 /* ─── Center panel ───────────────────────────────────────────────────────────── */
@@ -518,6 +557,9 @@ body.light-theme .cue-num  { color: #0044aa; }
 body.light-theme .cue-desc { color: #1a1a1a; }
 body.light-theme .cue-file { color: #555; }
 body.light-theme .cue-meta { color: #007700; }
+body.light-theme .cue-instant-play { color: #007700; }
+body.light-theme .cue-instant-play:hover { background: #007700; color: #fff; }
+body.light-theme .connected-clients-info { color: #0055aa; }
 
 body.light-theme .center-panel { }
 

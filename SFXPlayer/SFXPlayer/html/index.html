@@ -184,8 +184,17 @@
                 <button class="desc-popup-close" onclick="closeDescriptionPopup()" title="Close">&#10005;</button>
             </div>
             <div class="desc-popup-body">
-                <label for="descriptionTextarea">Description:</label>
-                <textarea id="descriptionTextarea" rows="4" placeholder="Enter a description for this cue list..."></textarea>
+                <label for="descriptionTextarea">Description (Markdown supported):</label>
+                <textarea id="descriptionTextarea" rows="4" placeholder="Enter a description for this cue list... (Markdown supported)"></textarea>
+                <div class="desc-popup-history-label">Play Usage History (last 3):</div>
+                <div class="desc-popup-history-wrap">
+                    <table class="desc-history-table">
+                        <thead>
+                            <tr><th>Date / Time</th><th>User</th><th>Machine</th></tr>
+                        </thead>
+                        <tbody id="playUsageHistoryBody"></tbody>
+                    </table>
+                </div>
                 <div class="desc-popup-history-label">Save History:</div>
                 <div class="desc-popup-history-wrap">
                     <table class="desc-history-table">

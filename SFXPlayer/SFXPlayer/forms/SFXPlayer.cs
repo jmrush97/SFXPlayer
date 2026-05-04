@@ -42,6 +42,15 @@ namespace SFXPlayer
         /// </summary>
         private readonly HashSet<PlayStrip> _playingSounds = new HashSet<PlayStrip>();
 
+        // Debounce timers for web-interface speed/volume slider commands.
+        // The web slider fires 'oninput' on every pixel of movement, which would otherwise
+        // enqueue many back-to-back SetSpeedLive calls that corrupt the _isSeeking guard
+        // and trigger spurious PlaybackStopped → TriggerAutoPlay cue-cycling.
+        private System.Windows.Forms.Timer _webSpeedDebounceTimer;
+        private System.Windows.Forms.Timer _webVolumeDebounceTimer;
+        private float _pendingWebSpeed = -1f;
+        private int   _pendingWebVolume = -1;
+
         protected override void WndProc(ref Message m)
         {
             if (m.Msg == WM_DEVICECHANGE)
@@ -128,12 +137,13 @@ namespace SFXPlayer
             PlayStrip.OFD = dlgOpenAudioFile;
             autoLoadLastsfxCuelistToolStripMenuItem.Checked = Settings.Default.AutoLoadLastSession;
             confirmDeleteCueToolStripMenuItem.Checked = Settings.Default.ConfirmDeleteCue;
-            //// Initialize device status label
-            //if (lblDeviceStatus != null)
-            //{
-            //    lblDeviceStatus.Text = "Initializing devices...";
-            //    lblDeviceStatus.ForeColor = System.Drawing.Color.Gray;
-            //}
+
+            // Web-interface debounce timers: coalesce rapid slider commands so only
+            // one player reload fires per 250ms burst of web speed/volume changes.
+            _webSpeedDebounceTimer = new System.Windows.Forms.Timer { Interval = 250 };
+            _webSpeedDebounceTimer.Tick += WebSpeedDebounceTimer_Tick;
+            _webVolumeDebounceTimer = new System.Windows.Forms.Timer { Interval = 250 };
+            _webVolumeDebounceTimer.Tick += WebVolumeDebounceTimer_Tick;
         }
 
         // Convenience method for setting message text in 
@@ -1707,35 +1717,65 @@ namespace SFXPlayer
 
         internal void SetNextCueVolume(int vol)
         {
+            // Debounce: store the pending value and restart the timer so that rapid
+            // web slider events collapse into a single player update after 250ms of
+            // inactivity. The SFX model and display are updated immediately; only the
+            // live _musicPlayer.Volume call is deferred.
             _commandQueue.Enqueue(() =>
             {
-                vol = Math.Max(0, Math.Min(100, vol));
+                int clamped = Math.Max(0, Math.Min(100, vol));
                 if (NextPlayCue != null)
                 {
-                    NextPlayCue.SFX.Volume = vol;
+                    NextPlayCue.SFX.Volume = clamped;
                     NextPlayCue.RefreshVolumeDisplay();
                 }
-                // Also apply immediately to any live (playing or paused) strip
-                var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
-                if (active != null)
-                    active.SetVolumeLive(vol);
+                _pendingWebVolume = clamped;
+                _webVolumeDebounceTimer.Stop();
+                _webVolumeDebounceTimer.Start();
                 UpdateWebApp();
             });
         }
 
+        private void WebVolumeDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _webVolumeDebounceTimer.Stop();
+            int vol = _pendingWebVolume;
+            if (vol < 0) return;
+            _pendingWebVolume = -1;
+            var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+            if (active != null)
+                active.SetVolumeLive(vol);
+        }
+
         internal void SetNextCueSpeed(float speed)
         {
+            // Debounce: the web slider fires 'oninput' on every pixel, so many speed:X
+            // commands arrive in a burst. Without debouncing each one would enqueue a full
+            // Stop/Open/Seek/Play cycle; back-to-back cycles break the _isSeeking guard and
+            // trigger spurious PlaybackStopped → TriggerAutoPlay → cue cycling. By storing
+            // the latest pending value and restarting a 250ms timer, only one SetSpeedLive
+            // is ever executed per drag gesture.
             _commandQueue.Enqueue(() =>
             {
-                speed = Math.Max(0.1f, Math.Min(8.0f, speed));
+                float clamped = Math.Max(0.1f, Math.Min(8.0f, speed));
                 if (NextPlayCue != null)
-                    NextPlayCue.SFX.Speed = speed;
-                // Also apply immediately to any live (playing or paused) strip
-                var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
-                if (active != null)
-                    active.SetSpeedLive(speed);
+                    NextPlayCue.SFX.Speed = clamped;
+                _pendingWebSpeed = clamped;
+                _webSpeedDebounceTimer.Stop();
+                _webSpeedDebounceTimer.Start();
                 UpdateWebApp();
             });
+        }
+
+        private void WebSpeedDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _webSpeedDebounceTimer.Stop();
+            float speed = _pendingWebSpeed;
+            if (speed < 0) return;
+            _pendingWebSpeed = -1f;
+            var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+            if (active != null)
+                active.SetSpeedLive(speed);
         }
 
         internal void DeleteNextCue()

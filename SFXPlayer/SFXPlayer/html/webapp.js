@@ -272,9 +272,9 @@ var WebApp = function () {
                             var cdField = document.getElementById("CueDescription");
                             if (cdField != null) cdField.textContent = nodeValue;
                         } else {
-                            var field3 = document.getElementById(nodeName);
-                            if (field3 != null) {
-                                field3.textContent = nodeValue;
+                            var defaultField = document.getElementById(nodeName);
+                            if (defaultField != null) {
+                                defaultField.textContent = nodeValue;
                                 // Also update browser tab when Title changes
                                 if (nodeName === "Title" && nodeValue) {
                                     document.title = nodeValue;
@@ -457,16 +457,16 @@ function markdownToHtml(md) {
     if (!md) return "";
     // Escape HTML first so that user content cannot inject tags
     var s = escapeHtml(md);
-    // Headings
+    // Headings (longest prefix first to prevent partial matches)
     s = s.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
     s = s.replace(/^### (.+)$/gm, "<h3>$1</h3>");
     s = s.replace(/^## (.+)$/gm, "<h2>$1</h2>");
     s = s.replace(/^# (.+)$/gm, "<h1>$1</h1>");
     // Horizontal rule
     s = s.replace(/^---+$/gm, "<hr />");
-    // Unordered list items (convert runs of lines to a list)
-    s = s.replace(/((?:^[*\-] .+\n?)+)/gm, function(block) {
-        var items = block.replace(/^[*\-] (.+)$/gm, "<li>$1</li>");
+    // Unordered list items (convert runs of lines to a list; hyphen at start of class avoids range)
+    s = s.replace(/((?:^[-*] .+\n?)+)/gm, function(block) {
+        var items = block.replace(/^[-*] (.+)$/gm, "<li>$1</li>");
         return "<ul>" + items + "</ul>";
     });
     // Ordered list items

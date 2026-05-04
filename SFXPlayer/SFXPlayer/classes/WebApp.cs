@@ -336,8 +336,14 @@ namespace SFXPlayer.classes
                         {
                             webSockets.Remove(ws);
                         }
-                        await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, 
-                            "Close requested by remote", CancellationToken.None);
+                        // Guard against the rare case where the remote end has already
+                        // fully closed by the time we get here (state flips from
+                        // CloseReceived to Closed), which would throw a WebSocketException.
+                        if (ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived)
+                        {
+                            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                                "Close requested by remote", CancellationToken.None);
+                        }
                     }
                     else
                     {

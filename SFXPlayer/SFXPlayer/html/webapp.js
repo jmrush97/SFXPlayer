@@ -127,28 +127,38 @@ var WebApp = function () {
                             if (detail) detail.textContent = isAutoRun ? "\u21B7 Auto" : "";
                         } else if (nodeName === "CuePauseSeconds") {
                             var ps = parseFloat(nodeValue) || 0;
-                            window._cuePauseSeconds = ps;
-                            var pi = document.getElementById("pauseInput");
-                            if (pi) pi.value = ps.toFixed(1);
+                            if (ps !== window._cuePauseSeconds) {
+                                window._cuePauseSeconds = ps;
+                                var pi = document.getElementById("pauseInput");
+                                if (pi) pi.value = ps.toFixed(1);
+                            }
                             var detail = document.getElementById("CueAutoRunDetail");
-                            if (detail && window._cueAutoRun && ps > 0) {
-                                detail.textContent = "\u21B7 Auto +" + ps.toFixed(1) + "s";
+                            if (detail && window._cueAutoRun && (window._cuePauseSeconds || 0) > 0) {
+                                detail.textContent = "\u21B7 Auto +" + (window._cuePauseSeconds || 0).toFixed(1) + "s";
                             }
                         } else if (nodeName === "CueFadeInMs") {
                             var fi = parseInt(nodeValue) || 0;
-                            _cueFadeInMs = fi;
-                            var fiInput = document.getElementById("fadeInInput");
-                            if (fiInput) fiInput.value = fi;
+                            if (fi !== _cueFadeInMs) {
+                                _cueFadeInMs = fi;
+                                var fiInput = document.getElementById("fadeInInput");
+                                if (fiInput) fiInput.value = fi;
+                            }
                             if (_waveformPeaks) drawWaveform();
                         } else if (nodeName === "CueFadeOutMs") {
                             var fo = parseInt(nodeValue) || 0;
-                            _cueFadeOutMs = fo;
-                            var foInput = document.getElementById("fadeOutInput");
-                            if (foInput) foInput.value = fo;
+                            if (fo !== _cueFadeOutMs) {
+                                _cueFadeOutMs = fo;
+                                var foInput = document.getElementById("fadeOutInput");
+                                if (foInput) foInput.value = fo;
+                            }
                             if (_waveformPeaks) drawWaveform();
                         } else if (nodeName === "CueFadeCurve") {
-                            var cs = document.getElementById("fadeCurveSelect");
-                            if (cs) cs.value = (nodeValue === "Logarithmic") ? "log" : "linear";
+                            var curveVal = (nodeValue === "Logarithmic") ? "log" : "linear";
+                            if (curveVal !== _cueFadeCurve) {
+                                _cueFadeCurve = curveVal;
+                                var cs = document.getElementById("fadeCurveSelect");
+                                if (cs) cs.value = curveVal;
+                            }
                         } else if (nodeName === "IsPlaying") {
                             window._isPlaying = (nodeValue === "true");
                             updatePlayingInfoVisibility();
@@ -232,6 +242,22 @@ var WebApp = function () {
                             updatePrevButton();
                             var pdField = document.getElementById("PrevCueDescription");
                             if (pdField) pdField.textContent = nodeValue;
+                        } else if (nodeName === "ShowDescription") {
+                            window._showDescription = nodeValue;
+                            var ta = document.getElementById("descriptionTextarea");
+                            if (ta && !window._descriptionPopupOpen) ta.value = nodeValue;
+                        } else if (nodeName === "LastSaveUser") {
+                            window._lastSaveUser = nodeValue;
+                            updateLastSaveInfo();
+                        } else if (nodeName === "LastSaveTimestamp") {
+                            window._lastSaveTimestamp = nodeValue;
+                            updateLastSaveInfo();
+                        } else if (nodeName === "LastSaveReason") {
+                            window._lastSaveReason = nodeValue;
+                            updateLastSaveInfo();
+                        } else if (nodeName === "SaveHistoryJson") {
+                            window._saveHistoryJson = nodeValue;
+                            if (window._descriptionPopupOpen) renderSaveHistory(nodeValue);
                         } else {
                             var field = document.getElementById(nodeName);
                             if (field != null) {
@@ -280,6 +306,7 @@ function toggleAutoRun() {
 function setPause() {
     var pi = document.getElementById("pauseInput");
     var secs = parseFloat(pi ? pi.value : "0") || 0;
+    window._cuePauseSeconds = secs;
     webapp.sendCommand("pause:" + secs.toFixed(1));
 }
 
@@ -312,6 +339,9 @@ function setFade() {
     var fadeIn  = parseInt(fiInput  ? fiInput.value  : "0") || 0;
     var fadeOut = parseInt(foInput  ? foInput.value  : "0") || 0;
     var curve   = csInput ? csInput.value : "linear";
+    _cueFadeInMs  = fadeIn;
+    _cueFadeOutMs = fadeOut;
+    _cueFadeCurve = curve;
     webapp.sendCommand("fadein:"    + fadeIn);
     webapp.sendCommand("fadeout:"   + fadeOut);
     webapp.sendCommand("fadecurve:" + curve);
@@ -321,6 +351,69 @@ function deleteCue() {
     if (confirm("Delete the current next cue?")) {
         webapp.sendCommand("delete");
     }
+}
+
+function updateLastSaveInfo() {
+    var user = window._lastSaveUser || "";
+    var ts = window._lastSaveTimestamp || "";
+    var reason = window._lastSaveReason || "";
+    var display = "";
+    if (ts) {
+        try {
+            var d = new Date(ts);
+            display = "Saved: " + d.toLocaleString();
+        } catch(e) { display = "Saved: " + ts; }
+        if (user) display += " by " + user;
+        if (reason) display += " \u2014 " + reason;
+    }
+    var el = document.getElementById("lastSaveInfo");
+    if (el) el.textContent = display;
+}
+
+function openDescriptionPopup() {
+    window._descriptionPopupOpen = true;
+    var popup = document.getElementById("descriptionPopup");
+    if (!popup) return;
+    var ta = document.getElementById("descriptionTextarea");
+    if (ta) ta.value = window._showDescription || "";
+    renderSaveHistory(window._saveHistoryJson || "[]");
+    popup.style.display = "flex";
+    if (ta) ta.focus();
+}
+
+function closeDescriptionPopup() {
+    window._descriptionPopupOpen = false;
+    var popup = document.getElementById("descriptionPopup");
+    if (popup) popup.style.display = "none";
+}
+
+function saveDescriptionPopup() {
+    var ta = document.getElementById("descriptionTextarea");
+    var text = ta ? ta.value : "";
+    window._showDescription = text;
+    webapp.sendCommand("description:" + text);
+    closeDescriptionPopup();
+}
+
+function renderSaveHistory(jsonStr) {
+    var tbody = document.getElementById("saveHistoryBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    try {
+        var rows = JSON.parse(jsonStr || "[]");
+        for (var i = rows.length - 1; i >= 0; i--) {
+            var r = rows[i];
+            var tr = document.createElement("tr");
+            var tsDisplay = "";
+            try { tsDisplay = r.ts ? new Date(r.ts).toLocaleString() : ""; } catch(e) { tsDisplay = r.ts || ""; }
+            tr.innerHTML = "<td>" + escapeHtml(tsDisplay) + "</td><td>" + escapeHtml(r.user || "") + "</td><td>" + escapeHtml(r.reason || "") + "</td>";
+            tbody.appendChild(tr);
+        }
+    } catch(e) { console.error("renderSaveHistory:", e); }
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 function updateProgress(posSeconds, durSeconds) {
@@ -353,6 +446,7 @@ function formatTime(totalSeconds) {
 var _waveformPeaks = null;
 var _cueFadeInMs = 0;
 var _cueFadeOutMs = 0;
+var _cueFadeCurve = "linear";
 var _trackDurationSeconds = 0;
 var _currentVolume = 50;
 var _currentSpeed = 1.0;

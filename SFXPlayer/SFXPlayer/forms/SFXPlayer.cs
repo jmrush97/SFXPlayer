@@ -282,6 +282,11 @@ namespace SFXPlayer
                 ActiveTrackDesc = active?.SFX.Description ?? "",
                 NextNextTrackNum = nextNext != null ? (nextNext.PlayStripIndex + 1).ToString("D3") : "",
                 NextNextTrackDesc = nextNext?.SFX.Description ?? "",
+                ShowDescription = CurrentShow?.Description ?? "",
+                LastSaveUser = CurrentShow?.History?.LastOrDefault()?.User ?? "",
+                LastSaveTimestamp = CurrentShow?.History?.LastOrDefault()?.Timestamp.ToString("o") ?? "",
+                LastSaveReason = CurrentShow?.History?.LastOrDefault()?.Reason ?? "",
+                SaveHistoryJson = BuildSaveHistoryJson(CurrentShow),
             };
             OnDisplayChanged(disp);
         }
@@ -759,6 +764,7 @@ namespace SFXPlayer
                 int tempNextPlayCueIndex = newShow.NextPlayCueIndex;
                 CurrentShow = newShow;
                 NextPlayCueIndex = tempNextPlayCueIndex;
+                RestoreDevicesFromShow(newShow);
             }
         }
 
@@ -774,12 +780,34 @@ namespace SFXPlayer
                 CurrentShow.UpdateShow += UpdateDisplay;
                 ResetDisplay();
                 NextPlayCueIndex = tempNextPlayCueIndex;
+                RestoreDevicesFromShow(CurrentShow);
             }
             else
             {
                 CurrentShow = oldShow;
             }
             CurrentShow.ShowFileBecameDirty += ShowFileHandler.SetDirty;
+        }
+
+        /// <summary>
+        /// If the loaded show file stored preferred device names, restore them when
+        /// those devices are still available on this machine.
+        /// </summary>
+        private void RestoreDevicesFromShow(Show show)
+        {
+            if (show == null) return;
+            if (!string.IsNullOrEmpty(show.PlaybackDevice) && CurrentAudioOutDevices.Contains(show.PlaybackDevice))
+            {
+                Settings.Default.LastPlaybackDevice = show.PlaybackDevice;
+                Settings.Default.Save();
+            }
+            if (!string.IsNullOrEmpty(show.PreviewDevice) && CurrentAudioOutDevices.Contains(show.PreviewDevice))
+            {
+                Settings.Default.LastPreviewDevice = show.PreviewDevice;
+                Settings.Default.Save();
+            }
+            if (!string.IsNullOrEmpty(show.PlaybackDevice) || !string.IsNullOrEmpty(show.PreviewDevice))
+                UpdateDevices();
         }
 
         void UpdateDisplay()
@@ -1365,6 +1393,11 @@ namespace SFXPlayer
                 ActiveTrackDesc = active?.SFX.Description ?? "",
                 NextNextTrackNum = nextNext != null ? (nextNext.PlayStripIndex + 1).ToString("D3") : "",
                 NextNextTrackDesc = nextNext?.SFX.Description ?? "",
+                ShowDescription = CurrentShow?.Description ?? "",
+                LastSaveUser = CurrentShow?.History?.LastOrDefault()?.User ?? "",
+                LastSaveTimestamp = CurrentShow?.History?.LastOrDefault()?.Timestamp.ToString("o") ?? "",
+                LastSaveReason = CurrentShow?.History?.LastOrDefault()?.Reason ?? "",
+                SaveHistoryJson = BuildSaveHistoryJson(CurrentShow),
             };
             OnDisplayChanged(disp);
         }
@@ -1448,11 +1481,13 @@ namespace SFXPlayer
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            StampSaveMetadata(PromptSaveReason());
             ShowFileHandler.Save(CurrentShow);
         }
 
         private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            StampSaveMetadata(PromptSaveReason());
             ShowFileHandler.SaveAs(CurrentShow);
         }
 
@@ -1936,6 +1971,161 @@ namespace SFXPlayer
                     UpdateWebApp();
                 }
             });
+        }
+
+        /// <summary>
+        /// Updates the show's description from the web or WinForms UI without stamping save history.
+        /// </summary>
+        internal void SetShowDescription(string text)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (CurrentShow == null) return;
+                CurrentShow.Description = text ?? "";
+                UpdateWebApp();
+            });
+        }
+
+        /// <summary>
+        /// Shows a dialog asking for an optional save reason.
+        /// Returns the entered reason (may be empty), or null if the user cancelled.
+        /// </summary>
+        private string PromptSaveReason()
+        {
+            using (var dlg = new Form())
+            {
+                dlg.Text = "Save";
+                dlg.Size = new System.Drawing.Size(420, 160);
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.MaximizeBox = false;
+                dlg.MinimizeBox = false;
+
+                var lbl = new Label { Text = "Update reason (optional):", Left = 12, Top = 14, Width = 380, AutoSize = true };
+                var txt = new TextBox { Left = 12, Top = 34, Width = 380, Anchor = AnchorStyles.Left | AnchorStyles.Right };
+                var btnOk = new Button { Text = "Save", DialogResult = DialogResult.OK, Left = 230, Top = 70, Width = 80 };
+                var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 316, Top = 70, Width = 80 };
+
+                dlg.Controls.AddRange(new Control[] { lbl, txt, btnOk, btnCancel });
+                dlg.AcceptButton = btnOk;
+                dlg.CancelButton = btnCancel;
+
+                return dlg.ShowDialog(this) == DialogResult.OK ? txt.Text.Trim() : null;
+            }
+        }
+
+        /// <summary>
+        /// Stamps device preferences and adds a SaveRecord to the show history.
+        /// Call this before every save operation.
+        /// </summary>
+        private void StampSaveMetadata(string reason)
+        {
+            if (reason == null) return;    // user cancelled
+            if (CurrentShow == null) return;
+            CurrentShow.PlaybackDevice = Settings.Default.LastPlaybackDevice ?? "";
+            CurrentShow.PreviewDevice = Settings.Default.LastPreviewDevice ?? "";
+            CurrentShow.History.Add(new classes.SaveRecord
+            {
+                User = Environment.UserName,
+                Timestamp = DateTime.UtcNow,
+                Reason = reason
+            });
+        }
+
+        /// <summary>
+        /// Builds a JSON array of all save history records for the given show.
+        /// </summary>
+        private static string BuildSaveHistoryJson(classes.Show show)
+        {
+            if (show?.History == null || show.History.Count == 0) return "[]";
+            var sb = new System.Text.StringBuilder("[");
+            bool first = true;
+            foreach (var r in show.History)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                string u = EscapeJsonString(r.User ?? "");
+                string ts = EscapeJsonString(r.Timestamp == DateTime.MinValue ? "" : r.Timestamp.ToString("o"));
+                string reason = EscapeJsonString(r.Reason ?? "");
+                sb.Append($"{{\"user\":\"{u}\",\"ts\":\"{ts}\",\"reason\":\"{reason}\"}}");
+            }
+            sb.Append(']');
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Opens a dialog that lets the user view and edit the cue list description.
+        /// </summary>
+        private void showDescriptionToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new Form())
+            {
+                dlg.Text = "Cue List Description";
+                dlg.Size = new System.Drawing.Size(520, 440);
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.FormBorderStyle = FormBorderStyle.Sizable;
+                dlg.MinimumSize = new System.Drawing.Size(360, 320);
+
+                var lblDesc = new Label { Text = "Description:", Left = 12, Top = 10, Width = 200, AutoSize = true };
+                var txtDesc = new TextBox
+                {
+                    Left = 12, Top = 28, Width = 478, Height = 80,
+                    Multiline = true, ScrollBars = ScrollBars.Vertical,
+                    Text = CurrentShow?.Description ?? "",
+                    Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
+                };
+
+                var lblHistory = new Label { Text = "Save History:", Left = 12, Top = 118, Width = 200, AutoSize = true };
+                var lst = new ListView
+                {
+                    Left = 12, Top = 136, Width = 478, Height = 200,
+                    View = View.Details, FullRowSelect = true, GridLines = true,
+                    Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom
+                };
+                lst.Columns.Add("Date / Time (UTC)", 140);
+                lst.Columns.Add("User", 100);
+                lst.Columns.Add("Reason", 220);
+                if (CurrentShow?.History != null)
+                {
+                    foreach (var r in CurrentShow.History.AsEnumerable().Reverse())
+                    {
+                        string ts = r.Timestamp == DateTime.MinValue ? "" : r.Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
+                        lst.Items.Add(new ListViewItem(new[] { ts, r.User ?? "", r.Reason ?? "" }));
+                    }
+                }
+
+                var btnOk = new Button
+                {
+                    Text = "OK", DialogResult = DialogResult.OK,
+                    Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                };
+                var btnCancel = new Button
+                {
+                    Text = "Cancel", DialogResult = DialogResult.Cancel,
+                    Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                };
+                dlg.Controls.AddRange(new Control[] { lblDesc, txtDesc, lblHistory, lst, btnOk, btnCancel });
+                dlg.AcceptButton = btnOk;
+                dlg.CancelButton = btnCancel;
+
+                dlg.Layout += (s, le) =>
+                {
+                    int right = dlg.ClientSize.Width - 12;
+                    int bottom = dlg.ClientSize.Height - 12;
+                    btnCancel.SetBounds(right - 80, bottom - 30, 80, 26);
+                    btnOk.SetBounds(right - 168, bottom - 30, 80, 26);
+                    lst.Width = right - 12;
+                    lst.Height = bottom - 50 - lst.Top;
+                    txtDesc.Width = right - 12;
+                };
+
+                if (dlg.ShowDialog(this) == DialogResult.OK && CurrentShow != null)
+                {
+                    CurrentShow.Description = txtDesc.Text;
+                    ShowFileHandler.SetDirty();
+                    UpdateWebApp();
+                }
+            }
         }
 
         internal void SeekPosition(double fraction)

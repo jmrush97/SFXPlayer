@@ -595,3 +595,169 @@ body.light-theme .reconnect-btn {
     color: #8b4500;
 }
 body.light-theme .reconnect-btn:hover { background: #ffd090; }
+
+/* ─── Last-save info in title bar ────────────────────────────────────────────── */
+.last-save-info {
+    font-size: 0.72em;
+    font-weight: normal;
+    color: #9090b8;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.desc-btn {
+    background: transparent;
+    border: 1px solid #555;
+    color: #c8c8f0;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 0.8em;
+    flex-shrink: 0;
+}
+.desc-btn:hover { background: rgba(255,255,255,0.08); }
+
+/* ─── Description popup overlay ─────────────────────────────────────────────── */
+.desc-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.desc-popup {
+    background: #1e1e3a;
+    border: 1px solid #555;
+    border-radius: 8px;
+    width: 620px;
+    max-width: 96vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.desc-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #444;
+    font-weight: bold;
+    font-size: 1em;
+    color: #c8c8f0;
+    flex-shrink: 0;
+}
+
+.desc-popup-close {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 1.1em;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+.desc-popup-close:hover { color: #fff; }
+
+.desc-popup-body {
+    padding: 12px 14px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.desc-popup-body label {
+    font-size: 0.85em;
+    color: #aaa;
+}
+
+.desc-popup-body textarea {
+    width: 100%;
+    background: #111128;
+    color: #ddd;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 0.9em;
+    resize: vertical;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.desc-popup-history-label {
+    font-size: 0.85em;
+    color: #aaa;
+    margin-top: 4px;
+}
+
+.desc-popup-history-wrap {
+    overflow-y: auto;
+    max-height: 200px;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+.desc-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82em;
+}
+.desc-history-table th {
+    background: #16163a;
+    color: #9898c0;
+    padding: 4px 8px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+}
+.desc-history-table td {
+    padding: 4px 8px;
+    border-top: 1px solid #333;
+    color: #ccc;
+}
+.desc-history-table tr:hover td { background: rgba(255,255,255,0.04); }
+
+.desc-popup-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid #444;
+    flex-shrink: 0;
+}
+
+.desc-popup-footer button {
+    padding: 5px 18px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background: #2a2a4a;
+    color: #ddd;
+    cursor: pointer;
+}
+.desc-popup-footer button:hover { background: #3a3a5a; }
+.desc-popup-footer .desc-popup-save {
+    background: #2a5a2a;
+    border-color: #3a8a3a;
+    color: #afa;
+}
+.desc-popup-footer .desc-popup-save:hover { background: #3a7a3a; }
+
+/* Light theme overrides for popup */
+body.light-theme .desc-popup { background: #f4f4ff; border-color: #bbb; color: #222; }
+body.light-theme .desc-popup-header { border-color: #ccc; color: #222; }
+body.light-theme .desc-popup-body textarea { background: #fff; color: #222; border-color: #bbb; }
+body.light-theme .desc-popup-history-wrap { border-color: #ccc; }
+body.light-theme .desc-history-table th { background: #e8e8f8; color: #444; }
+body.light-theme .desc-history-table td { color: #333; border-top-color: #ddd; }
+body.light-theme .desc-popup-footer { border-top-color: #ccc; }
+body.light-theme .desc-popup-footer button { background: #eee; border-color: #bbb; color: #333; }
+body.light-theme .desc-popup-footer .desc-popup-save { background: #d0f0d0; border-color: #4a8a4a; color: #1a4a1a; }
+body.light-theme .last-save-info { color: #5060a0; }
+body.light-theme .desc-btn { border-color: #aaa; color: #333; }

@@ -52,6 +52,13 @@ namespace SFXPlayer.classes
         public string AvailablePreviewDevices = "";
         public string CurrentPreviewDevice = "";
 
+        // Show-level metadata
+        public string ShowDescription = "";
+        public string LastSaveUser = "";
+        public string LastSaveTimestamp = "";
+        public string LastSaveReason = "";
+        public string SaveHistoryJson = "[]";
+
         // Waveform peak data for the current/next track (comma-separated normalised 0-1 values)
         public string WaveformData = "";
 

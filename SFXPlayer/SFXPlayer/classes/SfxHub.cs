@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 
@@ -106,6 +107,10 @@ namespace SFXPlayer.classes
                         int.TryParse(command.Substring(5), out int gotoIndex))
                     {
                         Program.mainForm.GotoCue(gotoIndex);
+                    }
+                    else if (rawCommand.StartsWith("description:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Program.mainForm.SetShowDescription(rawCommand.Substring(12));
                     }
                     break;
             }

@@ -23,6 +23,8 @@
             <span>Speed: <strong id="PlayingSpeed">-</strong></span>
             <span>Fade: <strong id="PlayingFadeGain">-</strong></span>
         </span>
+        <button class="desc-btn" onclick="openDescriptionPopup()" title="View / edit cue list description and save history">&#128221; Description</button>
+        <span id="lastSaveInfo" class="last-save-info"></span>
         <button id="btnThemeToggle" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark theme">&#9788;</button>
     </div>
 
@@ -171,6 +173,33 @@
             <span class="nav-btn-label">Next</span>
             <span class="nav-btn-track" id="nextNextTrackRef"></span>
         </button>
+    </div>
+
+    <!-- Description popup overlay -->
+    <div id="descriptionPopup" class="desc-popup-overlay" style="display:none;">
+        <div class="desc-popup">
+            <div class="desc-popup-header">
+                <span>Cue List Description</span>
+                <button class="desc-popup-close" onclick="closeDescriptionPopup()" title="Close">&#10005;</button>
+            </div>
+            <div class="desc-popup-body">
+                <label for="descriptionTextarea">Description:</label>
+                <textarea id="descriptionTextarea" rows="4" placeholder="Enter a description for this cue list..."></textarea>
+                <div class="desc-popup-history-label">Save History:</div>
+                <div class="desc-popup-history-wrap">
+                    <table class="desc-history-table">
+                        <thead>
+                            <tr><th>Date / Time</th><th>User</th><th>Reason</th></tr>
+                        </thead>
+                        <tbody id="saveHistoryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="desc-popup-footer">
+                <button onclick="saveDescriptionPopup()" class="desc-popup-save">Save</button>
+                <button onclick="closeDescriptionPopup()">Cancel</button>
+            </div>
+        </div>
     </div>
 
 </div>

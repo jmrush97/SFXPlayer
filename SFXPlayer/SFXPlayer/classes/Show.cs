@@ -16,6 +16,17 @@ namespace SFXPlayer.classes {
     class SFXShowEvent {
 
     }
+
+    /// <summary>
+    /// Represents a single entry in the show file's save history.
+    /// </summary>
+    [Serializable]
+    public class SaveRecord {
+        public string User = "";
+        public DateTime Timestamp = DateTime.MinValue;
+        public string Reason = "";
+    }
+
     [Serializable]
     public class Show {
         public ObservableCollection<SFX> Cues = new ObservableCollection<SFX>();
@@ -23,6 +34,21 @@ namespace SFXPlayer.classes {
         [DefaultValue(0)]
         public int NextPlayCueIndex;
         internal Action ShowFileBecameDirty;
+
+        /// <summary>General description for this cue list / show.</summary>
+        [DefaultValue("")]
+        public string Description = "";
+
+        /// <summary>Preferred playback output device stored with the file.</summary>
+        [DefaultValue("")]
+        public string PlaybackDevice = "";
+
+        /// <summary>Preferred preview output device stored with the file.</summary>
+        [DefaultValue("")]
+        public string PreviewDevice = "";
+
+        /// <summary>Chronological log of each save operation.</summary>
+        public List<SaveRecord> History = new List<SaveRecord>();
 
         public Show() {
             Cues.CollectionChanged += Cues_CollectionChanged;

@@ -484,15 +484,13 @@ function updateStopAllButton() {
 function updatePauseButton() {
     var btn = document.getElementById("btnPause");
     if (!btn) return;
-    var labelSpan = btn.querySelector('.nav-btn-label');
+    var labelSpan = btn.querySelector('.nav-btn-label') || btn;
     if (window._isPaused) {
-        if (labelSpan) labelSpan.textContent = "Resume \u25B6";
-        else btn.firstChild.textContent = "Resume \u25B6";
+        labelSpan.textContent = "Resume \u25B6";
         btn.style.background = "#27ae60";
         btn.style.fontWeight = "bold";
     } else {
-        if (labelSpan) labelSpan.textContent = "Pause";
-        else btn.firstChild.textContent = "Pause";
+        labelSpan.textContent = "Pause";
         btn.style.background = "";
         btn.style.fontWeight = "";
     }
@@ -681,36 +679,33 @@ function updateLoadingState() {
 }
 
 // ---- Nav button track references ----
+function formatTrackReference(num, desc) {
+    if (!num) return '';
+    return '#' + num + (desc ? ' ' + desc : '');
+}
+
 function updateGoButton() {
     var ref = document.getElementById('goTrackRef');
     if (!ref) return;
-    var num = window._goTrackNum || '';
-    var desc = window._goTrackDesc || '';
-    ref.textContent = num ? ('#' + num + (desc ? ' ' + desc : '')) : '';
+    ref.textContent = formatTrackReference(window._goTrackNum || '', window._goTrackDesc || '');
 }
 
 function updatePauseButtonTrack() {
     var ref = document.getElementById('pauseTrackRef');
     if (!ref) return;
-    var num = window._activeTrackNum || '';
-    var desc = window._activeTrackDesc || '';
-    ref.textContent = num ? ('#' + num + (desc ? ' ' + desc : '')) : '';
+    ref.textContent = formatTrackReference(window._activeTrackNum || '', window._activeTrackDesc || '');
 }
 
 function updateNextButton() {
     var ref = document.getElementById('nextNextTrackRef');
     if (!ref) return;
-    var num = window._nextNextTrackNum || '';
-    var desc = window._nextNextTrackDesc || '';
-    ref.textContent = num ? ('#' + num + (desc ? ' ' + desc : '')) : '';
+    ref.textContent = formatTrackReference(window._nextNextTrackNum || '', window._nextNextTrackDesc || '');
 }
 
 function updatePrevButton() {
     var ref = document.getElementById('prevTrackRef');
     if (!ref) return;
-    var num = window._prevCueNumber || '';
-    var desc = window._prevCueDesc || '';
-    ref.textContent = num ? ('#' + num + (desc ? ' ' + desc : '')) : '';
+    ref.textContent = formatTrackReference(window._prevCueNumber || '', window._prevCueDesc || '');
 }
 
 

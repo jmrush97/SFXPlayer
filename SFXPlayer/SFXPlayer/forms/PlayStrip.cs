@@ -1654,19 +1654,19 @@ namespace SFXPlayer
                     int vol = SFX.Volume;
                     _playerQueue.Enqueue(() =>
                     {
-                        bool wasPlaying2 = PlayerState == PlayerState.play;
-                        bool wasPaused2  = PlayerState == PlayerState.paused;
-                        double savedFrac2 = 0.0;
-                        if ((wasPlaying2 || wasPaused2) && _musicPlayer.Length.TotalSeconds > 0)
-                            savedFrac2 = _musicPlayer.Position.TotalSeconds / _musicPlayer.Length.TotalSeconds;
-                        if (wasPlaying2 || wasPaused2) _musicPlayer.Stop();
+                        bool isCurrentlyPlaying = PlayerState == PlayerState.play;
+                        bool isCurrentlyPaused  = PlayerState == PlayerState.paused;
+                        double positionFraction = 0.0;
+                        if ((isCurrentlyPlaying || isCurrentlyPaused) && _musicPlayer.Length.TotalSeconds > 0)
+                            positionFraction = _musicPlayer.Position.TotalSeconds / _musicPlayer.Length.TotalSeconds;
+                        if (isCurrentlyPlaying || isCurrentlyPaused) _musicPlayer.Stop();
                         if (!string.IsNullOrEmpty(fn) && File.Exists(fn))
                         {
                             _musicPlayer.Open(fn, dev, spd, fi, fo, fc);
                             _musicPlayer.Volume = vol;
-                            if (wasPlaying2 || wasPaused2) _musicPlayer.Seek(savedFrac2);
+                            if (isCurrentlyPlaying || isCurrentlyPaused) _musicPlayer.Seek(positionFraction);
                             PlayerState = PlayerState.loaded;
-                            if (wasPlaying2)
+                            if (isCurrentlyPlaying)
                             {
                                 _musicPlayer.Play();
                                 PlayerState = PlayerState.play;

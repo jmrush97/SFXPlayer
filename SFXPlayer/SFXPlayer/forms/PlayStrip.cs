@@ -1400,6 +1400,45 @@ namespace SFXPlayer
             bnVolume.Invalidate();
         }
 
+        /// <summary>Applies a new volume directly to the live player without reloading the file.</summary>
+        public void SetVolumeLive(int vol)
+        {
+            SFX.Volume = Math.Max(0, Math.Min(100, vol));
+            _musicPlayer.Volume = SFX.Volume;
+            pnlWaveform.SetVolume(SFX.Volume);
+            RefreshVolumeDisplay();
+        }
+
+        /// <summary>Changes playback speed on the live player, preserving position if playing.</summary>
+        public void SetSpeedLive(float speed)
+        {
+            SFX.Speed = Math.Max(0.1f, Math.Min(8.0f, speed));
+            UpdateSpeedTooltip();
+            if (PlayerState == PlayerState.play || PlayerState == PlayerState.loaded)
+            {
+                bool wasPlaying = PlayerState == PlayerState.play;
+                double savedFraction = 0.0;
+                if (wasPlaying && _musicPlayer.Length.TotalSeconds > 0)
+                    savedFraction = _musicPlayer.Position.TotalSeconds / _musicPlayer.Length.TotalSeconds;
+                if (wasPlaying) _musicPlayer.Stop(); // fires PlaybackStopped → sets PlayerState=loaded
+                if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+                {
+                    _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                        SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
+                    _musicPlayer.Volume = SFX.Volume;
+                    PlayerState = PlayerState.loaded;
+                    if (wasPlaying)
+                    {
+                        _musicPlayer.Seek(savedFraction);
+                        _musicPlayer.Play();
+                        PlayerState = PlayerState.play;
+                        PlayingStateChanged?.Invoke(this, true);
+                    }
+                }
+            }
+            UpdatePlayButton();
+        }
+
         private void BnVolume_Paint(object sender, PaintEventArgs e)
         {
             if (SFX == null) return;

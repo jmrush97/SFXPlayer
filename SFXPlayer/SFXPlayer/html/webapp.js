@@ -79,6 +79,7 @@ var WebApp = function () {
                             } else if (nodeName === "IsPaused") {
                                 window._isPaused = (nodeValue === "true");
                                 updatePauseButton();
+                                updatePlayingInfoVisibility();
                             } else if (nodeName === "PlayingVolume") {
                                 var pv = document.getElementById("PlayingVolume");
                                 if (pv) pv.textContent = nodeValue;
@@ -423,7 +424,13 @@ function updateFadeGain(gain) {
 function updatePlayingInfoVisibility() {
     var row = document.getElementById("playingInfoContent");
     if (!row) return;
-    row.style.color = window._isPlaying ? "#8f8" : "#666";
+    if (window._isPlaying) {
+        row.style.color = "#8f8";  // green when playing
+    } else if (window._isPaused) {
+        row.style.color = "#fa8";  // amber when paused
+    } else {
+        row.style.color = "#666";  // gray when stopped
+    }
 }
 
 function updateStopAllButton() {

@@ -219,20 +219,23 @@ namespace SFXPlayer
             PlayStrip prev = PrevPlayCue;
             PlayStrip playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
             PlayStrip paused = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPaused);
+            // When audio is active (playing or paused) the display shows that cue; otherwise the next cue
+            PlayStrip active = playing ?? paused;
+            PlayStrip displayCue = active ?? next;
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
                 PrevMainText = rtPrevMainText.Text,
-                MainText = rtMainText.Text,
-                TrackName = Path.GetFileName(next?.SFX.FileName),
-                TrackInfo = BuildTrackInfoString(next),
-                TrackDurationSeconds = next?.PlaybackLength.TotalSeconds ?? 0.0,
-                CurrentVolume = next?.SFX.Volume ?? 50,
-                CurrentSpeed = next?.SFX.Speed ?? 1.0f,
-                StopOthers = next?.SFX.StopOthers ?? false,
-                CueNumber = next != null ? (next.PlayStripIndex + 1).ToString("D3") : "",
-                CueDescription = next?.SFX.Description ?? "",
-                CueFileName = Path.GetFileName(next?.SFX.FileName ?? ""),
+                MainText = displayCue?.SFX.MainText ?? rtMainText.Text,
+                TrackName = Path.GetFileName(displayCue?.SFX.FileName),
+                TrackInfo = BuildTrackInfoString(displayCue),
+                TrackDurationSeconds = active?.PlaybackLength.TotalSeconds ?? (next?.PlaybackLength.TotalSeconds ?? 0.0),
+                CurrentVolume = displayCue?.SFX.Volume ?? 50,
+                CurrentSpeed = displayCue?.SFX.Speed ?? 1.0f,
+                StopOthers = displayCue?.SFX.StopOthers ?? false,
+                CueNumber = displayCue != null ? (displayCue.PlayStripIndex + 1).ToString("D3") : "",
+                CueDescription = displayCue?.SFX.Description ?? "",
+                CueFileName = Path.GetFileName(displayCue?.SFX.FileName ?? ""),
                 CueAutoRun = next?.SFX.AutoPlay ?? false,
                 CuePauseSeconds = (next?.SFX.AutoPlayPauseMs ?? 0) / 1000.0,
                 CueFadeInMs = next?.SFX.FadeInDurationMs ?? 0,
@@ -243,14 +246,14 @@ namespace SFXPlayer
                 PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? ""),
                 IsPlaying = playing != null,
                 IsPaused = paused != null && playing == null,
-                PlayingVolume = next?.SFX.Volume ?? 50,
-                PlayingSpeed = next?.SFX.Speed ?? 1.0f,
-                PlayingFadeGain = 1.0f,
+                PlayingVolume = active?.SFX.Volume ?? (next?.SFX.Volume ?? 50),
+                PlayingSpeed = active?.SFX.Speed ?? (next?.SFX.Speed ?? 1.0f),
+                PlayingFadeGain = active?.CurrentFadeGain ?? 1.0f,
                 AvailablePlaybackDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
-                WaveformData = GetWaveformData(next),
+                WaveformData = GetWaveformData(displayCue),
                 CueListJson = GetCueListJson()
             };
             OnDisplayChanged(disp);
@@ -1101,6 +1104,12 @@ namespace SFXPlayer
         {
             StopAll(sender, e);
             StopPreviews(sender, e);
+            bnPause.Text = "Pause";
+        }
+
+        private void bnPause_Click(object sender, EventArgs e)
+        {
+            TogglePause();
         }
 
         private void ProgressTimer_Tick(object sender, EventArgs e)
@@ -1248,25 +1257,26 @@ namespace SFXPlayer
         {
             PlayStrip next = NextPlayCue;
             PlayStrip prev = PrevPlayCue;
-            // Find the currently playing or paused strip for live volume/speed/fade data
             PlayStrip playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
             PlayStrip paused = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPaused);
             PlayStrip active = playing ?? paused;
+            // Show the active cue prominently when audio is running; fall back to the next cue
+            PlayStrip displayCue = active ?? next;
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
                 PrevMainText = rtPrevMainText.Text,
-                MainText = rtMainText.Text,
-                TrackName = Path.GetFileName(next?.SFX.FileName),
-                TrackInfo = BuildTrackInfoString(next),
+                MainText = displayCue?.SFX.MainText ?? rtMainText.Text,
+                TrackName = Path.GetFileName(displayCue?.SFX.FileName),
+                TrackInfo = BuildTrackInfoString(displayCue),
                 TrackPositionSeconds = positionSeconds,
                 TrackDurationSeconds = durationSeconds,
-                CurrentVolume = next?.SFX.Volume ?? 50,
-                CurrentSpeed = next?.SFX.Speed ?? 1.0f,
-                StopOthers = next?.SFX.StopOthers ?? false,
-                CueNumber = next != null ? (next.PlayStripIndex + 1).ToString("D3") : "",
-                CueDescription = next?.SFX.Description ?? "",
-                CueFileName = Path.GetFileName(next?.SFX.FileName ?? ""),
+                CurrentVolume = displayCue?.SFX.Volume ?? 50,
+                CurrentSpeed = displayCue?.SFX.Speed ?? 1.0f,
+                StopOthers = displayCue?.SFX.StopOthers ?? false,
+                CueNumber = displayCue != null ? (displayCue.PlayStripIndex + 1).ToString("D3") : "",
+                CueDescription = displayCue?.SFX.Description ?? "",
+                CueFileName = Path.GetFileName(displayCue?.SFX.FileName ?? ""),
                 CueAutoRun = next?.SFX.AutoPlay ?? false,
                 CuePauseSeconds = (next?.SFX.AutoPlayPauseMs ?? 0) / 1000.0,
                 CueFadeInMs = next?.SFX.FadeInDurationMs ?? 0,
@@ -1284,7 +1294,7 @@ namespace SFXPlayer
                 CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
-                WaveformData = GetWaveformData(active ?? next),
+                WaveformData = GetWaveformData(displayCue),
                 CueListJson = GetCueListJson()
             };
             OnDisplayChanged(disp);
@@ -1653,12 +1663,17 @@ namespace SFXPlayer
         {
             _commandQueue.Enqueue(() =>
             {
+                vol = Math.Max(0, Math.Min(100, vol));
                 if (NextPlayCue != null)
                 {
-                    NextPlayCue.SFX.Volume = Math.Max(0, Math.Min(100, vol));
+                    NextPlayCue.SFX.Volume = vol;
                     NextPlayCue.RefreshVolumeDisplay();
-                    UpdateWebApp();
                 }
+                // Also apply immediately to any live (playing or paused) strip
+                var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+                if (active != null)
+                    active.SetVolumeLive(vol);
+                UpdateWebApp();
             });
         }
 
@@ -1666,11 +1681,14 @@ namespace SFXPlayer
         {
             _commandQueue.Enqueue(() =>
             {
+                speed = Math.Max(0.1f, Math.Min(8.0f, speed));
                 if (NextPlayCue != null)
-                {
-                    NextPlayCue.SFX.Speed = Math.Max(0.1f, Math.Min(20.0f, speed));
-                    UpdateWebApp();
-                }
+                    NextPlayCue.SFX.Speed = speed;
+                // Also apply immediately to any live (playing or paused) strip
+                var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+                if (active != null)
+                    active.SetSpeedLive(speed);
+                UpdateWebApp();
             });
         }
 
@@ -1814,11 +1832,23 @@ namespace SFXPlayer
             {
                 var playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
                 var paused = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPaused);
+                PlayStrip active = playing ?? paused;
                 if (playing != null)
                     playing.TogglePause();
                 else if (paused != null)
                     paused.TogglePause();
-                UpdateWebApp();
+                // Update the WinForms pause button label
+                if (active?.IsPaused == true)
+                    bnPause.Text = "Resume \u25B6";
+                else
+                    bnPause.Text = "Pause";
+                // Reset the paused-transition flag so the timer sends a fresh correct update
+                _wasPaused = false;
+                // Send an immediate update with the correct playback position
+                if (active != null)
+                    UpdateWebAppProgress(active.PlaybackPosition.TotalSeconds, active.PlaybackLength.TotalSeconds);
+                else
+                    UpdateWebApp();
             });
         }
 

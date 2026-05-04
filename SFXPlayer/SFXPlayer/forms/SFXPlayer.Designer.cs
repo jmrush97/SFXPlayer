@@ -42,6 +42,7 @@ namespace SFXPlayer
             this.dlgOpenAudioFile = new System.Windows.Forms.OpenFileDialog();
             this.rtMainText = new System.Windows.Forms.RichTextBox();
             this.bnStopAll = new System.Windows.Forms.Button();
+            this.bnPause = new System.Windows.Forms.Button();
             this.ProgressTimer = new System.Windows.Forms.Timer(this.components);
             this.bnPlayNext = new System.Windows.Forms.Button();
             this.bnAddCue = new System.Windows.Forms.Button();
@@ -141,6 +142,18 @@ namespace SFXPlayer
             this.toolTip1.SetToolTip(this.bnStopAll, "Esc");
             this.bnStopAll.UseVisualStyleBackColor = false;
             this.bnStopAll.Click += new System.EventHandler(this.bnStopAll_Click);
+            // 
+            // bnPause
+            // 
+            this.bnPause.BackColor = System.Drawing.Color.FromArgb(230, 126, 34);
+            this.bnPause.ForeColor = System.Drawing.Color.White;
+            this.bnPause.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.bnPause.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.bnPause.Name = "bnPause";
+            this.bnPause.TabIndex = 18;
+            this.bnPause.Text = "Pause";
+            this.bnPause.UseVisualStyleBackColor = false;
+            this.bnPause.Click += new System.EventHandler(this.bnPause_Click);
             // 
             // ProgressTimer
             // 
@@ -612,15 +625,16 @@ namespace SFXPlayer
             // 
             // ── New layout containers ──────────────────────────────────────────────
             // 
-            // pnlNavBar – bottom bar with four equal transport buttons
+            // pnlNavBar – bottom bar with five equal transport buttons
             // 
             this.pnlNavBar = new System.Windows.Forms.TableLayoutPanel();
             this.pnlNavBar.SuspendLayout();
-            this.pnlNavBar.ColumnCount = 4;
-            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.pnlNavBar.ColumnCount = 5;
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.pnlNavBar.RowCount = 1;
             this.pnlNavBar.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.pnlNavBar.Dock = System.Windows.Forms.DockStyle.Bottom;
@@ -706,8 +720,9 @@ namespace SFXPlayer
             // pnlNavBar: transport buttons
             this.pnlNavBar.Controls.Add(this.bnPrev, 0, 0);
             this.pnlNavBar.Controls.Add(this.bnStopAll, 1, 0);
-            this.pnlNavBar.Controls.Add(this.bnPlayNext, 2, 0);
-            this.pnlNavBar.Controls.Add(this.bnNext, 3, 0);
+            this.pnlNavBar.Controls.Add(this.bnPause, 2, 0);
+            this.pnlNavBar.Controls.Add(this.bnPlayNext, 3, 0);
+            this.pnlNavBar.Controls.Add(this.bnNext, 4, 0);
             // Form: dock order → menuStrip (top), statusStrip (bottom), navBar (above status), content (fill)
             this.Controls.Add(this.menuStrip1);
             this.Controls.Add(this.statusStrip);
@@ -1057,6 +1072,7 @@ namespace SFXPlayer
         private System.Windows.Forms.OpenFileDialog dlgOpenAudioFile;
         private System.Windows.Forms.RichTextBox rtMainText;
         private System.Windows.Forms.Button bnStopAll;
+        private System.Windows.Forms.Button bnPause;
         private System.Windows.Forms.Timer ProgressTimer;
         private System.Windows.Forms.Button bnPlayNext;
         private System.Windows.Forms.Button bnAddCue;

@@ -443,6 +443,22 @@ html, body {
 .btn-go    { background-color: #27ae60; }
 .btn-next  { background-color: #555566; }
 
+/* ─── Reconnect button ───────────────────────────────────────────────────────── */
+.reconnect-btn {
+    background: #7a3a00;
+    border: 1px solid #c86000;
+    border-radius: 4px;
+    color: #ffcc88;
+    font-size: 0.8em;
+    cursor: pointer;
+    padding: 2px 8px;
+    flex-shrink: 0;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.reconnect-btn:hover { background: #a05010; }
+.reconnect-btn:active { background: #c86000; }
+
 /* ─── Theme toggle button ────────────────────────────────────────────────────── */
 .theme-toggle-btn {
     background: none;
@@ -572,3 +588,10 @@ body.light-theme .theme-toggle-btn {
     color: #1a1a60;
 }
 body.light-theme .theme-toggle-btn:hover { background: rgba(0,0,0,0.08); }
+
+body.light-theme .reconnect-btn {
+    background: #ffe0b0;
+    border-color: #c87030;
+    color: #8b4500;
+}
+body.light-theme .reconnect-btn:hover { background: #ffd090; }

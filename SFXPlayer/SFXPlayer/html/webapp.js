@@ -1,8 +1,8 @@
 var WebApp = function () {
     // Custom reconnect policy: retry indefinitely with capped exponential backoff.
     // The default withAutomaticReconnect() only tries 4 times (0, 2, 10, 30 s) and
-    // then permanently stops, leaving the page dead. This policy keeps retrying every
-    // 5 s after the first few attempts so a brief server-side pause never kills the UI.
+    // then permanently stops, leaving the page dead. This policy uses delays of
+    // 0, 2, 5, 10 s for the first four attempts, then retries every 5 s indefinitely.
     var _retryPolicy = {
         nextRetryDelayInMilliseconds: function (retryContext) {
             var delays = [0, 2000, 5000, 10000];
@@ -17,13 +17,17 @@ var WebApp = function () {
         .withAutomaticReconnect(_retryPolicy)
         .build();
 
-    // Show connection status in the title bar when not connected
+    // Show connection status in the title bar when not connected;
+    // also show/hide the manual reconnect button.
     function setConnectionStatus(text, color) {
         var el = document.getElementById("connectionStatus");
-        if (!el) return;
-        el.textContent = text;
-        el.style.color = color || "";
-        el.style.display = text ? "inline" : "none";
+        if (el) {
+            el.textContent = text;
+            el.style.color = color || "";
+            el.style.display = text ? "inline" : "none";
+        }
+        var btn = document.getElementById("btnReconnect");
+        if (btn) btn.style.display = text ? "inline-block" : "none";
     }
 
     _connection.onreconnecting(function() {
@@ -34,8 +38,38 @@ var WebApp = function () {
     });
     _connection.onclose(function(err) {
         // Should not normally reach here with the indefinite policy, but guard anyway
-        setConnectionStatus("Disconnected -- refresh page", "#f55");
+        setConnectionStatus("Disconnected", "#f55");
         if (err) console.error("SignalR connection closed with error: " + err);
+    });
+
+    // Manual reconnect: stop whatever state the connection is in and restart.
+    // Called by the Reconnect button in the title bar.
+    this.manualReconnect = function () {
+        setConnectionStatus("Reconnecting...", "#fa8");
+        _connection.stop().then(function () {
+            startConnection();
+        }).catch(function () {
+            startConnection();
+        });
+    };
+
+    // Auto-reconnect when the device wakes from suspend/sleep.
+    // The Page Visibility API fires 'visibilitychange' when the screen is
+    // unlocked or the browser tab becomes active again after a suspend.
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' &&
+            _connection.state === signalR.HubConnectionState.Disconnected) {
+            startConnection();
+        }
+    });
+
+    // Auto-reconnect when the network comes back online.
+    // This covers VPN reconnection, Wi-Fi handover, and similar drop-outs
+    // where the OS fires the 'online' event once connectivity is restored.
+    window.addEventListener('online', function () {
+        if (_connection.state === signalR.HubConnectionState.Disconnected) {
+            startConnection();
+        }
     });
 
     function processMessage(received_msg) {

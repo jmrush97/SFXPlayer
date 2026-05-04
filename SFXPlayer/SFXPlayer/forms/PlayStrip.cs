@@ -51,6 +51,7 @@ namespace SFXPlayer
         // Overlay state
         private float _positionFraction = -1f;  // -1 = no line
         private int _volumePct = 100;            // 0–100
+
         private float _zoom = 1f;               // 1 = full view; >1 = zoomed in
         private float _zoomCenter = 0.5f;       // fractional center of the zoomed view
 
@@ -249,6 +250,12 @@ namespace SFXPlayer
         /// </summary>
         private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _playerQueue =
             new System.Collections.Concurrent.ConcurrentQueue<Action>();
+
+        // When set, the next PlaybackStopped event will not trigger auto-play.
+        // Set by Stop() so that an explicit stop (Stop All, StopOthers) never
+        // advances to the follow-on cue. Cleared by Play() so that natural
+        // playback-end auto-play works normally after the user plays the cue again.
+        private bool _suppressAutoPlay = false;
 
         /// <summary>
         /// Executes all queued player actions in order on the calling thread (must be the UI thread).
@@ -1129,6 +1136,7 @@ namespace SFXPlayer
         public void Play()
         {
             AppLogger.Info($"PlayStrip.Play: \"{SFX.FileName}\" | description: \"{SFX.Description}\"");
+            _suppressAutoPlay = false; // explicit play — allow auto-follow when this cue finishes
             if (SFX.Skipped)
             {
                 AppLogger.Info($"PlayStrip.Play: cue is skipped, not playing");
@@ -1229,8 +1237,7 @@ namespace SFXPlayer
             AppLogger.Info($"PlayStrip.Stop: \"{SFX.FileName}\"");
             if (PlayerState == PlayerState.paused || PlayerState == PlayerState.play)
             {
-                //_musicPlayer.Volume = 0;    //makes the stop less "clicky"
-                //Thread.Sleep(10);
+                _suppressAutoPlay = true; // explicit stop — do not trigger follow-on cue
                 _musicPlayer.Stop();
                 //_musicPlayer.Volume = SFX.Volume;
                 PlayerState = PlayerState.loaded;
@@ -1250,7 +1257,7 @@ namespace SFXPlayer
             }
             catch { }
 
-            if (SFX.AutoPlay)
+            if (SFX.AutoPlay && !_suppressAutoPlay)
             {
                 if (SFX.DebounceEndMs > 0)
                     System.Threading.Tasks.Task.Delay(SFX.DebounceEndMs).ContinueWith(_ =>

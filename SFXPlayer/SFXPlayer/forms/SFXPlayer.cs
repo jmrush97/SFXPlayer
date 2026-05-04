@@ -1759,8 +1759,17 @@ namespace SFXPlayer
             _commandQueue.Enqueue(() =>
             {
                 int clamped = Math.Max(0, Math.Min(100, vol));
-                if (NextPlayCue != null)
+                var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+                if (active != null)
                 {
+                    // A track is already playing/paused — adjust only that track.
+                    // Do NOT touch NextPlayCue so its preset volume is not overwritten.
+                    active.SFX.Volume = clamped;
+                    active.RefreshVolumeDisplay();
+                }
+                else if (NextPlayCue != null)
+                {
+                    // Nothing is playing: adjust the next cue's preset volume.
                     NextPlayCue.SFX.Volume = clamped;
                     NextPlayCue.RefreshVolumeDisplay();
                 }
@@ -1793,8 +1802,18 @@ namespace SFXPlayer
             _commandQueue.Enqueue(() =>
             {
                 float clamped = Math.Max(0.1f, Math.Min(8.0f, speed));
-                if (NextPlayCue != null)
+                var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+                if (active != null)
+                {
+                    // A track is already playing/paused — adjust only that track.
+                    // Do NOT touch NextPlayCue so its preset speed is not overwritten.
+                    active.SFX.Speed = clamped;
+                }
+                else if (NextPlayCue != null)
+                {
+                    // Nothing is playing: adjust the next cue's preset speed.
                     NextPlayCue.SFX.Speed = clamped;
+                }
                 _pendingWebSpeed = clamped;
                 _webSpeedDebounceTimer.Stop();
                 _webSpeedDebounceTimer.Start();

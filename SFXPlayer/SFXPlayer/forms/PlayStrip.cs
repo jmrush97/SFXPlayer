@@ -1034,6 +1034,15 @@ namespace SFXPlayer
         }
 
         public bool IsPlaying => (PlayerState == PlayerState.play);
+        public bool IsPaused => (PlayerState == PlayerState.paused);
+
+        public void TogglePause()
+        {
+            if (PlayerState == PlayerState.play)
+                Pause();
+            else if (PlayerState == PlayerState.paused)
+                UnPause();
+        }
 
         public TimeSpan PlaybackPosition => _musicPlayer.Position;
         public TimeSpan PlaybackLength => _musicPlayer.Length;

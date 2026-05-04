@@ -368,6 +368,9 @@ namespace SFXPlayer.classes
                                     case "delete":
                                         Program.mainForm.DeleteNextCue();
                                         break;
+                                    case "togglepause":
+                                        Program.mainForm.TogglePause();
+                                        break;
                                     case "autorun:true":
                                         Program.mainForm.SetNextCueAutoRun(true);
                                         break;

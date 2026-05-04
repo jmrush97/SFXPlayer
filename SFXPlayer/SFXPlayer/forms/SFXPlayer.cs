@@ -217,6 +217,8 @@ namespace SFXPlayer
         {
             PlayStrip next = NextPlayCue;
             PlayStrip prev = PrevPlayCue;
+            PlayStrip playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
+            PlayStrip paused = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPaused);
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
@@ -239,7 +241,8 @@ namespace SFXPlayer
                 PrevCueNumber = prev != null ? (prev.PlayStripIndex + 1).ToString("D3") : "",
                 PrevCueDescription = prev?.SFX.Description ?? "",
                 PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? ""),
-                IsPlaying = false,
+                IsPlaying = playing != null,
+                IsPaused = paused != null && playing == null,
                 PlayingVolume = next?.SFX.Volume ?? 50,
                 PlayingSpeed = next?.SFX.Speed ?? 1.0f,
                 PlayingFadeGain = 1.0f,
@@ -1109,6 +1112,7 @@ namespace SFXPlayer
             }
 
             PlayStrip playingStrip = null;
+            PlayStrip pausedStrip = null;
             foreach (Control ctl in CueList.Controls)
             {
                 if (ctl.GetType() == typeof(PlayStrip))
@@ -1119,21 +1123,28 @@ namespace SFXPlayer
                         ps.ProgressUpdate(sender, e);
                         playingStrip = ps;
                     }
+                    else if (ps.IsPaused && pausedStrip == null)
+                    {
+                        pausedStrip = ps;
+                    }
                 }
             }
 
-            UpdateProgressDisplay(playingStrip);
+            UpdateProgressDisplay(playingStrip, pausedStrip);
         }
 
         private bool _wasPlaying = false;
+        private bool _wasPaused = false;
 
-        private void UpdateProgressDisplay(PlayStrip playingStrip)
+        private void UpdateProgressDisplay(PlayStrip playingStrip, PlayStrip pausedStrip = null)
         {
-            if (playingStrip != null)
+            PlayStrip activeStrip = playingStrip ?? pausedStrip;
+            bool isPaused = (playingStrip == null && pausedStrip != null);
+
+            if (activeStrip != null)
             {
-                _wasPlaying = true;
-                double duration = playingStrip.PlaybackLength.TotalSeconds;
-                double position = playingStrip.PlaybackPosition.TotalSeconds;
+                double duration = activeStrip.PlaybackLength.TotalSeconds;
+                double position = activeStrip.PlaybackPosition.TotalSeconds;
                 double remaining = Math.Max(0, duration - position);
                 try
                 {
@@ -1156,8 +1167,24 @@ namespace SFXPlayer
                 playbackTimeLabel.Text = string.Format("{0} / -{1}",
                     FormatTime(position), FormatTime(remaining));
 
-                UpdateTrackInfoLabel(playingStrip);
-                UpdateWebAppProgress(position, duration);
+                UpdateTrackInfoLabel(activeStrip);
+
+                if (isPaused)
+                {
+                    // When paused, send a single web update on transition into paused state
+                    if (!_wasPaused)
+                    {
+                        _wasPaused = true;
+                        _wasPlaying = false;
+                        UpdateWebAppProgress(position, duration);
+                    }
+                }
+                else
+                {
+                    _wasPlaying = true;
+                    _wasPaused = false;
+                    UpdateWebAppProgress(position, duration);
+                }
             }
             else
             {
@@ -1169,10 +1196,11 @@ namespace SFXPlayer
                     : "0:00 / 0:00";
                 UpdateTrackInfoLabel(null);
 
-                // Push a single web reset when transitioning from playing to stopped
-                if (_wasPlaying)
+                // Push a single web reset when transitioning from playing/paused to stopped
+                if (_wasPlaying || _wasPaused)
                 {
                     _wasPlaying = false;
+                    _wasPaused = false;
                     UpdateWebApp();
                 }
             }
@@ -1220,8 +1248,10 @@ namespace SFXPlayer
         {
             PlayStrip next = NextPlayCue;
             PlayStrip prev = PrevPlayCue;
-            // Find the currently playing strip for live volume/speed/fade data
+            // Find the currently playing or paused strip for live volume/speed/fade data
             PlayStrip playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
+            PlayStrip paused = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPaused);
+            PlayStrip active = playing ?? paused;
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
@@ -1246,14 +1276,15 @@ namespace SFXPlayer
                 PrevCueDescription = prev?.SFX.Description ?? "",
                 PrevCueFileName = Path.GetFileName(prev?.SFX.FileName ?? ""),
                 IsPlaying = playing != null,
-                PlayingVolume = playing?.SFX.Volume ?? (next?.SFX.Volume ?? 50),
-                PlayingSpeed = playing?.SFX.Speed ?? (next?.SFX.Speed ?? 1.0f),
-                PlayingFadeGain = playing?.CurrentFadeGain ?? 1.0f,
+                IsPaused = paused != null && playing == null,
+                PlayingVolume = active?.SFX.Volume ?? (next?.SFX.Volume ?? 50),
+                PlayingSpeed = active?.SFX.Speed ?? (next?.SFX.Speed ?? 1.0f),
+                PlayingFadeGain = active?.CurrentFadeGain ?? 1.0f,
                 AvailablePlaybackDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPlaybackDevice = Settings.Default.LastPlaybackDevice ?? "",
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
-                WaveformData = GetWaveformData(playing ?? next),
+                WaveformData = GetWaveformData(active ?? next),
                 CueListJson = GetCueListJson()
             };
             OnDisplayChanged(disp);
@@ -1754,15 +1785,40 @@ namespace SFXPlayer
             _commandQueue.Enqueue(() =>
             {
                 fraction = Math.Max(0.0, Math.Min(1.0, fraction));
-                var playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
-                if (playing != null)
+                var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+                if (active != null)
                 {
-                    playing.SeekToFraction((float)fraction);
+                    active.SeekToFraction((float)fraction);
+                    // If paused, push the new position to the web immediately
+                    if (active.IsPaused)
+                    {
+                        double pos = active.PlaybackPosition.TotalSeconds;
+                        double dur = active.PlaybackLength.TotalSeconds;
+                        UpdateWebAppProgress(pos, dur);
+                    }
                 }
                 else if (NextPlayCue != null && NextPlayCue.PlaybackLength.TotalSeconds > 0)
                 {
                     NextPlayCue.SeekToFraction((float)fraction);
                 }
+            });
+        }
+
+        /// <summary>
+        /// Toggles pause/resume for any currently playing audio. If playing, pauses; if paused, resumes.
+        /// </summary>
+        internal void TogglePause()
+        {
+            AppLogger.Info("SFXPlayer.TogglePause");
+            _commandQueue.Enqueue(() =>
+            {
+                var playing = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPlaying);
+                var paused = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && ps.IsPaused);
+                if (playing != null)
+                    playing.TogglePause();
+                else if (paused != null)
+                    paused.TogglePause();
+                UpdateWebApp();
             });
         }
 

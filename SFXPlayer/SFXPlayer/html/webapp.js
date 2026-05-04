@@ -76,6 +76,9 @@ var WebApp = function () {
                                 window._isPlaying = (nodeValue === "true");
                                 updatePlayingInfoVisibility();
                                 updateStopAllButton();
+                            } else if (nodeName === "IsPaused") {
+                                window._isPaused = (nodeValue === "true");
+                                updatePauseButton();
                             } else if (nodeName === "PlayingVolume") {
                                 var pv = document.getElementById("PlayingVolume");
                                 if (pv) pv.textContent = nodeValue;
@@ -433,6 +436,20 @@ function updateStopAllButton() {
     } else {
         btn.style.background = "";
         btn.style.color = "";
+        btn.style.fontWeight = "";
+    }
+}
+
+function updatePauseButton() {
+    var btn = document.getElementById("btnPause");
+    if (!btn) return;
+    if (window._isPaused) {
+        btn.textContent = "Resume";
+        btn.style.background = "#27ae60";
+        btn.style.fontWeight = "bold";
+    } else {
+        btn.textContent = "Pause";
+        btn.style.background = "";
         btn.style.fontWeight = "";
     }
 }

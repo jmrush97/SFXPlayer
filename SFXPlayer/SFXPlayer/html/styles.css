@@ -413,7 +413,8 @@ html, body {
 
 .nav-btn:last-child { border-right: none; }
 .nav-btn:active     { filter: brightness(0.75); }
-.btn-prev { background-color: #555566; }
-.btn-stop { background-color: #c0392b; }
-.btn-go   { background-color: #27ae60; }
-.btn-next { background-color: #555566; }
+.btn-prev  { background-color: #555566; }
+.btn-stop  { background-color: #c0392b; }
+.btn-pause { background-color: #e67e22; }
+.btn-go    { background-color: #27ae60; }
+.btn-next  { background-color: #555566; }

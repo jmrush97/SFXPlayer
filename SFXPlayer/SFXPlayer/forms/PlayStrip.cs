@@ -1057,6 +1057,7 @@ namespace SFXPlayer
 
         public bool IsPlaying => (PlayerState == PlayerState.play);
         public bool IsPaused => (PlayerState == PlayerState.paused);
+        public bool IsLoading => (PlayerState == PlayerState.loading);
 
         public void TogglePause()
         {

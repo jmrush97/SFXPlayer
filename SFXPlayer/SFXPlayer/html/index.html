@@ -21,6 +21,7 @@
             <span>Speed: <strong id="PlayingSpeed">-</strong></span>
             <span>Fade: <strong id="PlayingFadeGain">-</strong></span>
         </span>
+        <button id="btnThemeToggle" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark theme">&#9788;</button>
     </div>
 
     <!-- Three-column main area -->
@@ -141,11 +142,23 @@
 
     <!-- Navigation bar -->
     <div class="nav-bar">
-        <button class="nav-btn btn-prev" onclick="webapp.sendCommand('previous')">Previous</button>
+        <button class="nav-btn btn-prev" onclick="webapp.sendCommand('previous')" id="btnPrev">
+            <span class="nav-btn-label">Previous</span>
+            <span class="nav-btn-track" id="prevTrackRef"></span>
+        </button>
         <button class="nav-btn btn-stop" onclick="webapp.sendCommand('stop')">Stop</button>
-        <button class="nav-btn btn-pause" id="btnPause" onclick="webapp.sendCommand('togglepause')">Pause</button>
-        <button class="nav-btn btn-go" onclick="webapp.sendCommand('play')">Go</button>
-        <button class="nav-btn btn-next" onclick="webapp.sendCommand('next')">Next</button>
+        <button class="nav-btn btn-pause" id="btnPause" onclick="webapp.sendCommand('togglepause')">
+            <span class="nav-btn-label">Pause</span>
+            <span class="nav-btn-track" id="pauseTrackRef"></span>
+        </button>
+        <button class="nav-btn btn-go" id="btnGo" onclick="webapp.sendCommand('play')">
+            <span class="nav-btn-label">Go</span>
+            <span class="nav-btn-track" id="goTrackRef"></span>
+        </button>
+        <button class="nav-btn btn-next" onclick="webapp.sendCommand('next')" id="btnNext">
+            <span class="nav-btn-label">Next</span>
+            <span class="nav-btn-track" id="nextNextTrackRef"></span>
+        </button>
     </div>
 
 </div>

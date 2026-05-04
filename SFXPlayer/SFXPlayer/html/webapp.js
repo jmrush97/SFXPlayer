@@ -122,6 +122,37 @@ var WebApp = function () {
                             updateWaveform(nodeValue || "");
                         } else if (nodeName === "CueListJson") {
                             renderCueList(nodeValue || "[]");
+                        } else if (nodeName === "IsLoading") {
+                            window._isLoading = (nodeValue === "true");
+                            updateLoadingState();
+                        } else if (nodeName === "GoTrackNum") {
+                            window._goTrackNum = nodeValue;
+                            updateGoButton();
+                        } else if (nodeName === "GoTrackDesc") {
+                            window._goTrackDesc = nodeValue;
+                            updateGoButton();
+                        } else if (nodeName === "ActiveTrackNum") {
+                            window._activeTrackNum = nodeValue;
+                            updatePauseButtonTrack();
+                        } else if (nodeName === "ActiveTrackDesc") {
+                            window._activeTrackDesc = nodeValue;
+                            updatePauseButtonTrack();
+                        } else if (nodeName === "NextNextTrackNum") {
+                            window._nextNextTrackNum = nodeValue;
+                            updateNextButton();
+                        } else if (nodeName === "NextNextTrackDesc") {
+                            window._nextNextTrackDesc = nodeValue;
+                            updateNextButton();
+                        } else if (nodeName === "PrevCueNumber") {
+                            window._prevCueNumber = nodeValue;
+                            updatePrevButton();
+                            var pnField = document.getElementById("PrevCueNumber");
+                            if (pnField) pnField.textContent = nodeValue;
+                        } else if (nodeName === "PrevCueDescription") {
+                            window._prevCueDesc = nodeValue;
+                            updatePrevButton();
+                            var pdField = document.getElementById("PrevCueDescription");
+                            if (pdField) pdField.textContent = nodeValue;
                         } else {
                             var field = document.getElementById(nodeName);
                             if (field != null) {
@@ -453,12 +484,15 @@ function updateStopAllButton() {
 function updatePauseButton() {
     var btn = document.getElementById("btnPause");
     if (!btn) return;
+    var labelSpan = btn.querySelector('.nav-btn-label');
     if (window._isPaused) {
-        btn.textContent = "Resume";
+        if (labelSpan) labelSpan.textContent = "Resume \u25B6";
+        else btn.firstChild.textContent = "Resume \u25B6";
         btn.style.background = "#27ae60";
         btn.style.fontWeight = "bold";
     } else {
-        btn.textContent = "Pause";
+        if (labelSpan) labelSpan.textContent = "Pause";
+        else btn.firstChild.textContent = "Pause";
         btn.style.background = "";
         btn.style.fontWeight = "";
     }
@@ -611,7 +645,74 @@ function waveformZoomOut() {
     if (_waveformPeaks) drawWaveform();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', function() {
+    init();
+    applyStoredTheme();
+});
+
+// ---- Theme toggle ----
+function applyStoredTheme() {
+    var theme = localStorage.getItem('sfxTheme') || 'dark';
+    document.body.classList.toggle('light-theme', theme === 'light');
+    var btn = document.getElementById('btnThemeToggle');
+    if (btn) btn.title = theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
+}
+
+function toggleTheme() {
+    var isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('sfxTheme', isLight ? 'light' : 'dark');
+    var btn = document.getElementById('btnThemeToggle');
+    if (btn) btn.title = isLight ? 'Switch to dark theme' : 'Switch to light theme';
+}
+
+// ---- Loading state ----
+function updateLoadingState() {
+    var loading = !!window._isLoading;
+    var btnGo = document.getElementById('btnGo');
+    var btnPause = document.getElementById('btnPause');
+    if (btnGo) {
+        btnGo.disabled = loading;
+        btnGo.classList.toggle('btn-disabled', loading);
+    }
+    if (btnPause) {
+        btnPause.disabled = loading;
+        btnPause.classList.toggle('btn-disabled', loading);
+    }
+}
+
+// ---- Nav button track references ----
+function updateGoButton() {
+    var ref = document.getElementById('goTrackRef');
+    if (!ref) return;
+    var num = window._goTrackNum || '';
+    var desc = window._goTrackDesc || '';
+    ref.textContent = num ? ('#' + num + (desc ? ' ' + desc : '')) : '';
+}
+
+function updatePauseButtonTrack() {
+    var ref = document.getElementById('pauseTrackRef');
+    if (!ref) return;
+    var num = window._activeTrackNum || '';
+    var desc = window._activeTrackDesc || '';
+    ref.textContent = num ? ('#' + num + (desc ? ' ' + desc : '')) : '';
+}
+
+function updateNextButton() {
+    var ref = document.getElementById('nextNextTrackRef');
+    if (!ref) return;
+    var num = window._nextNextTrackNum || '';
+    var desc = window._nextNextTrackDesc || '';
+    ref.textContent = num ? ('#' + num + (desc ? ' ' + desc : '')) : '';
+}
+
+function updatePrevButton() {
+    var ref = document.getElementById('prevTrackRef');
+    if (!ref) return;
+    var num = window._prevCueNumber || '';
+    var desc = window._prevCueDesc || '';
+    ref.textContent = num ? ('#' + num + (desc ? ' ' + desc : '')) : '';
+}
+
 
 function CreateXMLDocument(str) {
     var xmlDoc = null;

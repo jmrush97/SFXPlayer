@@ -222,6 +222,8 @@ namespace SFXPlayer
             // When audio is active (playing or paused) the display shows that cue; otherwise the next cue
             PlayStrip active = playing ?? paused;
             PlayStrip displayCue = active ?? next;
+            PlayStrip nextNext = GetNextNextCue(next);
+            bool isLoading = CueList.Controls.OfType<PlayStrip>().Any(ps => ps.IsLoading);
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
@@ -254,7 +256,14 @@ namespace SFXPlayer
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
                 WaveformData = GetWaveformData(displayCue),
-                CueListJson = GetCueListJson()
+                CueListJson = GetCueListJson(),
+                IsLoading = isLoading,
+                GoTrackNum = next != null ? (next.PlayStripIndex + 1).ToString("D3") : "",
+                GoTrackDesc = next?.SFX.Description ?? "",
+                ActiveTrackNum = active != null ? (active.PlayStripIndex + 1).ToString("D3") : "",
+                ActiveTrackDesc = active?.SFX.Description ?? "",
+                NextNextTrackNum = nextNext != null ? (nextNext.PlayStripIndex + 1).ToString("D3") : "",
+                NextNextTrackDesc = nextNext?.SFX.Description ?? "",
             };
             OnDisplayChanged(disp);
         }
@@ -1255,6 +1264,18 @@ namespace SFXPlayer
             return $"{Path.GetFileName(cue.SFX.FileName)} | {durStr}{speedStr}";
         }
 
+        /// <summary>
+        /// Returns the PlayStrip that is one position after <paramref name="next"/> in the cue list,
+        /// or null if there is none.
+        /// </summary>
+        private PlayStrip GetNextNextCue(PlayStrip next)
+        {
+            if (next == null) return null;
+            int targetIdx = next.PlayStripIndex + 1;
+            return CueList.Controls.OfType<PlayStrip>()
+                .FirstOrDefault(p => p.PlayStripIndex == targetIdx);
+        }
+
         private static string FormatTime(double totalSeconds)
         {
             int mins = (int)(totalSeconds / 60);
@@ -1271,6 +1292,8 @@ namespace SFXPlayer
             PlayStrip active = playing ?? paused;
             // Show the active cue prominently when audio is running; fall back to the next cue
             PlayStrip displayCue = active ?? next;
+            PlayStrip nextNext = GetNextNextCue(next);
+            bool isLoading = CueList.Controls.OfType<PlayStrip>().Any(ps => ps.IsLoading);
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
@@ -1304,7 +1327,14 @@ namespace SFXPlayer
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
                 WaveformData = GetWaveformData(displayCue),
-                CueListJson = GetCueListJson()
+                CueListJson = GetCueListJson(),
+                IsLoading = isLoading,
+                GoTrackNum = next != null ? (next.PlayStripIndex + 1).ToString("D3") : "",
+                GoTrackDesc = next?.SFX.Description ?? "",
+                ActiveTrackNum = active != null ? (active.PlayStripIndex + 1).ToString("D3") : "",
+                ActiveTrackDesc = active?.SFX.Description ?? "",
+                NextNextTrackNum = nextNext != null ? (nextNext.PlayStripIndex + 1).ToString("D3") : "",
+                NextNextTrackDesc = nextNext?.SFX.Description ?? "",
             };
             OnDisplayChanged(disp);
         }

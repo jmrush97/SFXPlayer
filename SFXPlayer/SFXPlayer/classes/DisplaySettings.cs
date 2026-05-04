@@ -57,5 +57,22 @@ namespace SFXPlayer.classes
 
         // Full cue list for the left-panel cue list in the web UI (JSON array)
         public string CueListJson = "[]";
+
+        // True when any cue is currently in the loading/rendering state.
+        // The web app disables the Go and Pause buttons while this is true.
+        public bool IsLoading = false;
+
+        // Always set to the next-to-play cue (the one "Go" would trigger),
+        // independent of whether another cue is currently playing/paused.
+        public string GoTrackNum = "";
+        public string GoTrackDesc = "";
+
+        // Set to the playing or paused cue reference; empty when nothing is active.
+        public string ActiveTrackNum = "";
+        public string ActiveTrackDesc = "";
+
+        // Set to the cue after the next-to-play cue (the one "Next" would advance to).
+        public string NextNextTrackNum = "";
+        public string NextNextTrackDesc = "";
     }
 }

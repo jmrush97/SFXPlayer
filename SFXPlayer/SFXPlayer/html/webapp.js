@@ -91,22 +91,29 @@ var WebApp = function () {
                             durSeconds = parseFloat(nodeValue) || 0;
                             _trackDurationSeconds = durSeconds;
                         } else if (nodeName === "CurrentVolume") {
-                            var volSlider = document.getElementById("volumeSlider");
-                            if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
+                            var vol = parseInt(nodeValue) || 50;
                             var volSpan = document.getElementById("CurrentVolume");
                             if (volSpan) volSpan.textContent = nodeValue;
-                            var volInput = document.getElementById("volumeInput");
-                            if (volInput) volInput.value = parseInt(nodeValue) || 50;
                             var cueVolSpan = document.getElementById("CueVolume");
                             if (cueVolSpan) cueVolSpan.textContent = "Vol: " + nodeValue;
+                            if (vol !== _currentVolume) {
+                                _currentVolume = vol;
+                                var volSlider = document.getElementById("volumeSlider");
+                                if (volSlider) volSlider.value = vol;
+                                var volInput = document.getElementById("volumeInput");
+                                if (volInput) volInput.value = vol;
+                            }
                         } else if (nodeName === "CurrentSpeed") {
                             var spd = parseFloat(nodeValue) || 1.0;
-                            var spdSlider = document.getElementById("speedSlider");
-                            if (spdSlider) spdSlider.value = Math.round(spd * 100);
                             var spdSpan = document.getElementById("CurrentSpeed");
                             if (spdSpan) spdSpan.textContent = spd.toFixed(2);
-                            var spdInput = document.getElementById("speedInput");
-                            if (spdInput) spdInput.value = spd.toFixed(2);
+                            if (spd !== _currentSpeed) {
+                                _currentSpeed = spd;
+                                var spdSlider = document.getElementById("speedSlider");
+                                if (spdSlider) spdSlider.value = Math.round(spd * 100);
+                                var spdInput = document.getElementById("speedInput");
+                                if (spdInput) spdInput.value = spd.toFixed(2);
+                            }
                         } else if (nodeName === "CueAutoRun") {
                             var isAutoRun = nodeValue === "true";
                             window._cueAutoRun = isAutoRun;
@@ -279,6 +286,7 @@ function setPause() {
 function setVolume() {
     var vi = document.getElementById("volumeInput");
     var vol = Math.max(0, Math.min(100, parseInt(vi ? vi.value : "50") || 0));
+    _currentVolume = vol;
     var slider = document.getElementById("volumeSlider");
     if (slider) slider.value = vol;
     var span = document.getElementById("CurrentVolume");
@@ -289,6 +297,7 @@ function setVolume() {
 function setSpeed() {
     var si = document.getElementById("speedInput");
     var spd = Math.max(0.1, Math.min(8.0, parseFloat(si ? si.value : "1.0") || 1.0));
+    _currentSpeed = spd;
     var slider = document.getElementById("speedSlider");
     if (slider) slider.value = Math.round(spd * 100);
     var span = document.getElementById("CurrentSpeed");
@@ -346,6 +355,7 @@ var _cueFadeInMs = 0;
 var _cueFadeOutMs = 0;
 var _trackDurationSeconds = 0;
 var _currentVolume = 50;
+var _currentSpeed = 1.0;
 
 // Zoom state (1 = full view; 2–8 = zoomed in on playhead)
 var _waveZoom = 1.0;

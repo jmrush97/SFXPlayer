@@ -1120,6 +1120,15 @@ namespace SFXPlayer
                 action();
             }
 
+            // Drain each PlayStrip's player-action queue so that all button/slider/file-load
+            // operations run on the UI thread AFTER any pending NAudio PlaybackStopped
+            // callbacks (posted via SynchronizationContext) have been processed.
+            foreach (Control ctl in CueList.Controls)
+            {
+                if (ctl is PlayStrip ps)
+                    ps.DrainPlayerQueue();
+            }
+
             PlayStrip playingStrip = null;
             PlayStrip pausedStrip = null;
             foreach (Control ctl in CueList.Controls)

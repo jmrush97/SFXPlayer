@@ -157,6 +157,7 @@ namespace SFXPlayer
             // 
             // ProgressTimer
             // 
+            this.ProgressTimer.Interval = 50;
             this.ProgressTimer.Tick += new System.EventHandler(this.ProgressTimer_Tick);
             // 
             // bnPlayNext

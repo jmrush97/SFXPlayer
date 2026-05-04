@@ -133,8 +133,8 @@ var WebApp = function () {
                                 if (pi) pi.value = ps.toFixed(1);
                             }
                             var detail = document.getElementById("CueAutoRunDetail");
-                            if (detail && window._cueAutoRun && (window._cuePauseSeconds || 0) > 0) {
-                                detail.textContent = "\u21B7 Auto +" + (window._cuePauseSeconds || 0).toFixed(1) + "s";
+                            if (detail && window._cueAutoRun && ps > 0) {
+                                detail.textContent = "\u21B7 Auto +" + ps.toFixed(1) + "s";
                             }
                         } else if (nodeName === "CueFadeInMs") {
                             var fi = parseInt(nodeValue) || 0;

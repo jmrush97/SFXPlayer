@@ -1988,7 +1988,8 @@ namespace SFXPlayer
 
         /// <summary>
         /// Shows a dialog asking for an optional save reason.
-        /// Returns the entered reason (may be empty), or null if the user cancelled.
+        /// Returns the entered reason (may be empty string) when the user clicks Save,
+        /// or <c>null</c> if the user cancels — callers should abort the save when null is returned.
         /// </summary>
         private string PromptSaveReason()
         {

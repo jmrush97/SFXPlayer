@@ -42,6 +42,7 @@ namespace SFXPlayer
             this.dlgOpenAudioFile = new System.Windows.Forms.OpenFileDialog();
             this.rtMainText = new System.Windows.Forms.RichTextBox();
             this.bnStopAll = new System.Windows.Forms.Button();
+            this.bnPause = new System.Windows.Forms.Button();
             this.ProgressTimer = new System.Windows.Forms.Timer(this.components);
             this.bnPlayNext = new System.Windows.Forms.Button();
             this.bnAddCue = new System.Windows.Forms.Button();
@@ -142,8 +143,21 @@ namespace SFXPlayer
             this.bnStopAll.UseVisualStyleBackColor = false;
             this.bnStopAll.Click += new System.EventHandler(this.bnStopAll_Click);
             // 
+            // bnPause
+            // 
+            this.bnPause.BackColor = System.Drawing.Color.FromArgb(230, 126, 34);
+            this.bnPause.ForeColor = System.Drawing.Color.White;
+            this.bnPause.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.bnPause.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.bnPause.Name = "bnPause";
+            this.bnPause.TabIndex = 18;
+            this.bnPause.Text = "Pause";
+            this.bnPause.UseVisualStyleBackColor = false;
+            this.bnPause.Click += new System.EventHandler(this.bnPause_Click);
+            // 
             // ProgressTimer
             // 
+            this.ProgressTimer.Interval = 50;
             this.ProgressTimer.Tick += new System.EventHandler(this.ProgressTimer_Tick);
             // 
             // bnPlayNext
@@ -612,15 +626,16 @@ namespace SFXPlayer
             // 
             // ── New layout containers ──────────────────────────────────────────────
             // 
-            // pnlNavBar – bottom bar with four equal transport buttons
+            // pnlNavBar – bottom bar with five equal transport buttons
             // 
             this.pnlNavBar = new System.Windows.Forms.TableLayoutPanel();
             this.pnlNavBar.SuspendLayout();
-            this.pnlNavBar.ColumnCount = 4;
-            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.pnlNavBar.ColumnCount = 5;
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.pnlNavBar.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.pnlNavBar.RowCount = 1;
             this.pnlNavBar.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.pnlNavBar.Dock = System.Windows.Forms.DockStyle.Bottom;
@@ -632,10 +647,8 @@ namespace SFXPlayer
             // 
             this.pnlContent = new System.Windows.Forms.TableLayoutPanel();
             this.pnlContent.SuspendLayout();
-            this.pnlContent.ColumnCount = 3;
-            this.pnlContent.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 250F));
+            this.pnlContent.ColumnCount = 1;
             this.pnlContent.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.pnlContent.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 220F));
             this.pnlContent.RowCount = 1;
             this.pnlContent.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.pnlContent.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -671,48 +684,25 @@ namespace SFXPlayer
             this.lblCueListHeader.Name = "lblCueListHeader";
             this.lblCueListHeader.TabIndex = 0;
             // 
-            // pnlCenterLayout – center column: prev text / next text
+            // pnlAddInstructions – instruction bar below the cue list header
             // 
-            this.pnlCenterLayout = new System.Windows.Forms.TableLayoutPanel();
-            this.pnlCenterLayout.SuspendLayout();
-            this.pnlCenterLayout.ColumnCount = 1;
-            this.pnlCenterLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.pnlCenterLayout.RowCount = 4;
-            this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
-            this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.pnlCenterLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
-            this.pnlCenterLayout.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlCenterLayout.Name = "pnlCenterLayout";
-            this.pnlCenterLayout.TabIndex = 0;
+            this.pnlAddInstructions = new System.Windows.Forms.Panel();
+            this.pnlAddInstructions.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlAddInstructions.Height = 24;
+            this.pnlAddInstructions.Name = "pnlAddInstructions";
+            this.pnlAddInstructions.TabIndex = 1;
             // 
-            // pnlRight – right column: cue properties / device selectors
+            // lblAddInstructions
             // 
-            this.pnlRight = new System.Windows.Forms.Panel();
-            this.pnlRight.SuspendLayout();
-            this.pnlRight.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlRight.Name = "pnlRight";
-            this.pnlRight.TabIndex = 0;
-            // 
-            // pnlRightHeader
-            // 
-            this.pnlRightHeader = new System.Windows.Forms.Panel();
-            this.pnlRightHeader.SuspendLayout();
-            this.pnlRightHeader.Dock = System.Windows.Forms.DockStyle.Top;
-            this.pnlRightHeader.Height = 32;
-            this.pnlRightHeader.Name = "pnlRightHeader";
-            this.pnlRightHeader.TabIndex = 0;
-            // 
-            // lblPropsHeader
-            // 
-            this.lblPropsHeader = new System.Windows.Forms.Label();
-            this.lblPropsHeader.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lblPropsHeader.Text = "CUE PROPERTIES";
-            this.lblPropsHeader.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.lblPropsHeader.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.lblPropsHeader.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
-            this.lblPropsHeader.Name = "lblPropsHeader";
-            this.lblPropsHeader.TabIndex = 0;
+            this.lblAddInstructions = new System.Windows.Forms.Label();
+            this.lblAddInstructions.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lblAddInstructions.Text = "Click + to add a cue, or drag audio files here";
+            this.lblAddInstructions.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Italic);
+            this.lblAddInstructions.ForeColor = System.Drawing.SystemColors.GrayText;
+            this.lblAddInstructions.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lblAddInstructions.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
+            this.lblAddInstructions.Name = "lblAddInstructions";
+            this.lblAddInstructions.TabIndex = 0;
             // 
             // ── Build control hierarchy ────────────────────────────────────────────
             // 
@@ -720,28 +710,20 @@ namespace SFXPlayer
             this.pnlCueListHeader.Controls.Add(this.lblCueListHeader);
             this.pnlCueListHeader.Controls.Add(this.bnDeleteCue);
             this.pnlCueListHeader.Controls.Add(this.bnAddCue);
-            // pnlLeft: header + cue list
+            // pnlAddInstructions: instruction label
+            this.pnlAddInstructions.Controls.Add(this.lblAddInstructions);
+            // pnlLeft: header + instructions + cue list
             this.pnlLeft.Controls.Add(this.CueList);
+            this.pnlLeft.Controls.Add(this.pnlAddInstructions);
             this.pnlLeft.Controls.Add(this.pnlCueListHeader);
-            // pnlCenterLayout: prev text / prev info / next text / next info
-            this.pnlCenterLayout.Controls.Add(this.rtPrevMainText, 0, 0);
-            this.pnlCenterLayout.Controls.Add(this.lbPrevCueInfo, 0, 1);
-            this.pnlCenterLayout.Controls.Add(this.rtMainText, 0, 2);
-            this.pnlCenterLayout.Controls.Add(this.lbNextCueInfo, 0, 3);
-            // pnlRightHeader: properties label
-            this.pnlRightHeader.Controls.Add(this.lblPropsHeader);
-            // pnlRight: device toolstrip added first (docked after header), header added last (docks first = at top)
-            this.pnlRight.Controls.Add(this.toolStrip1);
-            this.pnlRight.Controls.Add(this.pnlRightHeader);
-            // pnlContent: three columns
+            // pnlContent: single column – cue list only
             this.pnlContent.Controls.Add(this.pnlLeft, 0, 0);
-            this.pnlContent.Controls.Add(this.pnlCenterLayout, 1, 0);
-            this.pnlContent.Controls.Add(this.pnlRight, 2, 0);
             // pnlNavBar: transport buttons
             this.pnlNavBar.Controls.Add(this.bnPrev, 0, 0);
             this.pnlNavBar.Controls.Add(this.bnStopAll, 1, 0);
-            this.pnlNavBar.Controls.Add(this.bnPlayNext, 2, 0);
-            this.pnlNavBar.Controls.Add(this.bnNext, 3, 0);
+            this.pnlNavBar.Controls.Add(this.bnPause, 2, 0);
+            this.pnlNavBar.Controls.Add(this.bnPlayNext, 3, 0);
+            this.pnlNavBar.Controls.Add(this.bnNext, 4, 0);
             // Form: dock order → menuStrip (top), statusStrip (bottom), navBar (above status), content (fill)
             this.Controls.Add(this.menuStrip1);
             this.Controls.Add(this.statusStrip);
@@ -749,6 +731,17 @@ namespace SFXPlayer
             this.Controls.Add(this.pnlContent);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.pictureBox2);
+            // Hidden functional controls (not shown in UI; needed for web view and device management)
+            this.toolStrip1.Visible = false;
+            this.Controls.Add(this.toolStrip1);
+            this.rtMainText.Visible = false;
+            this.Controls.Add(this.rtMainText);
+            this.rtPrevMainText.Visible = false;
+            this.Controls.Add(this.rtPrevMainText);
+            this.lbPrevCueInfo.Visible = false;
+            this.Controls.Add(this.lbPrevCueInfo);
+            this.lbNextCueInfo.Visible = false;
+            this.Controls.Add(this.lbNextCueInfo);
             this.DoubleBuffered = true;
             this.AutoScroll = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -773,9 +766,7 @@ namespace SFXPlayer
             this.statusStrip.PerformLayout();
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
-            this.pnlRightHeader.ResumeLayout(false);
-            this.pnlRight.ResumeLayout(false);
-            this.pnlCenterLayout.ResumeLayout(false);
+            this.pnlAddInstructions.ResumeLayout(false);
             this.pnlCueListHeader.ResumeLayout(false);
             this.pnlLeft.ResumeLayout(false);
             this.pnlContent.ResumeLayout(false);
@@ -1082,6 +1073,7 @@ namespace SFXPlayer
         private System.Windows.Forms.OpenFileDialog dlgOpenAudioFile;
         private System.Windows.Forms.RichTextBox rtMainText;
         private System.Windows.Forms.Button bnStopAll;
+        private System.Windows.Forms.Button bnPause;
         private System.Windows.Forms.Timer ProgressTimer;
         private System.Windows.Forms.Button bnPlayNext;
         private System.Windows.Forms.Button bnAddCue;
@@ -1140,10 +1132,8 @@ namespace SFXPlayer
         private System.Windows.Forms.Panel pnlLeft;
         private System.Windows.Forms.Panel pnlCueListHeader;
         private System.Windows.Forms.Label lblCueListHeader;
-        private System.Windows.Forms.TableLayoutPanel pnlCenterLayout;
-        private System.Windows.Forms.Panel pnlRight;
-        private System.Windows.Forms.Panel pnlRightHeader;
-        private System.Windows.Forms.Label lblPropsHeader;
+        private System.Windows.Forms.Panel pnlAddInstructions;
+        private System.Windows.Forms.Label lblAddInstructions;
     }
 }
 

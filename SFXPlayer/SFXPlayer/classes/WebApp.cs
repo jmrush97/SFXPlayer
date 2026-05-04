@@ -1,31 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace SFXPlayer.classes
 {
     public class WebApp
     {
-        const string SFXProtocol = "ws-SFX-protocol";
         public static ushort wsPort = 3030;
         private static IHost _host = null;
         private static CancellationTokenSource _cancellationTokenSource = null;
         private static readonly SemaphoreSlim _startStopLock = new SemaphoreSlim(1, 1);
         private static Task _hostRunTask = null;
+        private static IHubContext<SfxHub> _hubContext = null;
         
         public static async Task StartAsync()
         {
@@ -66,28 +61,11 @@ namespace SFXPlayer.classes
                             })
                             .ConfigureServices(services =>
                             {
-                                // Add required services
+                                services.AddSignalR();
                             })
                             .Configure(app =>
                             {
-                                // Enable WebSocket support BEFORE static files
-                                app.UseWebSockets(new WebSocketOptions
-                                {
-                                    KeepAliveInterval = TimeSpan.FromSeconds(120)
-                                });
-                                
-                                // Handle WebSocket requests BEFORE static files
-                                app.Use(async (context, next) =>
-                                {
-                                    if (context.WebSockets.IsWebSocketRequest)
-                                    {
-                                        await ProcessWebSocketRequestAsync(context);
-                                    }
-                                    else
-                                    {
-                                        await next();
-                                    }
-                                });
+                                app.UseRouting();
                                 
                                 // Serve default files (index.html, default.html, etc.)
                                 app.UseDefaultFiles(new DefaultFilesOptions
@@ -104,10 +82,18 @@ namespace SFXPlayer.classes
                                         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "html")),
                                     RequestPath = ""
                                 });
+
+                                app.UseEndpoints(endpoints =>
+                                {
+                                    endpoints.MapHub<SfxHub>("/sfxhub");
+                                });
                             });
                     });
                 
                 _host = builder.Build();
+                
+                // Grab the hub context before starting so broadcast can reach connected clients
+                _hubContext = _host.Services.GetRequiredService<IHubContext<SfxHub>>();
                 
                 // Start the host asynchronously on a background thread
                 _hostRunTask = Task.Run(async () =>
@@ -190,30 +176,7 @@ namespace SFXPlayer.classes
                     Program.mainForm.DisplayChanged -= UpdateWebAppsWithDisplayChangeAsync;
                 }
                 
-                // Close all WebSocket connections
-                var socketsCopy = webSockets.ToList();
-                foreach (var ws in socketsCopy)
-                {
-                    try
-                    {
-                        if (ws.State == WebSocketState.Open)
-                        {
-                            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "SFX Player closed", CancellationToken.None);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        AppLogger.Error("WebApp.StopAsync: error closing WebSocket", ex);
-                        Debug.WriteLine($"Error closing WebSocket: {ex}");
-                    }
-                }
-                
-                lock (webSockets)
-                {
-                    webSockets.Clear();
-                }
-                
-                // Stop the host
+                // Stop the host — SignalR handles disconnecting clients gracefully
                 _cancellationTokenSource?.Cancel();
                 
                 try
@@ -237,6 +200,7 @@ namespace SFXPlayer.classes
                 {
                     _host = null;
                     _hostRunTask = null;
+                    _hubContext = null;
                     _cancellationTokenSource?.Dispose();
                     _cancellationTokenSource = null;
                 }
@@ -275,9 +239,8 @@ namespace SFXPlayer.classes
             Debug.WriteLine($"WebApp server may not be ready after {timeout.TotalSeconds}s timeout");
         }
 
-        private static readonly List<WebSocket> webSockets = new List<WebSocket>();
-        private static byte[] LastMessage = null;
-        private static readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
+        // Last display-state message; exposed so SfxHub can send it to newly connected clients
+        public static byte[] LastMessage = null;
 
         public static bool Serving
         {
@@ -305,161 +268,6 @@ namespace SFXPlayer.classes
             }
         }
 
-        private static async Task ProcessWebSocketRequestAsync(HttpContext context)
-        {
-            WebSocket ws = null;
-            try
-            {
-                ws = await context.WebSockets.AcceptWebSocketAsync(SFXProtocol);
-                AppLogger.Info($"WebApp: WebSocket connection accepted from {context.Connection.RemoteIpAddress}");
-                
-                if (LastMessage != null)
-                {
-                    await ws.SendAsync(new ArraySegment<byte>(LastMessage, 0, LastMessage.Length), 
-                        WebSocketMessageType.Text, true, CancellationToken.None);
-                }
-
-                lock (webSockets)
-                {
-                    webSockets.Add(ws);
-                }
-
-                byte[] receiveBuffer = new byte[1024];
-                while (ws.State == WebSocketState.Open)
-                {
-                    WebSocketReceiveResult receiveResult = await ws.ReceiveAsync(
-                        new ArraySegment<byte>(receiveBuffer), CancellationToken.None);
-                    
-                    if (receiveResult.MessageType == WebSocketMessageType.Close)
-                    {
-                        lock (webSockets)
-                        {
-                            webSockets.Remove(ws);
-                        }
-                        await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, 
-                            "Close requested by remote", CancellationToken.None);
-                    }
-                    else
-                    {
-                        string strXML = Encoding.UTF8.GetString(receiveBuffer, 0, receiveResult.Count);
-                        XmlDocument xml = new XmlDocument();
-                        xml.LoadXml(strXML);
-                        var nodes = xml.SelectNodes("command");
-                        foreach (XmlNode childrenNode in nodes)
-                        {
-                            string rawCommand = childrenNode.InnerText;
-                            string command = rawCommand.ToLower();
-                            if (Program.mainForm != null)
-                            {
-                                switch (command)
-                                {
-                                    case "play":
-                                        Program.mainForm.PlayNextCue();
-                                        break;
-                                    case "stop":
-                                        Program.mainForm.StopAll();
-                                        break;
-                                    case "previous":
-                                        Program.mainForm.PreviousCue();
-                                        break;
-                                    case "next":
-                                        Program.mainForm.NextCue();
-                                        break;
-                                    case "delete":
-                                        Program.mainForm.DeleteNextCue();
-                                        break;
-                                    case "autorun:true":
-                                        Program.mainForm.SetNextCueAutoRun(true);
-                                        break;
-                                    case "autorun:false":
-                                        Program.mainForm.SetNextCueAutoRun(false);
-                                        break;
-                                    default:
-                                        if (command.StartsWith("volume:") &&
-                                            int.TryParse(command.Substring(7), out int vol))
-                                        {
-                                            Program.mainForm.SetNextCueVolume(vol);
-                                        }
-                                        else if (command.StartsWith("speed:") &&
-                                            float.TryParse(command.Substring(6),
-                                                System.Globalization.NumberStyles.Float,
-                                                System.Globalization.CultureInfo.InvariantCulture,
-                                                out float spd))
-                                        {
-                                            Program.mainForm.SetNextCueSpeed(spd);
-                                        }
-                                        else if (command.StartsWith("pause:") &&
-                                            double.TryParse(command.Substring(6),
-                                                System.Globalization.NumberStyles.Float,
-                                                System.Globalization.CultureInfo.InvariantCulture,
-                                                out double pauseSecs))
-                                        {
-                                            Program.mainForm.SetNextCuePauseSeconds(pauseSecs);
-                                        }
-                                        else if (command.StartsWith("fadein:") &&
-                                            int.TryParse(command.Substring(7), out int fadeInMs))
-                                        {
-                                            Program.mainForm.SetNextCueFadeIn(fadeInMs);
-                                        }
-                                        else if (command.StartsWith("fadeout:") &&
-                                            int.TryParse(command.Substring(8), out int fadeOutMs))
-                                        {
-                                            Program.mainForm.SetNextCueFadeOut(fadeOutMs);
-                                        }
-                                        else if (command.StartsWith("fadecurve:"))
-                                        {
-                                            Program.mainForm.SetNextCueFadeCurve(command.Substring(10));
-                                        }
-                                        else if (command.StartsWith("device:"))
-                                        {
-                                            // Use rawCommand to preserve original case of device name
-                                            Program.mainForm.SetPlaybackDevice(rawCommand.Substring(7));
-                                        }
-                                        else if (command.StartsWith("previewdevice:"))
-                                        {
-                                            // Use rawCommand to preserve original case of device name
-                                            Program.mainForm.SetPreviewDevice(rawCommand.Substring(14));
-                                        }
-                                        else if (command.StartsWith("seek:") &&
-                                            double.TryParse(rawCommand.Substring(5),
-                                                System.Globalization.NumberStyles.Float,
-                                                System.Globalization.CultureInfo.InvariantCulture,
-                                                out double seekFraction))
-                                        {
-                                            Program.mainForm.SeekPosition(seekFraction);
-                                        }
-                                        else if (command.StartsWith("goto:") &&
-                                            int.TryParse(command.Substring(5), out int gotoIndex))
-                                        {
-                                            Program.mainForm.GotoCue(gotoIndex);
-                                        }
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                AppLogger.Error("WebApp.ProcessWebSocketRequestAsync: WebSocket error", e);
-                Debug.WriteLine($"WebSocket error: {e}");
-            }
-            finally
-            {
-                if (ws != null)
-                {
-                    lock (webSockets)
-                    {
-                        webSockets.Remove(ws);
-                    }
-                    ws.Dispose();
-                }
-            }
-        }
-
-
-
         private static async void UpdateWebAppsWithDisplayChangeAsync(object sender, DisplaySettings e)
         {
             if (e != null)
@@ -471,42 +279,18 @@ namespace SFXPlayer.classes
                 LastMessage = null;
             }
 
-            if (LastMessage == null) return;
+            if (LastMessage == null || _hubContext == null) return;
 
-            // Serialize all broadcast attempts so concurrent timer ticks never
-            // call SendAsync on the same socket simultaneously.
-            await _sendLock.WaitAsync();
+            var xmlString = Encoding.UTF8.GetString(LastMessage);
             try
             {
-                var payload = (byte[])LastMessage?.Clone();   // true snapshot: safe against concurrent reassignment
-                var socketsCopy = webSockets.ToList();
-                foreach (WebSocket ws in socketsCopy)
-                {
-                    try
-                    {
-                        if (ws.State == WebSocketState.Open)
-                        {
-                            await ws.SendAsync(new ArraySegment<byte>(payload, 0, payload.Length),
-                                WebSocketMessageType.Text, true, CancellationToken.None);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        AppLogger.Error("WebApp: error broadcasting to WebSocket client", ex);
-                        Debug.WriteLine($"Error sending to WebSocket: {ex}");
-
-                        lock (webSockets)
-                        {
-                            webSockets.Remove(ws);
-                        }
-                    }
-                }
+                await _hubContext.Clients.All.SendAsync("ReceiveUpdate", xmlString);
             }
-            finally
+            catch (Exception ex)
             {
-                _sendLock.Release();
+                AppLogger.Error("WebApp: error broadcasting to SignalR clients", ex);
+                Debug.WriteLine($"Error sending to SignalR clients: {ex}");
             }
         }
     }
 }
-

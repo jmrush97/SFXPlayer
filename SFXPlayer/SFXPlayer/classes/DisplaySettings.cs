@@ -39,6 +39,7 @@ namespace SFXPlayer.classes
 
         // Currently playing track state (distinct from next-cue values above)
         public bool IsPlaying = false;
+        public bool IsPaused = false;
         public int PlayingVolume = 50;
         public float PlayingSpeed = 1.0f;
         public float PlayingFadeGain = 1.0f;

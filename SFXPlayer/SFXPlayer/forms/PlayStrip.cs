@@ -236,6 +236,28 @@ namespace SFXPlayer
         private readonly MusicPlayer _PreviewPlayer = new MusicPlayer();
         ucVolume volume = new ucVolume();
         ucSpeed speedControl = new ucSpeed();
+
+        /// <summary>
+        /// Thread-safe queue of player actions.  All operations that touch _musicPlayer or
+        /// _PreviewPlayer are posted here from UI-event handlers instead of being executed
+        /// directly.  The queue is drained by SFXPlayer.ProgressTimer_Tick on the UI thread,
+        /// which guarantees that any pending NAudio PlaybackStopped callbacks delivered via
+        /// SynchronizationContext.Post() have already been processed before the next action
+        /// runs, preventing state-machine races between player events and UI events.
+        /// </summary>
+        private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _playerQueue =
+            new System.Collections.Concurrent.ConcurrentQueue<Action>();
+
+        /// <summary>
+        /// Executes all queued player actions in order on the calling thread (must be the UI thread).
+        /// Called from SFXPlayer.ProgressTimer_Tick for every PlayStrip regardless of play state.
+        /// </summary>
+        public void DrainPlayerQueue()
+        {
+            while (_playerQueue.TryDequeue(out Action action))
+                action();
+        }
+
         public event EventHandler StopAll;
         public event EventHandler<StatusEventArgs> ReportStatus;
         public event EventHandler<int> AutoPlayNext;
@@ -321,7 +343,7 @@ namespace SFXPlayer
             if (e.Button == MouseButtons.Left && pnlWaveform.Width > 0 && _musicPlayer.Length.TotalSeconds > 0)
             {
                 float fraction = pnlWaveform.CanvasXToFraction(e.X);
-                SeekToFraction(fraction);
+                _playerQueue.Enqueue(() => SeekToFraction(fraction));
             }
         }
 
@@ -1034,6 +1056,15 @@ namespace SFXPlayer
         }
 
         public bool IsPlaying => (PlayerState == PlayerState.play);
+        public bool IsPaused => (PlayerState == PlayerState.paused);
+
+        public void TogglePause()
+        {
+            if (PlayerState == PlayerState.play)
+                Pause();
+            else if (PlayerState == PlayerState.paused)
+                UnPause();
+        }
 
         public TimeSpan PlaybackPosition => _musicPlayer.Position;
         public TimeSpan PlaybackLength => _musicPlayer.Length;
@@ -1041,49 +1072,48 @@ namespace SFXPlayer
 
         private void bnPlay_Click(object sender, EventArgs e)
         {
-            try
+            _playerQueue.Enqueue(() =>
             {
-                if (PlayerState == PlayerState.paused)
+                try
                 {
-                    UnPause();
+                    if (PlayerState == PlayerState.paused)
+                        UnPause();
+                    else if (PlayerState == PlayerState.play)
+                        Stop();
+                    else if (PlayerState != PlayerState.play)
+                        Play();
                 }
-                else if (PlayerState == PlayerState.play)
+                catch (Exception ex)
                 {
-                    Stop();
+                    AppLogger.Error("PlayStrip.bnPlay_Click: unexpected exception", ex);
                 }
-                else if (PlayerState != PlayerState.play)
-                {
-                    Play();
-                }
-            }
-            catch (Exception ex)
-            {
-                AppLogger.Error("PlayStrip.bnPlay_Click: unexpected exception", ex);
-                //ReportStatus(ex.Message);
-            }
+            });
         }
 
         private void bnPreview_Click(object sender, EventArgs e)
         {
-            if (_PreviewPlayer.PlaybackState == PlaybackState.Playing)
+            _playerQueue.Enqueue(() =>
             {
-                _PreviewPlayer.Stop();
-            }
-            else
-            {
-                if (!File.Exists(SFX.FileName)) return;
-                _PreviewPlayer.Open(SFX.FileName, SFXPlayer.CurrentPreviewDeviceIdx);
-                _PreviewPlayer.Volume = SFX.Volume; _PreviewPlayer.Position = TimeSpan.Zero;  //this resets the volume!
-                _PreviewPlayer.Volume = SFX.Volume;
-                _PreviewPlayer.Play();
-                BackColor = Color.FromArgb(255, 205, 130);         // light orange (preview)
-            }
-            UpdatePreviewButton();
+                if (_PreviewPlayer.PlaybackState == PlaybackState.Playing)
+                {
+                    _PreviewPlayer.Stop();
+                }
+                else
+                {
+                    if (!File.Exists(SFX.FileName)) return;
+                    _PreviewPlayer.Open(SFX.FileName, SFXPlayer.CurrentPreviewDeviceIdx);
+                    _PreviewPlayer.Volume = SFX.Volume; _PreviewPlayer.Position = TimeSpan.Zero;
+                    _PreviewPlayer.Volume = SFX.Volume;
+                    _PreviewPlayer.Play();
+                    BackColor = Color.FromArgb(255, 205, 130);
+                }
+                UpdatePreviewButton();
+            });
         }
 
         private void bnStop_Click(object sender, EventArgs e)
         {
-            Stop();
+            _playerQueue.Enqueue(() => Stop());
         }
 
 
@@ -1373,10 +1403,11 @@ namespace SFXPlayer
 
         private void Volume_VolumeChanged(object sender, EventArgs e)
         {
-            SFX.Volume = volume.Volume;
-            _musicPlayer.Volume = SFX.Volume;
+            int vol = volume.Volume;
+            SFX.Volume = vol;
             UpdateVolumeTooltip();
             bnVolume.Invalidate();
+            _playerQueue.Enqueue(() => _musicPlayer.Volume = SFX.Volume);
         }
 
         private void UpdateVolumeTooltip()
@@ -1389,6 +1420,53 @@ namespace SFXPlayer
         {
             UpdateVolumeTooltip();
             bnVolume.Invalidate();
+        }
+
+        /// <summary>Applies a new volume directly to the live player without reloading the file.</summary>
+        public void SetVolumeLive(int vol)
+        {
+            SFX.Volume = Math.Max(0, Math.Min(100, vol));
+            _musicPlayer.Volume = SFX.Volume;
+            pnlWaveform.SetVolume(SFX.Volume);
+            RefreshVolumeDisplay();
+        }
+
+        /// <summary>Changes playback speed on the live player, preserving position if playing or paused.</summary>
+        public void SetSpeedLive(float speed)
+        {
+            SFX.Speed = Math.Max(0.1f, Math.Min(8.0f, speed));
+            UpdateSpeedTooltip();
+            if (PlayerState == PlayerState.play || PlayerState == PlayerState.paused || PlayerState == PlayerState.loaded)
+            {
+                bool wasPlaying = PlayerState == PlayerState.play;
+                bool wasPaused  = PlayerState == PlayerState.paused;
+                double savedFraction = 0.0;
+                if ((wasPlaying || wasPaused) && _musicPlayer.Length.TotalSeconds > 0)
+                    savedFraction = _musicPlayer.Position.TotalSeconds / _musicPlayer.Length.TotalSeconds;
+                // Stop before reopening so the device is in a clean state for Open()
+                if (wasPlaying || wasPaused) _musicPlayer.Stop();
+                if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+                {
+                    _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                        SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
+                    _musicPlayer.Volume = SFX.Volume;
+                    // Seek() uses _isSeeking to suppress the spurious PlaybackStopped that
+                    // was queued by the Stop() call above, ensuring our PlayerState assignment
+                    // below is not overwritten by the deferred callback.
+                    if (wasPlaying || wasPaused)
+                        _musicPlayer.Seek(savedFraction);
+                    PlayerState = PlayerState.loaded;
+                    if (wasPlaying)
+                    {
+                        _musicPlayer.Play();
+                        PlayerState = PlayerState.play;
+                        PlayingStateChanged?.Invoke(this, true);
+                    }
+                    // Note: if wasPaused we intentionally leave the strip in 'loaded' state
+                    // at the correct position because WaveOutEvent cannot start in a paused state.
+                }
+            }
+            UpdatePlayButton();
         }
 
         private void BnVolume_Paint(object sender, PaintEventArgs e)
@@ -1464,29 +1542,15 @@ namespace SFXPlayer
         private void SpeedControl_SpeedChanged(object sender, EventArgs e)
         {
             float newSpeed = speedControl.Speed;
+            // Update the model and tooltip immediately on the UI thread (no player conflict)
             SFX.Speed = newSpeed;
             toolTip1.SetToolTip(bnSpeed, $"Speed={newSpeed:0.00}x");
-
-            // Reload the audio with the new speed if the file is already loaded
-            if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play)
-            {
-                bool wasPlaying = PlayerState == PlayerState.play;
-                if (wasPlaying) _musicPlayer.Stop();
-                if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
-                {
-                    _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
-                        SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
-                    _musicPlayer.Volume = SFX.Volume;
-                    PlayerState = PlayerState.loaded;
-                    if (wasPlaying)
-                    {
-                        _musicPlayer.Play();
-                        PlayerState = PlayerState.play;
-                        PlayingStateChanged?.Invoke(this, true);
-                    }
-                }
-            }
-            UpdatePlayButton();
+            // Defer the actual player reload to the queue so that any pending
+            // PlaybackStopped callback from NAudio has been processed before we
+            // Stop/Open/Play.  SetSpeedLive also uses MusicPlayer.Seek()'s _isSeeking
+            // guard to suppress the spurious PlaybackStopped generated by the Stop()
+            // call inside the reopen sequence.
+            _playerQueue.Enqueue(() => SetSpeedLive(newSpeed));
         }
 
         private void SpeedControl_Done(object sender, EventArgs e)
@@ -1577,24 +1641,39 @@ namespace SFXPlayer
                 UpdateFadeTooltip();
                 UpdateWaveformBackground();
 
-                // Reload so the new fade chain takes effect immediately
-                if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play)
+                // Reload so the new fade chain takes effect immediately, via the player queue
+                // so any pending PlaybackStopped callback has been processed first.
+                if (PlayerState == PlayerState.loaded || PlayerState == PlayerState.play || PlayerState == PlayerState.paused)
                 {
-                    bool wasPlaying = PlayerState == PlayerState.play;
-                    if (wasPlaying) _musicPlayer.Stop();
-                    if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+                    string fn = SFX.FileName;
+                    int dev = SFXPlayer.CurrentPlaybackDeviceIdx;
+                    float spd = SFX.Speed;
+                    int fi = SFX.FadeInDurationMs;
+                    int fo = SFX.FadeOutDurationMs;
+                    var fc = SFX.FadeCurve;
+                    int vol = SFX.Volume;
+                    _playerQueue.Enqueue(() =>
                     {
-                        _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
-                            SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
-                        _musicPlayer.Volume = SFX.Volume;
-                        PlayerState = PlayerState.loaded;
-                        if (wasPlaying)
+                        bool isCurrentlyPlaying = PlayerState == PlayerState.play;
+                        bool isCurrentlyPaused  = PlayerState == PlayerState.paused;
+                        double positionFraction = 0.0;
+                        if ((isCurrentlyPlaying || isCurrentlyPaused) && _musicPlayer.Length.TotalSeconds > 0)
+                            positionFraction = _musicPlayer.Position.TotalSeconds / _musicPlayer.Length.TotalSeconds;
+                        if (isCurrentlyPlaying || isCurrentlyPaused) _musicPlayer.Stop();
+                        if (!string.IsNullOrEmpty(fn) && File.Exists(fn))
                         {
-                            _musicPlayer.Play();
-                            PlayerState = PlayerState.play;
-                            PlayingStateChanged?.Invoke(this, true);
+                            _musicPlayer.Open(fn, dev, spd, fi, fo, fc);
+                            _musicPlayer.Volume = vol;
+                            if (isCurrentlyPlaying || isCurrentlyPaused) _musicPlayer.Seek(positionFraction);
+                            PlayerState = PlayerState.loaded;
+                            if (isCurrentlyPlaying)
+                            {
+                                _musicPlayer.Play();
+                                PlayerState = PlayerState.play;
+                                PlayingStateChanged?.Invoke(this, true);
+                            }
                         }
-                    }
+                    });
                 }
             }
         }

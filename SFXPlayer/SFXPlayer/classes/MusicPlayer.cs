@@ -103,11 +103,15 @@ namespace SFXPlayer.classes
         public void Open(string filename, int deviceNumber, float speed = 1.0f,
             int fadeInMs = 0, int fadeOutMs = 0, FadeCurve fadeCurve = FadeCurve.Linear)
         {
+            // Suppress any pending PlaybackStopped that was posted to the SynchronizationContext
+            // by a prior Stop() call. Without this guard the stale event can arrive after the new
+            // Play() has already started and incorrectly reset PlayerState back to 'loaded' —
+            // and if SFX.AutoPlay is true, trigger a spurious second auto-advance. This mirrors
+            // the same _isSeeking pattern used in Seek().
+            _seekSyncContext = SynchronizationContext.Current;
+            _isSeeking = true;
             CleanupPlayback();
             AppLogger.Info($"MusicPlayer.Open: file=\"{filename}\", device={deviceNumber}, speed={speed}, fadeIn={fadeInMs}ms, fadeOut={fadeOutMs}ms, curve={fadeCurve}");
-            // Capture the calling thread's SynchronizationContext so Seek() can post the
-            // _isSeeking reset to the same queue NAudio uses for PlaybackStopped delivery.
-            _seekSyncContext = SynchronizationContext.Current;
             _waveSource = new AudioFileReader(filename);
             _soundOut = new WaveOutEvent();
             _soundOut.DeviceNumber = deviceNumber;
@@ -122,8 +126,15 @@ namespace SFXPlayer.classes
                 _speedProvider = null;
 
             _soundOut.Init(new SampleToWaveProvider(BuildChain()));
-
             _soundOut.PlaybackStopped += OnPlaybackStopped;
+
+            // Post the _isSeeking reset after the new device is fully configured. Because
+            // SynchronizationContext.Post is FIFO, the stale PlaybackStopped (from the prior
+            // Stop()) will be processed — and suppressed — before this reset fires.
+            if (_seekSyncContext != null)
+                _seekSyncContext.Post(_ => _isSeeking = false, null);
+            else
+                _isSeeking = false;
         }
 
         /// <summary>

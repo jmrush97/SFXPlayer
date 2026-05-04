@@ -42,6 +42,14 @@ namespace SFXPlayer
         /// </summary>
         private readonly HashSet<PlayStrip> _playingSounds = new HashSet<PlayStrip>();
 
+        /// <summary>
+        /// The PlayStrip most recently started by the main transport (Go button / bnPlayNext_Click).
+        /// Kept separately from _playingSounds so that Previous and Next can stop exactly this
+        /// track when the user navigates, preventing two tracks from playing simultaneously.
+        /// Cleared automatically via the PlayingStateChanged handler when the strip stops.
+        /// </summary>
+        private PlayStrip _currentActiveTrack = null;
+
         // Debounce timers for web-interface speed/volume slider commands.
         // The web slider fires 'oninput' on every pixel of movement, which would otherwise
         // enqueue many back-to-back SetSpeedLive calls that corrupt the _isSeeking guard
@@ -858,7 +866,12 @@ namespace SFXPlayer
                 var strip = s as PlayStrip;
                 if (strip == null) return;
                 if (isPlaying) _playingSounds.Add(strip);
-                else _playingSounds.Remove(strip);
+                else
+                {
+                    _playingSounds.Remove(strip);
+                    if (_currentActiveTrack == strip)
+                        _currentActiveTrack = null;
+                }
             };
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
             {
@@ -1356,6 +1369,26 @@ namespace SFXPlayer
             OnDisplayChanged(disp);
         }
 
+        private void bnPrev_Click(object sender, EventArgs e)
+        {
+            // Stop the active transport track before navigating to prevent two tracks
+            // playing simultaneously when Go is pressed after navigation.
+            if (_currentActiveTrack != null && !_currentActiveTrack.IsDisposed)
+                _currentActiveTrack.Stop();
+            bnPause.Text = "Pause";
+            NextPlayCueIndex -= 1;
+        }
+
+        private void bnNext_Click(object sender, EventArgs e)
+        {
+            // Stop the active transport track before navigating to prevent two tracks
+            // playing simultaneously when Go is pressed after navigation.
+            if (_currentActiveTrack != null && !_currentActiveTrack.IsDisposed)
+                _currentActiveTrack.Stop();
+            bnPause.Text = "Pause";
+            NextPlayCueIndex += 1;
+        }
+
         private void bnPlayNext_Click(object sender, EventArgs e)
         {
             // Stop all currently playing sounds (not just the visual "previous" cue —
@@ -1363,7 +1396,9 @@ namespace SFXPlayer
             StopAllPlayingSounds(null);
             if (NextPlayCue != null)
             {
-                NextPlayCue.Play();
+                var cue = NextPlayCue; // capture before index advances
+                cue.Play();
+                _currentActiveTrack = cue;
                 NextPlayCueIndex += 1;
             }
         }

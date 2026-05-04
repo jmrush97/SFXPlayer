@@ -1046,15 +1046,6 @@ namespace SFXPlayer
             }
         }
 
-        private void bnPrev_Click(object sender, EventArgs e)
-        {
-            NextPlayCueIndex -= 1;
-        }
-
-        private void bnNext_Click(object sender, EventArgs e)
-        {
-            NextPlayCueIndex += 1;
-        }
 
         private void autoLoadLastsfxCuelistToolStripMenuItem_Click(object sender, EventArgs e)
         {

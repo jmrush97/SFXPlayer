@@ -1,6 +1,5 @@
 using System.Net;
-using System.Net.WebSockets;
-using System.Text;
+using Microsoft.AspNetCore.SignalR.Client;
 using Xunit;
 using Xunit.Abstractions;
 using SFXPlayer.classes;
@@ -39,7 +38,7 @@ public class WebAppTests : IDisposable
             var response = await _httpClient.GetAsync($"http://localhost:{TestPort}/");
             Assert.True(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.NotFound, 
                 "WebApp should be responding to HTTP requests");
-            _output.WriteLine("? WebApp started successfully and responding to requests");
+            _output.WriteLine("✓ WebApp started successfully and responding to requests");
         }
         finally
         {
@@ -70,7 +69,7 @@ public class WebAppTests : IDisposable
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var content = await response.Content.ReadAsStringAsync();
             Assert.NotEmpty(content);
-            _output.WriteLine($"? Static file served successfully (Length: {content.Length} bytes)");
+            _output.WriteLine($"✓ Static file served successfully (Length: {content.Length} bytes)");
         }
         finally
         {
@@ -99,7 +98,7 @@ public class WebAppTests : IDisposable
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var contentType = response.Content.Headers.ContentType?.MediaType;
             Assert.Equal("text/html", contentType);
-            _output.WriteLine($"? Index.html served with correct content type: {contentType}");
+            _output.WriteLine($"✓ Index.html served with correct content type: {contentType}");
         }
         finally
         {
@@ -129,11 +128,11 @@ public class WebAppTests : IDisposable
             {
                 var contentType = response.Content.Headers.ContentType?.MediaType;
                 Assert.Contains("javascript", contentType ?? "", StringComparison.OrdinalIgnoreCase);
-                _output.WriteLine($"? JavaScript file served with content type: {contentType}");
+                _output.WriteLine($"✓ JavaScript file served with content type: {contentType}");
             }
             else
             {
-                _output.WriteLine($"? JavaScript file not found (this may be expected): {response.StatusCode}");
+                _output.WriteLine($"ℹ JavaScript file not found (this may be expected): {response.StatusCode}");
             }
         }
         finally
@@ -144,13 +143,13 @@ public class WebAppTests : IDisposable
         }
     }
 
-    [Fact(Skip = "WebSocket endpoint needs additional configuration")]
-    public async Task WebApp_AcceptsWebSocketConnections()
+    [Fact]
+    public async Task WebApp_AcceptsSignalRConnections()
     {
         // Arrange
         var originalPort = WebApp.wsPort;
         WebApp.wsPort = TestPort;
-        ClientWebSocket? webSocket = null;
+        HubConnection? connection = null;
 
         try
         {
@@ -158,22 +157,22 @@ public class WebAppTests : IDisposable
             await Task.Delay(1000);
 
             // Act
-            webSocket = new ClientWebSocket();
-            webSocket.Options.AddSubProtocol("ws-SFX-protocol");
-            var uri = new Uri($"ws://localhost:{TestPort}/ws");
-            
-            await webSocket.ConnectAsync(uri, CancellationToken.None);
+            connection = new HubConnectionBuilder()
+                .WithUrl($"http://localhost:{TestPort}/sfxhub")
+                .Build();
+
+            await connection.StartAsync();
 
             // Assert
-            Assert.Equal(WebSocketState.Open, webSocket.State);
-            _output.WriteLine("? WebSocket connection established successfully");
+            Assert.Equal(HubConnectionState.Connected, connection.State);
+            _output.WriteLine("✓ SignalR connection established successfully");
         }
         finally
         {
-            if (webSocket?.State == WebSocketState.Open)
+            if (connection != null)
             {
-                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete", CancellationToken.None);
-                webSocket.Dispose();
+                await connection.StopAsync();
+                await connection.DisposeAsync();
             }
             await WebApp.StopAsync();
             await Task.Delay(500);
@@ -209,7 +208,7 @@ public class WebAppTests : IDisposable
                 await client.GetAsync($"http://localhost:{TestPort}/");
             });
             
-            _output.WriteLine($"? WebApp stopped successfully (Expected error: {exception.GetType().Name})");
+            _output.WriteLine($"✓ WebApp stopped successfully (Expected error: {exception.GetType().Name})");
         }
         finally
         {
@@ -237,7 +236,7 @@ public class WebAppTests : IDisposable
             var response = await _httpClient.GetAsync($"http://localhost:{TestPort}/");
             Assert.True(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.NotFound, 
                 "WebApp should still be responding after multiple start calls");
-            _output.WriteLine("? Multiple start calls handled gracefully");
+            _output.WriteLine("✓ Multiple start calls handled gracefully");
         }
         finally
         {
@@ -264,7 +263,7 @@ public class WebAppTests : IDisposable
             // Assert
             var response = await _httpClient.GetAsync($"http://localhost:{TestPort}/");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            _output.WriteLine($"? WebApp listening on correct port: {TestPort}");
+            _output.WriteLine($"✓ WebApp listening on correct port: {TestPort}");
 
             // Verify it's NOT listening on a different port
             var wrongPortException = await Assert.ThrowsAnyAsync<Exception>(async () =>
@@ -272,7 +271,7 @@ public class WebAppTests : IDisposable
                 var wrongClient = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
                 await wrongClient.GetAsync($"http://localhost:{TestPort + 1}/");
             });
-            _output.WriteLine($"? WebApp NOT listening on wrong port (Expected error: {wrongPortException.GetType().Name})");
+            _output.WriteLine($"✓ WebApp NOT listening on wrong port (Expected error: {wrongPortException.GetType().Name})");
         }
         finally
         {
@@ -284,38 +283,37 @@ public class WebAppTests : IDisposable
 
 
     [Fact]
-    public async Task WebApp_HandlesVolumeCommand_ViaWebSocket()
+    public async Task WebApp_HandlesVolumeCommand_ViaSignalR()
     {
         // Arrange
         var originalPort = WebApp.wsPort;
         WebApp.wsPort = TestPort;
-        ClientWebSocket? webSocket = null;
+        HubConnection? connection = null;
 
         try
         {
             await WebApp.StartAsync();
             await Task.Delay(1000);
 
-            webSocket = new ClientWebSocket();
-            webSocket.Options.AddSubProtocol("ws-SFX-protocol");
-            var uri = new Uri($"ws://localhost:{TestPort}/ws");
-            await webSocket.ConnectAsync(uri, CancellationToken.None);
+            connection = new HubConnectionBuilder()
+                .WithUrl($"http://localhost:{TestPort}/sfxhub")
+                .Build();
+            await connection.StartAsync();
 
-            // Act — send a volume command
-            var msg = Encoding.UTF8.GetBytes("<command>volume:75</command>");
-            await webSocket.SendAsync(new ArraySegment<byte>(msg), WebSocketMessageType.Text, true, CancellationToken.None);
+            // Act — invoke volume command (Program.mainForm is null so it returns early; no crash expected)
+            await connection.InvokeAsync("SendCommand", "volume:75");
             await Task.Delay(300);
 
             // Assert — no exception means the command was handled without crashing
-            Assert.Equal(WebSocketState.Open, webSocket.State);
-            _output.WriteLine("? Volume WebSocket command handled without error");
+            Assert.Equal(HubConnectionState.Connected, connection.State);
+            _output.WriteLine("✓ Volume SignalR command handled without error");
         }
         finally
         {
-            if (webSocket?.State == WebSocketState.Open)
+            if (connection != null)
             {
-                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete", CancellationToken.None);
-                webSocket.Dispose();
+                await connection.StopAsync();
+                await connection.DisposeAsync();
             }
             await WebApp.StopAsync();
             await Task.Delay(500);
@@ -324,38 +322,37 @@ public class WebAppTests : IDisposable
     }
 
     [Fact]
-    public async Task WebApp_HandlesSpeedCommand_ViaWebSocket()
+    public async Task WebApp_HandlesSpeedCommand_ViaSignalR()
     {
         // Arrange
         var originalPort = WebApp.wsPort;
         WebApp.wsPort = TestPort;
-        ClientWebSocket? webSocket = null;
+        HubConnection? connection = null;
 
         try
         {
             await WebApp.StartAsync();
             await Task.Delay(1000);
 
-            webSocket = new ClientWebSocket();
-            webSocket.Options.AddSubProtocol("ws-SFX-protocol");
-            var uri = new Uri($"ws://localhost:{TestPort}/ws");
-            await webSocket.ConnectAsync(uri, CancellationToken.None);
+            connection = new HubConnectionBuilder()
+                .WithUrl($"http://localhost:{TestPort}/sfxhub")
+                .Build();
+            await connection.StartAsync();
 
-            // Act — send a speed command
-            var msg = Encoding.UTF8.GetBytes("<command>speed:1.50</command>");
-            await webSocket.SendAsync(new ArraySegment<byte>(msg), WebSocketMessageType.Text, true, CancellationToken.None);
+            // Act — invoke speed command (Program.mainForm is null so it returns early; no crash expected)
+            await connection.InvokeAsync("SendCommand", "speed:1.50");
             await Task.Delay(300);
 
             // Assert — no exception means the command was handled without crashing
-            Assert.Equal(WebSocketState.Open, webSocket.State);
-            _output.WriteLine("? Speed WebSocket command handled without error");
+            Assert.Equal(HubConnectionState.Connected, connection.State);
+            _output.WriteLine("✓ Speed SignalR command handled without error");
         }
         finally
         {
-            if (webSocket?.State == WebSocketState.Open)
+            if (connection != null)
             {
-                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test complete", CancellationToken.None);
-                webSocket.Dispose();
+                await connection.StopAsync();
+                await connection.DisposeAsync();
             }
             await WebApp.StopAsync();
             await Task.Delay(500);

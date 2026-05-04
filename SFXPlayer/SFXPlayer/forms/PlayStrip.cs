@@ -51,7 +51,6 @@ namespace SFXPlayer
         // Overlay state
         private float _positionFraction = -1f;  // -1 = no line
         private int _volumePct = 100;            // 0–100
-
         private float _zoom = 1f;               // 1 = full view; >1 = zoomed in
         private float _zoomCenter = 0.5f;       // fractional center of the zoomed view
 
@@ -1184,7 +1183,19 @@ namespace SFXPlayer
 
         private void PlayFromStart()
         {
-            _musicPlayer.Position = TimeSpan.Zero;
+            // Re-open the file with the current SFX settings so that per-cue speed,
+            // fade-in/out, and fade-curve are always applied — even if the settings were
+            // changed after the file was preloaded (when only SFX.* was updated without
+            // reopening the player chain). This also resets the position to the start.
+            if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+            {
+                _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                    SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
+            }
+            else
+            {
+                AppLogger.Warning($"PlayStrip.PlayFromStart: file not available \"{SFX.FileName}\" (description: \"{SFX.Description}\")");
+            }
             _musicPlayer.Volume = SFX.Volume;
             if (SFX.DebounceStartMs > 0)
             {

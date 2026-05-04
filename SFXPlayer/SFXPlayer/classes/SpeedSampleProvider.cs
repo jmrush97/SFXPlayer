@@ -33,7 +33,22 @@ namespace SFXPlayer.classes
 
             // read source into a temporary buffer
             float[] src = inputSamples <= MaxReadBufferSamples ? _readBuffer : new float[inputSamples];
-            int samplesRead = _source.Read(src, 0, inputSamples);
+            int samplesRead;
+            try
+            {
+                samplesRead = _source.Read(src, 0, inputSamples);
+            }
+            catch (System.Runtime.InteropServices.InvalidComObjectException)
+            {
+                // The underlying COM media-foundation source was disposed while the NAudio
+                // playback thread was still reading (e.g. speed was changed mid-playback).
+                // Return 0 to signal end-of-stream so WaveOutEvent can stop cleanly.
+                return 0;
+            }
+            catch (ObjectDisposedException)
+            {
+                return 0;
+            }
             int framesRead = samplesRead / channels;
 
             if (framesRead == 0) return 0;

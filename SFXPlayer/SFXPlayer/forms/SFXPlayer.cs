@@ -42,6 +42,23 @@ namespace SFXPlayer
         /// </summary>
         private readonly HashSet<PlayStrip> _playingSounds = new HashSet<PlayStrip>();
 
+        /// <summary>
+        /// The PlayStrip most recently started by the main transport (Go button / bnPlayNext_Click).
+        /// Kept separately from _playingSounds so that Previous and Next can stop exactly this
+        /// track when the user navigates, preventing two tracks from playing simultaneously.
+        /// Cleared automatically via the PlayingStateChanged handler when the strip stops.
+        /// </summary>
+        private PlayStrip _currentActiveTrack = null;
+
+        // Debounce timers for web-interface speed/volume slider commands.
+        // The web slider fires 'oninput' on every pixel of movement, which would otherwise
+        // enqueue many back-to-back SetSpeedLive calls that corrupt the _isSeeking guard
+        // and trigger spurious PlaybackStopped → TriggerAutoPlay cue-cycling.
+        private System.Windows.Forms.Timer _webSpeedDebounceTimer;
+        private System.Windows.Forms.Timer _webVolumeDebounceTimer;
+        private float _pendingWebSpeed = -1f;
+        private int   _pendingWebVolume = -1;
+
         protected override void WndProc(ref Message m)
         {
             if (m.Msg == WM_DEVICECHANGE)
@@ -128,12 +145,13 @@ namespace SFXPlayer
             PlayStrip.OFD = dlgOpenAudioFile;
             autoLoadLastsfxCuelistToolStripMenuItem.Checked = Settings.Default.AutoLoadLastSession;
             confirmDeleteCueToolStripMenuItem.Checked = Settings.Default.ConfirmDeleteCue;
-            //// Initialize device status label
-            //if (lblDeviceStatus != null)
-            //{
-            //    lblDeviceStatus.Text = "Initializing devices...";
-            //    lblDeviceStatus.ForeColor = System.Drawing.Color.Gray;
-            //}
+
+            // Web-interface debounce timers: coalesce rapid slider commands so only
+            // one player reload fires per 250ms burst of web speed/volume changes.
+            _webSpeedDebounceTimer = new System.Windows.Forms.Timer { Interval = 250 };
+            _webSpeedDebounceTimer.Tick += WebSpeedDebounceTimer_Tick;
+            _webVolumeDebounceTimer = new System.Windows.Forms.Timer { Interval = 250 };
+            _webVolumeDebounceTimer.Tick += WebVolumeDebounceTimer_Tick;
         }
 
         // Convenience method for setting message text in 
@@ -222,6 +240,8 @@ namespace SFXPlayer
             // When audio is active (playing or paused) the display shows that cue; otherwise the next cue
             PlayStrip active = playing ?? paused;
             PlayStrip displayCue = active ?? next;
+            PlayStrip nextNext = GetNextNextCue(next);
+            bool isLoading = CueList.Controls.OfType<PlayStrip>().Any(ps => ps.IsLoading);
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
@@ -254,7 +274,21 @@ namespace SFXPlayer
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
                 WaveformData = GetWaveformData(displayCue),
-                CueListJson = GetCueListJson()
+                CueListJson = GetCueListJson(),
+                IsLoading = isLoading,
+                GoTrackNum = next != null ? (next.PlayStripIndex + 1).ToString("D3") : "",
+                GoTrackDesc = next?.SFX.Description ?? "",
+                ActiveTrackNum = active != null ? (active.PlayStripIndex + 1).ToString("D3") : "",
+                ActiveTrackDesc = active?.SFX.Description ?? "",
+                NextNextTrackNum = nextNext != null ? (nextNext.PlayStripIndex + 1).ToString("D3") : "",
+                NextNextTrackDesc = nextNext?.SFX.Description ?? "",
+                ShowDescription = CurrentShow?.Description ?? "",
+                LastSaveUser = CurrentShow?.History?.LastOrDefault()?.User ?? "",
+                LastSaveTimestamp = CurrentShow?.History?.LastOrDefault()?.Timestamp.ToString("o") ?? "",
+                LastSaveReason = CurrentShow?.History?.LastOrDefault()?.Reason ?? "",
+                SaveHistoryJson = BuildSaveHistoryJson(CurrentShow),
+                PlayUsageHistoryJson = BuildPlayUsageHistoryJson(CurrentShow),
+                ConnectedClients = GetConnectedClientsString(),
             };
             OnDisplayChanged(disp);
         }
@@ -289,6 +323,7 @@ namespace SFXPlayer
             CurrentShow.NextPlayCueIndex = NextPlayCueIndex;
             UpdateTrackInfoLabel(null);
             UpdateWebApp();
+            PreloadNeighborCues();
         }
 
         private void UpdateCueDetailLabels()
@@ -539,6 +574,9 @@ namespace SFXPlayer
             AppLogger.Info("SFXPlayer.StartWebApp");
             Debug.WriteLine("MouseWheelScrollLines = " + SystemInformation.MouseWheelScrollLines);
 
+            // Subscribe to connected-client changes so the status bar stays current
+            classes.SfxHub.ConnectedClientsChanged += SfxHub_ConnectedClientsChanged;
+
             // Start WebApp asynchronously
             _ = Task.Run(async () =>
             {
@@ -561,6 +599,24 @@ namespace SFXPlayer
                     }
                 }));
             });
+        }
+
+        private void SfxHub_ConnectedClientsChanged(object sender, EventArgs e)
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            try
+            {
+                BeginInvoke(new Action(UpdateConnectedClientsLabel));
+            }
+            catch (Exception) { }
+        }
+
+        private void UpdateConnectedClientsLabel()
+        {
+            var ips = classes.SfxHub.ConnectedClientIPs.Values.Distinct().ToList();
+            trackInfoLabel.Text = ips.Count == 0
+                ? ""
+                : "Web clients: " + string.Join(", ", ips);
         }
 
         private string GetLocalIPAddress()
@@ -732,6 +788,7 @@ namespace SFXPlayer
                 int tempNextPlayCueIndex = newShow.NextPlayCueIndex;
                 CurrentShow = newShow;
                 NextPlayCueIndex = tempNextPlayCueIndex;
+                RestoreDevicesFromShow(newShow);
             }
         }
 
@@ -745,14 +802,37 @@ namespace SFXPlayer
             {
                 int tempNextPlayCueIndex = CurrentShow.NextPlayCueIndex;
                 CurrentShow.UpdateShow += UpdateDisplay;
+                CurrentShow.RecordUsage();
                 ResetDisplay();
                 NextPlayCueIndex = tempNextPlayCueIndex;
+                RestoreDevicesFromShow(CurrentShow);
             }
             else
             {
                 CurrentShow = oldShow;
             }
             CurrentShow.ShowFileBecameDirty += ShowFileHandler.SetDirty;
+        }
+
+        /// <summary>
+        /// If the loaded show file stored preferred device names, restore them when
+        /// those devices are still available on this machine.
+        /// </summary>
+        private void RestoreDevicesFromShow(Show show)
+        {
+            if (show == null) return;
+            if (!string.IsNullOrEmpty(show.PlaybackDevice) && CurrentAudioOutDevices.Contains(show.PlaybackDevice))
+            {
+                Settings.Default.LastPlaybackDevice = show.PlaybackDevice;
+                Settings.Default.Save();
+            }
+            if (!string.IsNullOrEmpty(show.PreviewDevice) && CurrentAudioOutDevices.Contains(show.PreviewDevice))
+            {
+                Settings.Default.LastPreviewDevice = show.PreviewDevice;
+                Settings.Default.Save();
+            }
+            if (!string.IsNullOrEmpty(show.PlaybackDevice) || !string.IsNullOrEmpty(show.PreviewDevice))
+                UpdateDevices();
         }
 
         void UpdateDisplay()
@@ -839,7 +919,12 @@ namespace SFXPlayer
                 var strip = s as PlayStrip;
                 if (strip == null) return;
                 if (isPlaying) _playingSounds.Add(strip);
-                else _playingSounds.Remove(strip);
+                else
+                {
+                    _playingSounds.Remove(strip);
+                    if (_currentActiveTrack == strip)
+                        _currentActiveTrack = null;
+                }
             };
             ps.AutoPlayNext += (s, pauseMs) => _commandQueue.Enqueue(() =>
             {
@@ -1024,6 +1109,38 @@ namespace SFXPlayer
         }
 
         /// <summary>
+        /// Pre-loads the two cues before and two cues after the current position
+        /// so that navigation feels instant and a loading indicator is rarely needed.
+        /// </summary>
+        private void PreloadNeighborCues()
+        {
+            int current = NextPlayCue?.PlayStripIndex ?? -1;
+            foreach (PlayStrip ps in CueList.Controls.OfType<PlayStrip>())
+            {
+                int dist = Math.Abs(ps.PlayStripIndex - current);
+                if (dist <= 2 && !ps.IsDisposed)
+                    ps.PreloadFile();
+            }
+        }
+
+        /// <summary>
+        /// Stops all playback and immediately plays the cue at <paramref name="index"/>.
+        /// Called by the web-app "instant play" button on each cue row.
+        /// </summary>
+        public void InstantPlayCue(int index)
+        {
+            StopAllPlayingSounds(null);
+            GotoCue(index);
+            PlayStrip target = NextPlayCue;
+            if (target != null)
+            {
+                _currentActiveTrack = target;
+                target.Play();
+                NextPlayCueIndex += 1;
+            }
+        }
+
+        /// <summary>
         /// Add invisible CueList controls to set the correct scroll limits
         /// </summary>
         private void PadCueList()
@@ -1102,7 +1219,14 @@ namespace SFXPlayer
 
         private void bnStopAll_Click(object sender, EventArgs e)
         {
-            StopAll(sender, e);
+            // Stop all strips unconditionally (playing and paused). Using a direct loop
+            // over all PlayStrips is more robust than relying on the _playingSounds set,
+            // which may not reflect paused strips or strips mid-speed-change.
+            foreach (PlayStrip ps in CueList.Controls.OfType<PlayStrip>())
+            {
+                if (!ps.IsDisposed)
+                    ps.Stop();
+            }
             StopPreviews(sender, e);
             bnPause.Text = "Pause";
         }
@@ -1255,6 +1379,18 @@ namespace SFXPlayer
             return $"{Path.GetFileName(cue.SFX.FileName)} | {durStr}{speedStr}";
         }
 
+        /// <summary>
+        /// Returns the PlayStrip that is one position after <paramref name="next"/> in the cue list,
+        /// or null if there is none.
+        /// </summary>
+        private PlayStrip GetNextNextCue(PlayStrip next)
+        {
+            if (next == null) return null;
+            int targetIdx = next.PlayStripIndex + 1;
+            return CueList.Controls.OfType<PlayStrip>()
+                .FirstOrDefault(p => p.PlayStripIndex == targetIdx);
+        }
+
         private static string FormatTime(double totalSeconds)
         {
             int mins = (int)(totalSeconds / 60);
@@ -1271,6 +1407,8 @@ namespace SFXPlayer
             PlayStrip active = playing ?? paused;
             // Show the active cue prominently when audio is running; fall back to the next cue
             PlayStrip displayCue = active ?? next;
+            PlayStrip nextNext = GetNextNextCue(next);
+            bool isLoading = CueList.Controls.OfType<PlayStrip>().Any(ps => ps.IsLoading);
             DisplaySettings disp = new DisplaySettings()
             {
                 Title = Text,
@@ -1304,9 +1442,43 @@ namespace SFXPlayer
                 AvailablePreviewDevices = string.Join("|", CurrentAudioOutDevices),
                 CurrentPreviewDevice = Settings.Default.LastPreviewDevice ?? "",
                 WaveformData = GetWaveformData(displayCue),
-                CueListJson = GetCueListJson()
+                CueListJson = GetCueListJson(),
+                IsLoading = isLoading,
+                GoTrackNum = next != null ? (next.PlayStripIndex + 1).ToString("D3") : "",
+                GoTrackDesc = next?.SFX.Description ?? "",
+                ActiveTrackNum = active != null ? (active.PlayStripIndex + 1).ToString("D3") : "",
+                ActiveTrackDesc = active?.SFX.Description ?? "",
+                NextNextTrackNum = nextNext != null ? (nextNext.PlayStripIndex + 1).ToString("D3") : "",
+                NextNextTrackDesc = nextNext?.SFX.Description ?? "",
+                ShowDescription = CurrentShow?.Description ?? "",
+                LastSaveUser = CurrentShow?.History?.LastOrDefault()?.User ?? "",
+                LastSaveTimestamp = CurrentShow?.History?.LastOrDefault()?.Timestamp.ToString("o") ?? "",
+                LastSaveReason = CurrentShow?.History?.LastOrDefault()?.Reason ?? "",
+                SaveHistoryJson = BuildSaveHistoryJson(CurrentShow),
+                PlayUsageHistoryJson = BuildPlayUsageHistoryJson(CurrentShow),
+                ConnectedClients = GetConnectedClientsString(),
             };
             OnDisplayChanged(disp);
+        }
+
+        private void bnPrev_Click(object sender, EventArgs e)
+        {
+            // Stop the active transport track before navigating to prevent two tracks
+            // playing simultaneously when Go is pressed after navigation.
+            if (_currentActiveTrack != null && !_currentActiveTrack.IsDisposed)
+                _currentActiveTrack.Stop();
+            bnPause.Text = "Pause";
+            NextPlayCueIndex -= 1;
+        }
+
+        private void bnNext_Click(object sender, EventArgs e)
+        {
+            // Stop the active transport track before navigating to prevent two tracks
+            // playing simultaneously when Go is pressed after navigation.
+            if (_currentActiveTrack != null && !_currentActiveTrack.IsDisposed)
+                _currentActiveTrack.Stop();
+            bnPause.Text = "Pause";
+            NextPlayCueIndex += 1;
         }
 
         private void bnPlayNext_Click(object sender, EventArgs e)
@@ -1316,7 +1488,9 @@ namespace SFXPlayer
             StopAllPlayingSounds(null);
             if (NextPlayCue != null)
             {
-                NextPlayCue.Play();
+                var cue = NextPlayCue; // capture before index advances
+                cue.Play();
+                _currentActiveTrack = cue;
                 NextPlayCueIndex += 1;
             }
         }
@@ -1366,11 +1540,13 @@ namespace SFXPlayer
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            StampSaveMetadata(PromptSaveReason());
             ShowFileHandler.Save(CurrentShow);
         }
 
         private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            StampSaveMetadata(PromptSaveReason());
             ShowFileHandler.SaveAs(CurrentShow);
         }
 
@@ -1598,6 +1774,23 @@ namespace SFXPlayer
             MessageBox.Show(message, "About SFX Player", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        private void instructionsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (WebApp.Serving)
+            {
+                string localIP = GetLocalIPAddress();
+                string url = $"http://{localIP}:{WebApp.wsPort}/help.html";
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            else
+            {
+                MessageBox.Show(
+                    "The web server is not running. Start the application as administrator to enable the web app, then try again.",
+                    "Instructions",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
         /// <summary>
         /// Rebuilds the "Recent Audio Files" submenu from the stored settings list.
         /// Called after any file selection and on form load.
@@ -1670,35 +1863,84 @@ namespace SFXPlayer
 
         internal void SetNextCueVolume(int vol)
         {
+            // Debounce: store the pending value and restart the timer so that rapid
+            // web slider events collapse into a single player update after 250ms of
+            // inactivity. The SFX model and display are updated immediately; only the
+            // live _musicPlayer.Volume call is deferred.
             _commandQueue.Enqueue(() =>
             {
-                vol = Math.Max(0, Math.Min(100, vol));
-                if (NextPlayCue != null)
-                {
-                    NextPlayCue.SFX.Volume = vol;
-                    NextPlayCue.RefreshVolumeDisplay();
-                }
-                // Also apply immediately to any live (playing or paused) strip
+                int clamped = Math.Max(0, Math.Min(100, vol));
                 var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
                 if (active != null)
-                    active.SetVolumeLive(vol);
+                {
+                    // A track is already playing/paused — adjust only that track.
+                    // Do NOT touch NextPlayCue so its preset volume is not overwritten.
+                    active.SFX.Volume = clamped;
+                    active.RefreshVolumeDisplay();
+                }
+                else if (NextPlayCue != null)
+                {
+                    // Nothing is playing: adjust the next cue's preset volume.
+                    NextPlayCue.SFX.Volume = clamped;
+                    NextPlayCue.RefreshVolumeDisplay();
+                }
+                _pendingWebVolume = clamped;
+                _webVolumeDebounceTimer.Stop();
+                _webVolumeDebounceTimer.Start();
                 UpdateWebApp();
             });
         }
 
+        private void WebVolumeDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _webVolumeDebounceTimer.Stop();
+            int vol = _pendingWebVolume;
+            if (vol < 0) return;
+            _pendingWebVolume = -1;
+            var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+            if (active != null)
+                active.SetVolumeLive(vol);
+        }
+
         internal void SetNextCueSpeed(float speed)
         {
+            // Debounce: the web slider fires 'oninput' on every pixel, so many speed:X
+            // commands arrive in a burst. Without debouncing each one would enqueue a full
+            // Stop/Open/Seek/Play cycle; back-to-back cycles break the _isSeeking guard and
+            // trigger spurious PlaybackStopped → TriggerAutoPlay → cue cycling. By storing
+            // the latest pending value and restarting a 250ms timer, only one SetSpeedLive
+            // is ever executed per drag gesture.
             _commandQueue.Enqueue(() =>
             {
-                speed = Math.Max(0.1f, Math.Min(8.0f, speed));
-                if (NextPlayCue != null)
-                    NextPlayCue.SFX.Speed = speed;
-                // Also apply immediately to any live (playing or paused) strip
+                float clamped = Math.Max(0.1f, Math.Min(8.0f, speed));
                 var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
                 if (active != null)
-                    active.SetSpeedLive(speed);
+                {
+                    // A track is already playing/paused — adjust only that track.
+                    // Do NOT touch NextPlayCue so its preset speed is not overwritten.
+                    active.SFX.Speed = clamped;
+                }
+                else if (NextPlayCue != null)
+                {
+                    // Nothing is playing: adjust the next cue's preset speed.
+                    NextPlayCue.SFX.Speed = clamped;
+                }
+                _pendingWebSpeed = clamped;
+                _webSpeedDebounceTimer.Stop();
+                _webSpeedDebounceTimer.Start();
                 UpdateWebApp();
             });
+        }
+
+        private void WebSpeedDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _webSpeedDebounceTimer.Stop();
+            float speed = _pendingWebSpeed;
+            if (speed < 0) return;
+            _pendingWebSpeed = -1f;
+            var active = _playingSounds.FirstOrDefault(ps => !ps.IsDisposed && (ps.IsPlaying || ps.IsPaused));
+            if (active != null)
+                active.SetSpeedLive(speed);
         }
 
         internal void DeleteNextCue()
@@ -1807,6 +2049,183 @@ namespace SFXPlayer
             });
         }
 
+        /// <summary>
+        /// Updates the show's description from the web or WinForms UI without stamping save history.
+        /// </summary>
+        internal void SetShowDescription(string text)
+        {
+            _commandQueue.Enqueue(() =>
+            {
+                if (CurrentShow == null) return;
+                CurrentShow.Description = text ?? "";
+                UpdateWebApp();
+            });
+        }
+
+        /// <summary>
+        /// Shows a dialog asking for an optional save reason.
+        /// Returns the entered reason (may be empty string) when the user clicks Save,
+        /// or <c>null</c> if the user cancels — callers should abort the save when null is returned.
+        /// </summary>
+        private string PromptSaveReason()
+        {
+            using (var dlg = new Form())
+            {
+                dlg.Text = "Save";
+                dlg.Size = new System.Drawing.Size(420, 160);
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.MaximizeBox = false;
+                dlg.MinimizeBox = false;
+
+                var lbl = new Label { Text = "Update reason (optional):", Left = 12, Top = 14, Width = 380, AutoSize = true };
+                var txt = new TextBox { Left = 12, Top = 34, Width = 380, Anchor = AnchorStyles.Left | AnchorStyles.Right };
+                var btnOk = new Button { Text = "Save", DialogResult = DialogResult.OK, Left = 230, Top = 70, Width = 80 };
+                var btnCancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 316, Top = 70, Width = 80 };
+
+                dlg.Controls.AddRange(new Control[] { lbl, txt, btnOk, btnCancel });
+                dlg.AcceptButton = btnOk;
+                dlg.CancelButton = btnCancel;
+
+                return dlg.ShowDialog(this) == DialogResult.OK ? txt.Text.Trim() : null;
+            }
+        }
+
+        /// <summary>
+        /// Stamps device preferences and adds a SaveRecord to the show history.
+        /// Call this before every save operation.
+        /// </summary>
+        private void StampSaveMetadata(string reason)
+        {
+            if (reason == null) return;    // user cancelled
+            if (CurrentShow == null) return;
+            CurrentShow.PlaybackDevice = Settings.Default.LastPlaybackDevice ?? "";
+            CurrentShow.PreviewDevice = Settings.Default.LastPreviewDevice ?? "";
+            CurrentShow.History.Add(new classes.SaveRecord
+            {
+                User = Environment.UserName,
+                Timestamp = DateTime.UtcNow,
+                Reason = reason
+            });
+        }
+
+        /// <summary>
+        /// Builds a JSON array of all save history records for the given show.
+        /// </summary>
+        private static string BuildSaveHistoryJson(classes.Show show)
+        {
+            if (show?.History == null || show.History.Count == 0) return "[]";
+            var sb = new System.Text.StringBuilder("[");
+            bool first = true;
+            foreach (var r in show.History)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                string u = EscapeJsonString(r.User ?? "");
+                string ts = EscapeJsonString(r.Timestamp == DateTime.MinValue ? "" : r.Timestamp.ToString("o"));
+                string reason = EscapeJsonString(r.Reason ?? "");
+                sb.Append($"{{\"user\":\"{u}\",\"ts\":\"{ts}\",\"reason\":\"{reason}\"}}");
+            }
+            sb.Append(']');
+            return sb.ToString();
+        }
+
+        private static string BuildPlayUsageHistoryJson(classes.Show show)
+        {
+            if (show?.UsageLog == null || show.UsageLog.Count == 0) return "[]";
+            var sb = new System.Text.StringBuilder("[");
+            bool first = true;
+            foreach (var r in show.UsageLog)
+            {
+                if (!first) sb.Append(',');
+                first = false;
+                string u = EscapeJsonString(r.User ?? "");
+                string m = EscapeJsonString(r.Machine ?? "");
+                string ts = EscapeJsonString(r.Timestamp == DateTime.MinValue ? "" : r.Timestamp.ToString("o"));
+                sb.Append($"{{\"user\":\"{u}\",\"machine\":\"{m}\",\"ts\":\"{ts}\"}}");
+            }
+            sb.Append(']');
+            return sb.ToString();
+        }
+
+        private static string GetConnectedClientsString()
+            => string.Join("|", classes.SfxHub.ConnectedClientIPs.Values.Distinct());
+
+        /// <summary>
+        /// Opens a dialog that lets the user view and edit the cue list description.
+        /// </summary>
+        private void showDescriptionToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new Form())
+            {
+                dlg.Text = "Cue List Description";
+                dlg.Size = new System.Drawing.Size(520, 440);
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.FormBorderStyle = FormBorderStyle.Sizable;
+                dlg.MinimumSize = new System.Drawing.Size(360, 320);
+
+                var lblDesc = new Label { Text = "Description:", Left = 12, Top = 10, Width = 200, AutoSize = true };
+                var txtDesc = new TextBox
+                {
+                    Left = 12, Top = 28, Width = 478, Height = 80,
+                    Multiline = true, ScrollBars = ScrollBars.Vertical,
+                    Text = CurrentShow?.Description ?? "",
+                    Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top
+                };
+
+                var lblHistory = new Label { Text = "Save History:", Left = 12, Top = 118, Width = 200, AutoSize = true };
+                var lst = new ListView
+                {
+                    Left = 12, Top = 136, Width = 478, Height = 200,
+                    View = View.Details, FullRowSelect = true, GridLines = true,
+                    Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom
+                };
+                lst.Columns.Add("Date / Time (UTC)", 140);
+                lst.Columns.Add("User", 100);
+                lst.Columns.Add("Reason", 220);
+                if (CurrentShow?.History != null)
+                {
+                    foreach (var r in CurrentShow.History.AsEnumerable().Reverse())
+                    {
+                        string ts = r.Timestamp == DateTime.MinValue ? "" : r.Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
+                        lst.Items.Add(new ListViewItem(new[] { ts, r.User ?? "", r.Reason ?? "" }));
+                    }
+                }
+
+                var btnOk = new Button
+                {
+                    Text = "OK", DialogResult = DialogResult.OK,
+                    Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                };
+                var btnCancel = new Button
+                {
+                    Text = "Cancel", DialogResult = DialogResult.Cancel,
+                    Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                };
+                dlg.Controls.AddRange(new Control[] { lblDesc, txtDesc, lblHistory, lst, btnOk, btnCancel });
+                dlg.AcceptButton = btnOk;
+                dlg.CancelButton = btnCancel;
+
+                dlg.Layout += (s, le) =>
+                {
+                    int right = dlg.ClientSize.Width - 12;
+                    int bottom = dlg.ClientSize.Height - 12;
+                    btnCancel.SetBounds(right - 80, bottom - 30, 80, 26);
+                    btnOk.SetBounds(right - 168, bottom - 30, 80, 26);
+                    lst.Width = right - 12;
+                    lst.Height = bottom - 50 - lst.Top;
+                    txtDesc.Width = right - 12;
+                };
+
+                if (dlg.ShowDialog(this) == DialogResult.OK && CurrentShow != null)
+                {
+                    CurrentShow.Description = txtDesc.Text;
+                    ShowFileHandler.SetDirty();
+                    UpdateWebApp();
+                }
+            }
+        }
+
         internal void SeekPosition(double fraction)
         {
             _commandQueue.Enqueue(() =>
@@ -1901,11 +2320,16 @@ namespace SFXPlayer
             {
                 if (!first) sb.Append(',');
                 first = false;
-                string desc = EscapeJsonString(ps.SFX.Description ?? "");
+                // Use filename (without extension) as fallback when description is empty
+                string rawDesc = ps.SFX.Description ?? "";
+                if (string.IsNullOrWhiteSpace(rawDesc) && !string.IsNullOrEmpty(ps.SFX.FileName))
+                    rawDesc = Path.GetFileNameWithoutExtension(ps.SFX.FileName);
+                string desc = EscapeJsonString(rawDesc);
                 string file = EscapeJsonString(Path.GetFileName(ps.SFX.FileName ?? ""));
                 string spd = ps.SFX.Speed.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
                 string isCur = ps.PlayStripIndex == nextIdx ? "true" : "false";
-                sb.Append($"{{\"i\":{ps.PlayStripIndex + 1},\"idx\":{ps.PlayStripIndex},\"d\":\"{desc}\",\"f\":\"{file}\",\"v\":{ps.SFX.Volume},\"s\":{spd},\"c\":{isCur}}}");
+                string isLoading = ps.IsLoading ? "true" : "false";
+                sb.Append($"{{\"i\":{ps.PlayStripIndex + 1},\"idx\":{ps.PlayStripIndex},\"d\":\"{desc}\",\"f\":\"{file}\",\"v\":{ps.SFX.Volume},\"s\":{spd},\"c\":{isCur},\"loading\":{isLoading}}}");
             }
             sb.Append(']');
             return sb.ToString();

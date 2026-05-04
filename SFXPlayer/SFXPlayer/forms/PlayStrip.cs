@@ -236,6 +236,8 @@ namespace SFXPlayer
         private readonly MusicPlayer _PreviewPlayer = new MusicPlayer();
         ucVolume volume = new ucVolume();
         ucSpeed speedControl = new ucSpeed();
+        private System.Windows.Forms.Timer _speedDebounceTimer;
+        private System.Windows.Forms.Timer _volumeDebounceTimer;
 
         /// <summary>
         /// Thread-safe queue of player actions.  All operations that touch _musicPlayer or
@@ -247,6 +249,12 @@ namespace SFXPlayer
         /// </summary>
         private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _playerQueue =
             new System.Collections.Concurrent.ConcurrentQueue<Action>();
+
+        // When set, the next PlaybackStopped event will not trigger auto-play.
+        // Set by Stop() so that an explicit stop (Stop All, StopOthers) never
+        // advances to the follow-on cue. Cleared by Play() so that natural
+        // playback-end auto-play works normally after the user plays the cue again.
+        private bool _suppressAutoPlay = false;
 
         /// <summary>
         /// Executes all queued player actions in order on the calling thread (must be the UI thread).
@@ -308,7 +316,13 @@ namespace SFXPlayer
             speedControl.SpeedChanged += SpeedControl_SpeedChanged;
             speedControl.Done += SpeedControl_Done;
 
+            _speedDebounceTimer = new System.Windows.Forms.Timer(components);
+            _speedDebounceTimer.Interval = 250;
+            _speedDebounceTimer.Tick += SpeedDebounceTimer_Tick;
 
+            _volumeDebounceTimer = new System.Windows.Forms.Timer(components);
+            _volumeDebounceTimer.Interval = 250;
+            _volumeDebounceTimer.Tick += VolumeDebounceTimer_Tick;
         }
 
         private void _PreviewPlayer_PlaybackStopped(object sender, StoppedEventArgs e)
@@ -1057,6 +1071,7 @@ namespace SFXPlayer
 
         public bool IsPlaying => (PlayerState == PlayerState.play);
         public bool IsPaused => (PlayerState == PlayerState.paused);
+        public bool IsLoading => (PlayerState == PlayerState.loading);
 
         public void TogglePause()
         {
@@ -1120,6 +1135,7 @@ namespace SFXPlayer
         public void Play()
         {
             AppLogger.Info($"PlayStrip.Play: \"{SFX.FileName}\" | description: \"{SFX.Description}\"");
+            _suppressAutoPlay = false; // explicit play — allow auto-follow when this cue finishes
             if (SFX.Skipped)
             {
                 AppLogger.Info($"PlayStrip.Play: cue is skipped, not playing");
@@ -1167,7 +1183,19 @@ namespace SFXPlayer
 
         private void PlayFromStart()
         {
-            _musicPlayer.Position = TimeSpan.Zero;
+            // Re-open the file with the current SFX settings so that per-cue speed,
+            // fade-in/out, and fade-curve are always applied — even if the settings were
+            // changed after the file was preloaded (when only SFX.* was updated without
+            // reopening the player chain). This also resets the position to the start.
+            if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+            {
+                _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                    SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
+            }
+            else
+            {
+                AppLogger.Warning($"PlayStrip.PlayFromStart: file not available \"{SFX.FileName}\" (description: \"{SFX.Description}\")");
+            }
             _musicPlayer.Volume = SFX.Volume;
             if (SFX.DebounceStartMs > 0)
             {
@@ -1220,8 +1248,7 @@ namespace SFXPlayer
             AppLogger.Info($"PlayStrip.Stop: \"{SFX.FileName}\"");
             if (PlayerState == PlayerState.paused || PlayerState == PlayerState.play)
             {
-                //_musicPlayer.Volume = 0;    //makes the stop less "clicky"
-                //Thread.Sleep(10);
+                _suppressAutoPlay = true; // explicit stop — do not trigger follow-on cue
                 _musicPlayer.Stop();
                 //_musicPlayer.Volume = SFX.Volume;
                 PlayerState = PlayerState.loaded;
@@ -1241,7 +1268,7 @@ namespace SFXPlayer
             }
             catch { }
 
-            if (SFX.AutoPlay)
+            if (SFX.AutoPlay && !_suppressAutoPlay)
             {
                 if (SFX.DebounceEndMs > 0)
                     System.Threading.Tasks.Task.Delay(SFX.DebounceEndMs).ContinueWith(_ =>
@@ -1407,7 +1434,18 @@ namespace SFXPlayer
             SFX.Volume = vol;
             UpdateVolumeTooltip();
             bnVolume.Invalidate();
-            _playerQueue.Enqueue(() => _musicPlayer.Volume = SFX.Volume);
+            // Debounce: reset and restart so the player volume is only updated after
+            // 250ms of slider inactivity, preventing rapid callbacks from conflicting
+            // with pending player operations on the queue.
+            _volumeDebounceTimer.Stop();
+            _volumeDebounceTimer.Start();
+        }
+
+        private void VolumeDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _volumeDebounceTimer.Stop();
+            int vol = SFX.Volume;
+            _playerQueue.Enqueue(() => _musicPlayer.Volume = vol);
         }
 
         private void UpdateVolumeTooltip()
@@ -1434,39 +1472,46 @@ namespace SFXPlayer
         /// <summary>Changes playback speed on the live player, preserving position if playing or paused.</summary>
         public void SetSpeedLive(float speed)
         {
-            SFX.Speed = Math.Max(0.1f, Math.Min(8.0f, speed));
-            UpdateSpeedTooltip();
-            if (PlayerState == PlayerState.play || PlayerState == PlayerState.paused || PlayerState == PlayerState.loaded)
+            try
             {
-                bool wasPlaying = PlayerState == PlayerState.play;
-                bool wasPaused  = PlayerState == PlayerState.paused;
-                double savedFraction = 0.0;
-                if ((wasPlaying || wasPaused) && _musicPlayer.Length.TotalSeconds > 0)
-                    savedFraction = _musicPlayer.Position.TotalSeconds / _musicPlayer.Length.TotalSeconds;
-                // Stop before reopening so the device is in a clean state for Open()
-                if (wasPlaying || wasPaused) _musicPlayer.Stop();
-                if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
+                SFX.Speed = Math.Max(0.1f, Math.Min(8.0f, speed));
+                UpdateSpeedTooltip();
+                if (PlayerState == PlayerState.play || PlayerState == PlayerState.paused || PlayerState == PlayerState.loaded)
                 {
-                    _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
-                        SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
-                    _musicPlayer.Volume = SFX.Volume;
-                    // Seek() uses _isSeeking to suppress the spurious PlaybackStopped that
-                    // was queued by the Stop() call above, ensuring our PlayerState assignment
-                    // below is not overwritten by the deferred callback.
-                    if (wasPlaying || wasPaused)
-                        _musicPlayer.Seek(savedFraction);
-                    PlayerState = PlayerState.loaded;
-                    if (wasPlaying)
+                    bool wasPlaying = PlayerState == PlayerState.play;
+                    bool wasPaused  = PlayerState == PlayerState.paused;
+                    double savedFraction = 0.0;
+                    if ((wasPlaying || wasPaused) && _musicPlayer.Length.TotalSeconds > 0)
+                        savedFraction = _musicPlayer.Position.TotalSeconds / _musicPlayer.Length.TotalSeconds;
+                    // Stop before reopening so the device is in a clean state for Open()
+                    if (wasPlaying || wasPaused) _musicPlayer.Stop();
+                    if (!string.IsNullOrEmpty(SFX.FileName) && File.Exists(SFX.FileName))
                     {
-                        _musicPlayer.Play();
-                        PlayerState = PlayerState.play;
-                        PlayingStateChanged?.Invoke(this, true);
+                        _musicPlayer.Open(SFX.FileName, SFXPlayer.CurrentPlaybackDeviceIdx, SFX.Speed,
+                            SFX.FadeInDurationMs, SFX.FadeOutDurationMs, SFX.FadeCurve);
+                        _musicPlayer.Volume = SFX.Volume;
+                        // Seek() uses _isSeeking to suppress the spurious PlaybackStopped that
+                        // was queued by the Stop() call above, ensuring our PlayerState assignment
+                        // below is not overwritten by the deferred callback.
+                        if (wasPlaying || wasPaused)
+                            _musicPlayer.Seek(savedFraction);
+                        PlayerState = PlayerState.loaded;
+                        if (wasPlaying)
+                        {
+                            _musicPlayer.Play();
+                            PlayerState = PlayerState.play;
+                            PlayingStateChanged?.Invoke(this, true);
+                        }
+                        // Note: if wasPaused we intentionally leave the strip in 'loaded' state
+                        // at the correct position because WaveOutEvent cannot start in a paused state.
                     }
-                    // Note: if wasPaused we intentionally leave the strip in 'loaded' state
-                    // at the correct position because WaveOutEvent cannot start in a paused state.
                 }
+                UpdatePlayButton();
             }
-            UpdatePlayButton();
+            catch (Exception ex)
+            {
+                AppLogger.Error($"PlayStrip.SetSpeedLive: failed to apply speed={speed} for \"{SFX?.FileName}\"", ex);
+            }
         }
 
         private void BnVolume_Paint(object sender, PaintEventArgs e)
@@ -1545,12 +1590,20 @@ namespace SFXPlayer
             // Update the model and tooltip immediately on the UI thread (no player conflict)
             SFX.Speed = newSpeed;
             toolTip1.SetToolTip(bnSpeed, $"Speed={newSpeed:0.00}x");
-            // Defer the actual player reload to the queue so that any pending
-            // PlaybackStopped callback from NAudio has been processed before we
-            // Stop/Open/Play.  SetSpeedLive also uses MusicPlayer.Seek()'s _isSeeking
-            // guard to suppress the spurious PlaybackStopped generated by the Stop()
-            // call inside the reopen sequence.
-            _playerQueue.Enqueue(() => SetSpeedLive(newSpeed));
+            // Debounce: reset and restart the timer so the player is only reloaded
+            // after 250ms of slider inactivity. This prevents rapid slider movements
+            // from queuing many back-to-back Stop/Open/Play cycles that would cause
+            // the PlaybackStopped suppression guard to fail and trigger spurious cue
+            // auto-play navigation.
+            _speedDebounceTimer.Stop();
+            _speedDebounceTimer.Start();
+        }
+
+        private void SpeedDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _speedDebounceTimer.Stop();
+            float speed = SFX.Speed;
+            _playerQueue.Enqueue(() => SetSpeedLive(speed));
         }
 
         private void SpeedControl_Done(object sender, EventArgs e)

@@ -141,6 +141,9 @@
     <Content Include="html\webapp.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="html\help.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <EmbeddedResource Include="Resources\headphones.svg" />
     <EmbeddedResource Include="Resources\blank.svg" />
     <EmbeddedResource Include="Resources\play-fill.svg" />

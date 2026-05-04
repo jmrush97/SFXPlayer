@@ -61,7 +61,16 @@ namespace SFXPlayer.classes
                             })
                             .ConfigureServices(services =>
                             {
-                                services.AddSignalR();
+                                services.AddSignalR(options =>
+                                {
+                                    // Increase keep-alive and client-timeout intervals so the
+                                    // connection survives brief periods where the WinForms UI
+                                    // thread is busy (e.g., processing audio reloads). The
+                                    // defaults of 15s keep-alive / 30s client-timeout are too
+                                    // tight when the slider fires many commands in quick succession.
+                                    options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+                                    options.ClientTimeoutInterval = TimeSpan.FromMinutes(2);
+                                });
                             })
                             .Configure(app =>
                             {

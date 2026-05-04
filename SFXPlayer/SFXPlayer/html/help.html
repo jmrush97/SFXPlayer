@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SFX Player – Instructions</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        body { max-width: 860px; margin: 0 auto; padding: 24px; font-family: system-ui, sans-serif; line-height: 1.6; }
+        h1 { font-size: 1.8em; margin-bottom: 0.2em; }
+        h2 { font-size: 1.3em; border-bottom: 1px solid #555; padding-bottom: 4px; margin-top: 1.6em; }
+        h3 { font-size: 1.1em; margin-top: 1.2em; }
+        code { background: #333; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
+        pre { background: #1e1e2e; border: 1px solid #444; border-radius: 6px; padding: 12px; overflow-x: auto; }
+        pre code { background: none; padding: 0; }
+        ul, ol { padding-left: 1.4em; }
+        table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        th, td { border: 1px solid #555; padding: 6px 10px; text-align: left; }
+        th { background: #2a2a3a; }
+        .back-link { display: inline-block; margin-bottom: 1em; color: #7af; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<a class="back-link" href="/">← Back to SFX Player</a>
+<h1>SFX Player – Instructions</h1>
+<p>SFX Player lets you build and run a cue list of audio files for live performance. It can be controlled either from the <strong>Windows desktop application</strong> (WinForms) or from the <strong>web interface</strong> (any device on the same network).</p>
+
+<h2>Getting Started</h2>
+<ol>
+    <li>Launch <strong>SFXPlayer.exe</strong> (as Administrator if you want the web interface enabled).</li>
+    <li>The web interface URL is shown at the bottom of the window (e.g. <code>http://192.168.1.10:3030/</code>). Open this on any phone, tablet, or computer on the same network.</li>
+    <li>Use <strong>File → New</strong> to create a blank cue list, or <strong>File → Open</strong> to load a saved <code>.sfx</code> file.</li>
+</ol>
+
+<h2>Supported File Formats</h2>
+<p>SFX Player can load the following audio file types:</p>
+<ul>
+    <li><strong>MP3</strong> (.mp3)</li>
+    <li><strong>WAV</strong> (.wav)</li>
+    <li><strong>AIFF / AIF</strong> (.aiff, .aif)</li>
+    <li><strong>WMA</strong> (.wma)</li>
+    <li><strong>AAC / M4A</strong> (.aac, .m4a)</li>
+    <li><strong>FLAC</strong> (.flac)</li>
+    <li><strong>OGG Vorbis</strong> (.ogg)</li>
+</ul>
+
+<h2>Adding Cues</h2>
+<h3>Using the WinForms app</h3>
+<ol>
+    <li>Click the <strong>+ Add Cue</strong> button in the toolbar, or right-click in the cue list and choose <strong>Add Cue</strong>.</li>
+    <li>Drag an audio file from Windows Explorer and drop it onto the new cue row, <em>or</em> click the file-browse button on the cue.</li>
+    <li>Type a description in the text box on the cue row. Descriptions support <strong>Markdown</strong> – bold, italic, lists and headings will be rendered in the web interface.</li>
+    <li>Adjust Volume (0–100) using the volume knob on the right of each cue.</li>
+</ol>
+<h3>Using the web interface</h3>
+<p>File management (adding/removing cues, choosing files) must be done in the WinForms application. The web interface is primarily designed for <em>running</em> the show during a performance.</p>
+
+<h2>Removing Cues</h2>
+<h3>WinForms</h3>
+<ul>
+    <li>Select the cue you want to delete (click on it so the yellow highlight moves to that row).</li>
+    <li>Click the <strong>Delete Cue</strong> button, or right-click → <strong>Delete Cue</strong>.</li>
+    <li>A confirmation prompt will appear (this can be turned off in Settings).</li>
+</ul>
+<h3>Web interface</h3>
+<p>Deletion is not available from the web interface.</p>
+
+<h2>Adding Fades</h2>
+<h3>WinForms</h3>
+<ol>
+    <li>Select the cue you want to add a fade to.</li>
+    <li>In the <strong>Fade</strong> section of the selected cue, enter:
+        <ul>
+            <li><strong>Fade In</strong> – duration in milliseconds for the audio to fade up from silence at the start.</li>
+            <li><strong>Fade Out</strong> – duration in milliseconds for the audio to fade to silence at the end.</li>
+            <li><strong>Curve</strong> – <em>Linear</em> (constant rate) or <em>Logarithmic</em> (matches human hearing).</li>
+        </ul>
+    </li>
+    <li>Click <strong>Set Fade</strong> to apply.</li>
+</ol>
+<h3>Web interface</h3>
+<ol>
+    <li>Open the web interface and navigate to the desired cue using <strong>Previous / Next</strong>.</li>
+    <li>In the <em>Fade</em> panel on the right, adjust the Fade In, Fade Out, and Curve fields.</li>
+    <li>Click <strong>Set Fade</strong>. The change is sent to the WinForms app immediately.</li>
+</ol>
+
+<h2>Playing Cues</h2>
+<table>
+    <tr><th>Action</th><th>WinForms</th><th>Web interface</th></tr>
+    <tr><td>Play next cue</td><td><strong>Go</strong> button (green)</td><td><strong>Go</strong> button</td></tr>
+    <tr><td>Stop all</td><td><strong>Stop All</strong> button</td><td><strong>Stop</strong> button</td></tr>
+    <tr><td>Pause / Resume</td><td><strong>Pause</strong> button</td><td><strong>Pause</strong> button</td></tr>
+    <tr><td>Previous cue</td><td><strong>←</strong> button</td><td><strong>Prev</strong> button</td></tr>
+    <tr><td>Next cue (skip)</td><td><strong>→</strong> button</td><td><strong>Next</strong> button</td></tr>
+    <tr><td>Instant play specific cue</td><td>Per-cue <strong>▶</strong> button on the strip</td><td>Per-cue <strong>▶</strong> button in the cue list</td></tr>
+</table>
+
+<h2>Cue Descriptions and Markdown</h2>
+<p>Both the cue description and the cue list description (Show → Cue List Description…) support <strong>Markdown</strong> formatting.  The web interface renders Markdown automatically.  In the WinForms app the raw Markdown text is shown.</p>
+<pre><code>## Act 1 – Scene 3
+
+Use **bold** for emphasis, _italic_ for notes.
+
+- Forest ambience at low volume
+- Fade in 2 s, fade out 3 s</code></pre>
+
+<h2>Auto-run Cues</h2>
+<p>Right-click a cue and tick <strong>Auto-run</strong> to have the next cue start automatically when this one finishes. You can also set an optional delay (pause) before the next cue starts.</p>
+
+<h2>Saving and Loading Show Files</h2>
+<ul>
+    <li>Show files are saved as <code>.sfx</code> (XML) files.</li>
+    <li>Use <strong>File → Export Show File</strong> to bundle the cue list <em>and</em> all audio files into a single <code>.show</code> archive for sharing.</li>
+    <li>Use <strong>File → Import Show File</strong> to extract a <code>.show</code> archive.</li>
+</ul>
+
+<h2>Connected Clients</h2>
+<p>The IP addresses of all web-interface clients currently connected appear in the status bar at the bottom of the WinForms window. This lets you confirm that your tablet or phone has connected successfully.</p>
+
+<hr />
+<p style="color:#888;font-size:0.85em;">SFX Player – <a href="https://github.com/jmrush97/SFXPlayer" style="color:#7af;">GitHub</a></p>
+</body>
+</html>

@@ -16,6 +16,28 @@ namespace SFXPlayer.classes {
     class SFXShowEvent {
 
     }
+
+    /// <summary>
+    /// Represents a single entry in the show file's save history.
+    /// </summary>
+    [Serializable]
+    public class SaveRecord {
+        public string User = "";
+        public DateTime Timestamp = DateTime.MinValue;
+        public string Reason = "";
+    }
+
+    /// <summary>
+    /// Records one occasion when the show file was opened/played.
+    /// At most three records are kept (oldest dropped when a fourth is added).
+    /// </summary>
+    [Serializable]
+    public class UsageRecord {
+        public string User = "";
+        public string Machine = "";
+        public DateTime Timestamp = DateTime.MinValue;
+    }
+
     [Serializable]
     public class Show {
         public ObservableCollection<SFX> Cues = new ObservableCollection<SFX>();
@@ -23,6 +45,42 @@ namespace SFXPlayer.classes {
         [DefaultValue(0)]
         public int NextPlayCueIndex;
         internal Action ShowFileBecameDirty;
+
+        /// <summary>General description for this cue list / show.</summary>
+        [DefaultValue("")]
+        public string Description = "";
+
+        /// <summary>Preferred playback output device stored with the file.</summary>
+        [DefaultValue("")]
+        public string PlaybackDevice = "";
+
+        /// <summary>Preferred preview output device stored with the file.</summary>
+        [DefaultValue("")]
+        public string PreviewDevice = "";
+
+        /// <summary>Chronological log of each save operation.</summary>
+        public List<SaveRecord> History = new List<SaveRecord>();
+
+        /// <summary>
+        /// Log of the last three occasions when the show was opened/played (oldest dropped).
+        /// </summary>
+        public List<UsageRecord> UsageLog = new List<UsageRecord>();
+
+        /// <summary>
+        /// Records the current user/machine/time as a usage entry.
+        /// Drops the oldest entry when more than three are present.
+        /// </summary>
+        public void RecordUsage()
+        {
+            var rec = new UsageRecord
+            {
+                User    = Environment.UserName,
+                Machine = Environment.MachineName,
+                Timestamp = DateTime.UtcNow
+            };
+            UsageLog.Add(rec);
+            while (UsageLog.Count > 3) UsageLog.RemoveAt(0);
+        }
 
         public Show() {
             Cues.CollectionChanged += Cues_CollectionChanged;

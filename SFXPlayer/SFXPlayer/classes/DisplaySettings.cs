@@ -52,10 +52,38 @@ namespace SFXPlayer.classes
         public string AvailablePreviewDevices = "";
         public string CurrentPreviewDevice = "";
 
+        // Show-level metadata
+        public string ShowDescription = "";
+        public string LastSaveUser = "";
+        public string LastSaveTimestamp = "";
+        public string LastSaveReason = "";
+        public string SaveHistoryJson = "[]";
+        public string PlayUsageHistoryJson = "[]";
+
+        // Connected web clients (pipe-separated IP addresses)
+        public string ConnectedClients = "";
+
         // Waveform peak data for the current/next track (comma-separated normalised 0-1 values)
         public string WaveformData = "";
 
         // Full cue list for the left-panel cue list in the web UI (JSON array)
         public string CueListJson = "[]";
+
+        // True when any cue is currently in the loading/rendering state.
+        // The web app disables the Go and Pause buttons while this is true.
+        public bool IsLoading = false;
+
+        // Always set to the next-to-play cue (the one "Go" would trigger),
+        // independent of whether another cue is currently playing/paused.
+        public string GoTrackNum = "";
+        public string GoTrackDesc = "";
+
+        // Set to the playing or paused cue reference; empty when nothing is active.
+        public string ActiveTrackNum = "";
+        public string ActiveTrackDesc = "";
+
+        // Set to the cue after the next-to-play cue (the one "Next" would advance to).
+        public string NextNextTrackNum = "";
+        public string NextNextTrackDesc = "";
     }
 }

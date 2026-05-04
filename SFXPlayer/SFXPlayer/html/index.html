@@ -15,12 +15,18 @@
     <!-- Title bar -->
     <div class="title-bar">
         <span id="Title">SFX Player</span>
+        <span id="connectionStatus" style="display:none;font-size:0.8em;margin-left:8px;"></span>
+        <button id="btnReconnect" class="reconnect-btn" style="display:none;" onclick="webapp.manualReconnect()" title="Reconnect to server">&#8635; Reconnect</button>
         <span id="playingInfoContent" class="playing-info">
             <span>&#9654; Playing:</span>
             <span>Vol: <strong id="PlayingVolume">-</strong></span>
             <span>Speed: <strong id="PlayingSpeed">-</strong></span>
             <span>Fade: <strong id="PlayingFadeGain">-</strong></span>
         </span>
+        <span id="connectedClientsInfo" class="connected-clients-info"></span>
+        <button class="desc-btn" onclick="openDescriptionPopup()" title="View / edit cue list description and save history">&#128221; Description</button>
+        <span id="lastSaveInfo" class="last-save-info"></span>
+        <button id="btnThemeToggle" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark theme">&#9788;</button>
     </div>
 
     <!-- Three-column main area -->
@@ -75,15 +81,25 @@
             <div class="prop-row">
                 <label for="volumeSlider">&#128266; Volume</label>
                 <input id="volumeSlider" type="range" min="0" max="100" value="50"
-                    oninput="webapp.sendCommand('volume:' + this.value)" />
+                    oninput="webapp.sendCommand('volume:' + this.value); document.getElementById('volumeInput').value = this.value;" />
                 <span id="CurrentVolume" class="prop-val">50</span>
+            </div>
+            <div class="prop-row small">
+                <label for="volumeInput">Value:</label>
+                <input id="volumeInput" type="number" min="0" max="100" step="1" value="50" style="width:52px;" />
+                <button onclick="setVolume()">Set</button>
             </div>
 
             <div class="prop-row">
                 <label for="speedSlider">Speed</label>
                 <input id="speedSlider" type="range" min="10" max="800" value="100"
-                    oninput="webapp.sendCommand('speed:' + (this.value / 100).toFixed(2))" />
+                    oninput="webapp.sendCommand('speed:' + (this.value / 100).toFixed(2)); document.getElementById('speedInput').value = (this.value / 100).toFixed(2);" />
                 <span id="CurrentSpeed" class="prop-val">1.00</span>
+            </div>
+            <div class="prop-row small">
+                <label for="speedInput">Value:</label>
+                <input id="speedInput" type="number" min="0.10" max="8.00" step="0.01" value="1.00" style="width:60px;" />
+                <button onclick="setSpeed()">Set</button>
             </div>
 
             <div class="prop-group-header">Fade</div>
@@ -141,11 +157,59 @@
 
     <!-- Navigation bar -->
     <div class="nav-bar">
-        <button class="nav-btn btn-prev" onclick="webapp.sendCommand('previous')">Previous</button>
+        <button class="nav-btn btn-prev" onclick="webapp.sendCommand('previous')" id="btnPrev">
+            <span class="nav-btn-label">Previous</span>
+            <span class="nav-btn-track" id="prevTrackRef"></span>
+        </button>
         <button class="nav-btn btn-stop" onclick="webapp.sendCommand('stop')">Stop</button>
-        <button class="nav-btn btn-pause" id="btnPause" onclick="webapp.sendCommand('togglepause')">Pause</button>
-        <button class="nav-btn btn-go" onclick="webapp.sendCommand('play')">Go</button>
-        <button class="nav-btn btn-next" onclick="webapp.sendCommand('next')">Next</button>
+        <button class="nav-btn btn-pause" id="btnPause" onclick="webapp.sendCommand('togglepause')">
+            <span class="nav-btn-label">Pause</span>
+            <span class="nav-btn-track" id="pauseTrackRef"></span>
+        </button>
+        <button class="nav-btn btn-go" id="btnGo" onclick="webapp.sendCommand('play')">
+            <span class="nav-btn-label">Go</span>
+            <span class="nav-btn-track" id="goTrackRef"></span>
+        </button>
+        <button class="nav-btn btn-next" onclick="webapp.sendCommand('next')" id="btnNext">
+            <span class="nav-btn-label">Next</span>
+            <span class="nav-btn-track" id="nextNextTrackRef"></span>
+        </button>
+    </div>
+
+    <!-- Description popup overlay -->
+    <div id="descriptionPopup" class="desc-popup-overlay" style="display:none;">
+        <div class="desc-popup">
+            <div class="desc-popup-header">
+                <span>Cue List Description</span>
+                <button class="desc-popup-close" onclick="closeDescriptionPopup()" title="Close">&#10005;</button>
+            </div>
+            <div class="desc-popup-body">
+                <label for="descriptionTextarea">Description (Markdown supported):</label>
+                <textarea id="descriptionTextarea" rows="4" placeholder="Enter a description for this cue list... (Markdown supported)"></textarea>
+                <div class="desc-popup-history-label">Play Usage History (last 3):</div>
+                <div class="desc-popup-history-wrap">
+                    <table class="desc-history-table">
+                        <thead>
+                            <tr><th>Date / Time</th><th>User</th><th>Machine</th></tr>
+                        </thead>
+                        <tbody id="playUsageHistoryBody"></tbody>
+                    </table>
+                </div>
+                <div class="desc-popup-history-label">Save History:</div>
+                <div class="desc-popup-history-wrap">
+                    <table class="desc-history-table">
+                        <thead>
+                            <tr><th>Date / Time</th><th>User</th><th>Reason</th></tr>
+                        </thead>
+                        <tbody id="saveHistoryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="desc-popup-footer">
+                <button onclick="saveDescriptionPopup()" class="desc-popup-save">Save</button>
+                <button onclick="closeDescriptionPopup()">Cancel</button>
+            </div>
+        </div>
     </div>
 
 </div>

@@ -1,8 +1,76 @@
 var WebApp = function () {
+    // Custom reconnect policy: retry indefinitely with capped exponential backoff.
+    // The default withAutomaticReconnect() only tries 4 times (0, 2, 10, 30 s) and
+    // then permanently stops, leaving the page dead. This policy uses delays of
+    // 0, 2, 5, 10 s for the first four attempts, then retries every 5 s indefinitely.
+    var _retryPolicy = {
+        nextRetryDelayInMilliseconds: function (retryContext) {
+            var delays = [0, 2000, 5000, 10000];
+            if (retryContext.previousRetryCount < delays.length)
+                return delays[retryContext.previousRetryCount];
+            return 5000; // retry every 5 s indefinitely
+        }
+    };
+
     var _connection = new signalR.HubConnectionBuilder()
         .withUrl("http://" + location.hostname + ":3030/sfxhub")
-        .withAutomaticReconnect()
+        .withAutomaticReconnect(_retryPolicy)
         .build();
+
+    // Show connection status in the title bar when not connected;
+    // also show/hide the manual reconnect button.
+    function setConnectionStatus(text, color) {
+        var el = document.getElementById("connectionStatus");
+        if (el) {
+            el.textContent = text;
+            el.style.color = color || "";
+            el.style.display = text ? "inline" : "none";
+        }
+        var btn = document.getElementById("btnReconnect");
+        if (btn) btn.style.display = text ? "inline-block" : "none";
+    }
+
+    _connection.onreconnecting(function() {
+        setConnectionStatus("Reconnecting...", "#fa8");
+    });
+    _connection.onreconnected(function() {
+        setConnectionStatus("", "");
+    });
+    _connection.onclose(function(err) {
+        // Should not normally reach here with the indefinite policy, but guard anyway
+        setConnectionStatus("Disconnected", "#f55");
+        if (err) console.error("SignalR connection closed with error: " + err);
+    });
+
+    // Manual reconnect: stop whatever state the connection is in and restart.
+    // Called by the Reconnect button in the title bar.
+    this.manualReconnect = function () {
+        setConnectionStatus("Reconnecting...", "#fa8");
+        _connection.stop().then(function () {
+            startConnection();
+        }).catch(function () {
+            startConnection();
+        });
+    };
+
+    // Auto-reconnect when the device wakes from suspend/sleep.
+    // The Page Visibility API fires 'visibilitychange' when the screen is
+    // unlocked or the browser tab becomes active again after a suspend.
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' &&
+            _connection.state === signalR.HubConnectionState.Disconnected) {
+            startConnection();
+        }
+    });
+
+    // Auto-reconnect when the network comes back online.
+    // This covers VPN reconnection, Wi-Fi handover, and similar drop-outs
+    // where the OS fires the 'online' event once connectivity is restored.
+    window.addEventListener('online', function () {
+        if (_connection.state === signalR.HubConnectionState.Disconnected) {
+            startConnection();
+        }
+    });
 
     function processMessage(received_msg) {
         BuildXMLFromString(received_msg);
@@ -23,18 +91,29 @@ var WebApp = function () {
                             durSeconds = parseFloat(nodeValue) || 0;
                             _trackDurationSeconds = durSeconds;
                         } else if (nodeName === "CurrentVolume") {
-                            var volSlider = document.getElementById("volumeSlider");
-                            if (volSlider) volSlider.value = parseInt(nodeValue) || 50;
+                            var vol = parseInt(nodeValue) || 50;
                             var volSpan = document.getElementById("CurrentVolume");
                             if (volSpan) volSpan.textContent = nodeValue;
                             var cueVolSpan = document.getElementById("CueVolume");
                             if (cueVolSpan) cueVolSpan.textContent = "Vol: " + nodeValue;
+                            if (vol !== _currentVolume) {
+                                _currentVolume = vol;
+                                var volSlider = document.getElementById("volumeSlider");
+                                if (volSlider) volSlider.value = vol;
+                                var volInput = document.getElementById("volumeInput");
+                                if (volInput) volInput.value = vol;
+                            }
                         } else if (nodeName === "CurrentSpeed") {
                             var spd = parseFloat(nodeValue) || 1.0;
-                            var spdSlider = document.getElementById("speedSlider");
-                            if (spdSlider) spdSlider.value = Math.round(spd * 100);
                             var spdSpan = document.getElementById("CurrentSpeed");
                             if (spdSpan) spdSpan.textContent = spd.toFixed(2);
+                            if (spd !== _currentSpeed) {
+                                _currentSpeed = spd;
+                                var spdSlider = document.getElementById("speedSlider");
+                                if (spdSlider) spdSlider.value = Math.round(spd * 100);
+                                var spdInput = document.getElementById("speedInput");
+                                if (spdInput) spdInput.value = spd.toFixed(2);
+                            }
                         } else if (nodeName === "CueAutoRun") {
                             var isAutoRun = nodeValue === "true";
                             window._cueAutoRun = isAutoRun;
@@ -48,28 +127,38 @@ var WebApp = function () {
                             if (detail) detail.textContent = isAutoRun ? "\u21B7 Auto" : "";
                         } else if (nodeName === "CuePauseSeconds") {
                             var ps = parseFloat(nodeValue) || 0;
-                            window._cuePauseSeconds = ps;
-                            var pi = document.getElementById("pauseInput");
-                            if (pi) pi.value = ps.toFixed(1);
+                            if (ps !== window._cuePauseSeconds) {
+                                window._cuePauseSeconds = ps;
+                                var pi = document.getElementById("pauseInput");
+                                if (pi) pi.value = ps.toFixed(1);
+                            }
                             var detail = document.getElementById("CueAutoRunDetail");
                             if (detail && window._cueAutoRun && ps > 0) {
                                 detail.textContent = "\u21B7 Auto +" + ps.toFixed(1) + "s";
                             }
                         } else if (nodeName === "CueFadeInMs") {
                             var fi = parseInt(nodeValue) || 0;
-                            _cueFadeInMs = fi;
-                            var fiInput = document.getElementById("fadeInInput");
-                            if (fiInput) fiInput.value = fi;
+                            if (fi !== _cueFadeInMs) {
+                                _cueFadeInMs = fi;
+                                var fiInput = document.getElementById("fadeInInput");
+                                if (fiInput) fiInput.value = fi;
+                            }
                             if (_waveformPeaks) drawWaveform();
                         } else if (nodeName === "CueFadeOutMs") {
                             var fo = parseInt(nodeValue) || 0;
-                            _cueFadeOutMs = fo;
-                            var foInput = document.getElementById("fadeOutInput");
-                            if (foInput) foInput.value = fo;
+                            if (fo !== _cueFadeOutMs) {
+                                _cueFadeOutMs = fo;
+                                var foInput = document.getElementById("fadeOutInput");
+                                if (foInput) foInput.value = fo;
+                            }
                             if (_waveformPeaks) drawWaveform();
                         } else if (nodeName === "CueFadeCurve") {
-                            var cs = document.getElementById("fadeCurveSelect");
-                            if (cs) cs.value = (nodeValue === "Logarithmic") ? "log" : "linear";
+                            var curveVal = (nodeValue === "Logarithmic") ? "log" : "linear";
+                            if (curveVal !== _cueFadeCurve) {
+                                _cueFadeCurve = curveVal;
+                                var cs = document.getElementById("fadeCurveSelect");
+                                if (cs) cs.value = curveVal;
+                            }
                         } else if (nodeName === "IsPlaying") {
                             window._isPlaying = (nodeValue === "true");
                             updatePlayingInfoVisibility();
@@ -122,10 +211,70 @@ var WebApp = function () {
                             updateWaveform(nodeValue || "");
                         } else if (nodeName === "CueListJson") {
                             renderCueList(nodeValue || "[]");
-                        } else {
+                        } else if (nodeName === "IsLoading") {
+                            window._isLoading = (nodeValue === "true");
+                            updateLoadingState();
+                        } else if (nodeName === "GoTrackNum") {
+                            window._goTrackNum = nodeValue;
+                            updateGoButton();
+                        } else if (nodeName === "GoTrackDesc") {
+                            window._goTrackDesc = nodeValue;
+                            updateGoButton();
+                        } else if (nodeName === "ActiveTrackNum") {
+                            window._activeTrackNum = nodeValue;
+                            updatePauseButtonTrack();
+                        } else if (nodeName === "ActiveTrackDesc") {
+                            window._activeTrackDesc = nodeValue;
+                            updatePauseButtonTrack();
+                        } else if (nodeName === "NextNextTrackNum") {
+                            window._nextNextTrackNum = nodeValue;
+                            updateNextButton();
+                        } else if (nodeName === "NextNextTrackDesc") {
+                            window._nextNextTrackDesc = nodeValue;
+                            updateNextButton();
+                        } else if (nodeName === "PrevCueNumber") {
+                            window._prevCueNumber = nodeValue;
+                            updatePrevButton();
+                            var pnField = document.getElementById("PrevCueNumber");
+                            if (pnField) pnField.textContent = nodeValue;
+                        } else if (nodeName === "PrevCueDescription") {
+                            window._prevCueDesc = nodeValue;
+                            updatePrevButton();
+                            var pdField = document.getElementById("PrevCueDescription");
+                            if (pdField) pdField.textContent = nodeValue;
+                        } else if (nodeName === "ShowDescription") {
+                            window._showDescription = nodeValue;
+                            var ta = document.getElementById("descriptionTextarea");
+                            if (ta && !window._descriptionPopupOpen) ta.value = nodeValue;
+                        } else if (nodeName === "LastSaveUser") {
+                            window._lastSaveUser = nodeValue;
+                            updateLastSaveInfo();
+                        } else if (nodeName === "LastSaveTimestamp") {
+                            window._lastSaveTimestamp = nodeValue;
+                            updateLastSaveInfo();
+                        } else if (nodeName === "LastSaveReason") {
+                            window._lastSaveReason = nodeValue;
+                            updateLastSaveInfo();
+                        } else if (nodeName === "SaveHistoryJson") {
+                            window._saveHistoryJson = nodeValue;
+                            if (window._descriptionPopupOpen) renderSaveHistory(nodeValue);
+                        } else if (nodeName === "PlayUsageHistoryJson") {
+                            window._playUsageHistoryJson = nodeValue;
+                            if (window._descriptionPopupOpen) renderPlayUsageHistory(nodeValue);
+                        } else if (nodeName === "ConnectedClients") {
+                            updateConnectedClients(nodeValue);
+                        } else if (nodeName === "MainText" || nodeName === "PrevMainText") {
+                            // Render as Markdown HTML so formatted cue text displays correctly
                             var field = document.getElementById(nodeName);
-                            if (field != null) {
-                                field.textContent = nodeValue;
+                            if (field != null) field.innerHTML = markdownToHtml(nodeValue);
+                        } else if (nodeName === "CueDescription") {
+                            // Description bar: plain text (markdown stripped)
+                            var cdField = document.getElementById("CueDescription");
+                            if (cdField != null) cdField.textContent = nodeValue;
+                        } else {
+                            var defaultField = document.getElementById(nodeName);
+                            if (defaultField != null) {
+                                defaultField.textContent = nodeValue;
                                 // Also update browser tab when Title changes
                                 if (nodeName === "Title" && nodeValue) {
                                     document.title = nodeValue;
@@ -170,7 +319,30 @@ function toggleAutoRun() {
 function setPause() {
     var pi = document.getElementById("pauseInput");
     var secs = parseFloat(pi ? pi.value : "0") || 0;
+    window._cuePauseSeconds = secs;
     webapp.sendCommand("pause:" + secs.toFixed(1));
+}
+
+function setVolume() {
+    var vi = document.getElementById("volumeInput");
+    var vol = Math.max(0, Math.min(100, parseInt(vi ? vi.value : "50") || 0));
+    _currentVolume = vol;
+    var slider = document.getElementById("volumeSlider");
+    if (slider) slider.value = vol;
+    var span = document.getElementById("CurrentVolume");
+    if (span) span.textContent = vol;
+    webapp.sendCommand("volume:" + vol);
+}
+
+function setSpeed() {
+    var si = document.getElementById("speedInput");
+    var spd = Math.max(0.1, Math.min(8.0, parseFloat(si ? si.value : "1.0") || 1.0));
+    _currentSpeed = spd;
+    var slider = document.getElementById("speedSlider");
+    if (slider) slider.value = Math.round(spd * 100);
+    var span = document.getElementById("CurrentSpeed");
+    if (span) span.textContent = spd.toFixed(2);
+    webapp.sendCommand("speed:" + spd.toFixed(2));
 }
 
 function setFade() {
@@ -180,6 +352,9 @@ function setFade() {
     var fadeIn  = parseInt(fiInput  ? fiInput.value  : "0") || 0;
     var fadeOut = parseInt(foInput  ? foInput.value  : "0") || 0;
     var curve   = csInput ? csInput.value : "linear";
+    _cueFadeInMs  = fadeIn;
+    _cueFadeOutMs = fadeOut;
+    _cueFadeCurve = curve;
     webapp.sendCommand("fadein:"    + fadeIn);
     webapp.sendCommand("fadeout:"   + fadeOut);
     webapp.sendCommand("fadecurve:" + curve);
@@ -189,6 +364,137 @@ function deleteCue() {
     if (confirm("Delete the current next cue?")) {
         webapp.sendCommand("delete");
     }
+}
+
+function updateLastSaveInfo() {
+    var user = window._lastSaveUser || "";
+    var ts = window._lastSaveTimestamp || "";
+    var reason = window._lastSaveReason || "";
+    var display = "";
+    if (ts) {
+        try {
+            var d = new Date(ts);
+            display = "Saved: " + d.toLocaleString();
+        } catch(e) { display = "Saved: " + ts; }
+        if (user) display += " by " + user;
+        if (reason) display += " \u2014 " + reason;
+    }
+    var el = document.getElementById("lastSaveInfo");
+    if (el) el.textContent = display;
+}
+
+function openDescriptionPopup() {
+    window._descriptionPopupOpen = true;
+    var popup = document.getElementById("descriptionPopup");
+    if (!popup) return;
+    var ta = document.getElementById("descriptionTextarea");
+    if (ta) ta.value = window._showDescription || "";
+    renderSaveHistory(window._saveHistoryJson || "[]");
+    renderPlayUsageHistory(window._playUsageHistoryJson || "[]");
+    popup.style.display = "flex";
+    if (ta) ta.focus();
+}
+
+function closeDescriptionPopup() {
+    window._descriptionPopupOpen = false;
+    var popup = document.getElementById("descriptionPopup");
+    if (popup) popup.style.display = "none";
+}
+
+function saveDescriptionPopup() {
+    var ta = document.getElementById("descriptionTextarea");
+    var text = ta ? ta.value : "";
+    window._showDescription = text;
+    webapp.sendCommand("description:" + text);
+    closeDescriptionPopup();
+}
+
+function renderSaveHistory(jsonStr) {
+    var tbody = document.getElementById("saveHistoryBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    try {
+        var rows = JSON.parse(jsonStr || "[]");
+        for (var i = rows.length - 1; i >= 0; i--) {
+            var r = rows[i];
+            var tr = document.createElement("tr");
+            var tsDisplay = "";
+            try { tsDisplay = r.ts ? new Date(r.ts).toLocaleString() : ""; } catch(e) { tsDisplay = r.ts || ""; }
+            tr.innerHTML = "<td>" + escapeHtml(tsDisplay) + "</td><td>" + escapeHtml(r.user || "") + "</td><td>" + escapeHtml(r.reason || "") + "</td>";
+            tbody.appendChild(tr);
+        }
+    } catch(e) { console.error("renderSaveHistory:", e); }
+}
+
+function renderPlayUsageHistory(jsonStr) {
+    var tbody = document.getElementById("playUsageHistoryBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    try {
+        var rows = JSON.parse(jsonStr || "[]");
+        for (var i = rows.length - 1; i >= 0; i--) {
+            var r = rows[i];
+            var tr = document.createElement("tr");
+            var tsDisplay = "";
+            try { tsDisplay = r.ts ? new Date(r.ts).toLocaleString() : ""; } catch(e) { tsDisplay = r.ts || ""; }
+            tr.innerHTML = "<td>" + escapeHtml(tsDisplay) + "</td><td>" + escapeHtml(r.user || "") + "</td><td>" + escapeHtml(r.machine || "") + "</td>";
+            tbody.appendChild(tr);
+        }
+    } catch(e) { console.error("renderPlayUsageHistory:", e); }
+}
+
+function updateConnectedClients(ipsStr) {
+    var el = document.getElementById("connectedClientsInfo");
+    if (!el) return;
+    if (!ipsStr) { el.textContent = ""; return; }
+    var ips = ipsStr.split("|").filter(function(s) { return s; });
+    el.textContent = ips.length > 0 ? ("Web clients: " + ips.join(", ")) : "";
+}
+
+// ---- Simple Markdown renderer ----
+// Converts a subset of Markdown to safe HTML (headings, bold, italic, lists, code).
+function markdownToHtml(md) {
+    if (!md) return "";
+    // Escape HTML first so that user content cannot inject tags
+    var s = escapeHtml(md);
+    // Headings (longest prefix first to prevent partial matches)
+    s = s.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
+    s = s.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+    s = s.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+    s = s.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+    // Horizontal rule
+    s = s.replace(/^---+$/gm, "<hr />");
+    // Unordered list items (convert runs of lines to a list; hyphen at start of class avoids range)
+    s = s.replace(/((?:^[-*] .+\n?)+)/gm, function(block) {
+        var items = block.replace(/^[-*] (.+)$/gm, "<li>$1</li>");
+        return "<ul>" + items + "</ul>";
+    });
+    // Ordered list items
+    s = s.replace(/((?:^\d+\. .+\n?)+)/gm, function(block) {
+        var items = block.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
+        return "<ol>" + items + "</ol>";
+    });
+    // Code blocks (```...```)
+    s = s.replace(/```[\w]*\n([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+    // Inline code
+    s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // Bold and italic
+    s = s.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
+    s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/\*(.+?)\*/g, "<em>$1</em>");
+    s = s.replace(/_(.+?)_/g, "<em>$1</em>");
+    // Line breaks: two spaces at end of line = <br>
+    s = s.replace(/  \n/g, "<br />\n");
+    // Paragraphs: blank line separates paragraphs
+    s = s.replace(/\n\n+/g, "</p><p>");
+    s = "<p>" + s + "</p>";
+    // Clean up empty paragraphs that wrap block elements
+    s = s.replace(/<p>(<(?:h[1-4]|ul|ol|pre|hr)[\s\S]*?(?:<\/(?:h[1-4]|ul|ol|pre)>|>))<\/p>/g, "$1");
+    return s;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 function updateProgress(posSeconds, durSeconds) {
@@ -221,8 +527,10 @@ function formatTime(totalSeconds) {
 var _waveformPeaks = null;
 var _cueFadeInMs = 0;
 var _cueFadeOutMs = 0;
+var _cueFadeCurve = "linear";
 var _trackDurationSeconds = 0;
 var _currentVolume = 50;
+var _currentSpeed = 1.0;
 
 // Zoom state (1 = full view; 2–8 = zoomed in on playhead)
 var _waveZoom = 1.0;
@@ -453,12 +761,13 @@ function updateStopAllButton() {
 function updatePauseButton() {
     var btn = document.getElementById("btnPause");
     if (!btn) return;
+    var labelSpan = btn.querySelector('.nav-btn-label') || btn;
     if (window._isPaused) {
-        btn.textContent = "Resume";
+        labelSpan.textContent = "Resume \u25B6";
         btn.style.background = "#27ae60";
         btn.style.fontWeight = "bold";
     } else {
-        btn.textContent = "Pause";
+        labelSpan.textContent = "Pause";
         btn.style.background = "";
         btn.style.fontWeight = "";
     }
@@ -505,21 +814,34 @@ function renderCueList(json) {
     for (var i = 0; i < cues.length; i++) {
         var c = cues[i];
         var row = document.createElement("div");
-        row.className = "cue-list-item" + (c.c ? " current-cue" : "");
-        var desc = c.d ? htmlEscape(c.d) : "<em style='color:#666'>—</em>";
+        var classList = "cue-list-item" + (c.c ? " current-cue" : "");
+        if (c.loading) classList += " cue-loading";
+        row.className = classList;
+        var descHtml = c.d ? markdownToHtml(c.d) : "<em style='color:#666'>—</em>";
         var file = c.f ? htmlEscape(c.f) : "";
         var cueInfo = "Vol:" + c.v + "  " + c.s + "x";
+        var loadingBadge = c.loading ? "<span class='cue-loading-badge' title='Loading\u2026'>\u29D7</span>" : "";
+        var idx = c.idx !== undefined ? c.idx : i;
         row.innerHTML =
             "<span class='cue-num'>" + c.i + "</span>" +
-            "<span class='cue-desc'>" + desc + "</span>" +
+            "<span class='cue-instant-play' title='Instant Play' data-idx='" + idx + "'>&#9654;</span>" +
+            loadingBadge +
+            "<span class='cue-desc'>" + descHtml + "</span>" +
             (file ? "<span class='cue-file'>" + file + "</span>" : "") +
             "<span class='cue-meta'>" + cueInfo + "</span>";
-        // Clicking a cue row moves focus to that cue without stopping playback
-        (function(idx) {
+        // Instant play button: stop all and play this cue immediately
+        (function(cueIdx) {
+            var btn = row.querySelector(".cue-instant-play");
+            if (btn) {
+                btn.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    webapp.sendCommand("instantplay:" + cueIdx);
+                });
+            }
             row.addEventListener("click", function() {
-                webapp.sendCommand("goto:" + idx);
+                webapp.sendCommand("goto:" + cueIdx);
             });
-        })(c.idx !== undefined ? c.idx : i);
+        })(idx);
         container.appendChild(row);
     }
     // Scroll the current cue into view
@@ -611,7 +933,71 @@ function waveformZoomOut() {
     if (_waveformPeaks) drawWaveform();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', function() {
+    init();
+    applyStoredTheme();
+});
+
+// ---- Theme toggle ----
+function applyStoredTheme() {
+    var theme = localStorage.getItem('sfxTheme') || 'dark';
+    document.body.classList.toggle('light-theme', theme === 'light');
+    var btn = document.getElementById('btnThemeToggle');
+    if (btn) btn.title = theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
+}
+
+function toggleTheme() {
+    var isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('sfxTheme', isLight ? 'light' : 'dark');
+    var btn = document.getElementById('btnThemeToggle');
+    if (btn) btn.title = isLight ? 'Switch to dark theme' : 'Switch to light theme';
+}
+
+// ---- Loading state ----
+function updateLoadingState() {
+    var loading = !!window._isLoading;
+    var btnGo = document.getElementById('btnGo');
+    var btnPause = document.getElementById('btnPause');
+    if (btnGo) {
+        btnGo.disabled = loading;
+        btnGo.classList.toggle('btn-disabled', loading);
+    }
+    if (btnPause) {
+        btnPause.disabled = loading;
+        btnPause.classList.toggle('btn-disabled', loading);
+    }
+}
+
+// ---- Nav button track references ----
+function formatTrackReference(num, desc) {
+    if (!num) return '';
+    return '#' + num + (desc ? ' ' + desc : '');
+}
+
+function updateGoButton() {
+    var ref = document.getElementById('goTrackRef');
+    if (!ref) return;
+    ref.textContent = formatTrackReference(window._goTrackNum || '', window._goTrackDesc || '');
+}
+
+function updatePauseButtonTrack() {
+    var ref = document.getElementById('pauseTrackRef');
+    if (!ref) return;
+    ref.textContent = formatTrackReference(window._activeTrackNum || '', window._activeTrackDesc || '');
+}
+
+function updateNextButton() {
+    var ref = document.getElementById('nextNextTrackRef');
+    if (!ref) return;
+    ref.textContent = formatTrackReference(window._nextNextTrackNum || '', window._nextNextTrackDesc || '');
+}
+
+function updatePrevButton() {
+    var ref = document.getElementById('prevTrackRef');
+    if (!ref) return;
+    ref.textContent = formatTrackReference(window._prevCueNumber || '', window._prevCueDesc || '');
+}
+
 
 function CreateXMLDocument(str) {
     var xmlDoc = null;

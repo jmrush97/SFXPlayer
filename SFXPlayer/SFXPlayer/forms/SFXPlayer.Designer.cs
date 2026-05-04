@@ -60,6 +60,8 @@ namespace SFXPlayer
             this.importShowFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showMenuToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showDescriptionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.transportToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.playToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stopAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -71,6 +73,7 @@ namespace SFXPlayer
             this.confirmDeleteCueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.audioMidiDevicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.instructionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ScrollTimer = new System.Windows.Forms.Timer(this.components);
             this.bnPrev = new System.Windows.Forms.Button();
             this.bnNext = new System.Windows.Forms.Button();
@@ -203,6 +206,7 @@ namespace SFXPlayer
             this.menuStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
+            this.showMenuToolStripMenuItem,
             this.transportToolStripMenuItem,
             this.settingsToolStripMenuItem,
             this.helpToolStripMenuItem});
@@ -314,6 +318,21 @@ namespace SFXPlayer
             this.exitToolStripMenuItem.Text = "E&xit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
+            // showMenuToolStripMenuItem
+            // 
+            this.showMenuToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.showDescriptionToolStripMenuItem});
+            this.showMenuToolStripMenuItem.Name = "showMenuToolStripMenuItem";
+            this.showMenuToolStripMenuItem.Size = new System.Drawing.Size(46, 20);
+            this.showMenuToolStripMenuItem.Text = "&Show";
+            // 
+            // showDescriptionToolStripMenuItem
+            // 
+            this.showDescriptionToolStripMenuItem.Name = "showDescriptionToolStripMenuItem";
+            this.showDescriptionToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.showDescriptionToolStripMenuItem.Text = "Cue List &Description...";
+            this.showDescriptionToolStripMenuItem.Click += new System.EventHandler(this.showDescriptionToolStripMenuItem_Click);
+            // 
             // transportToolStripMenuItem
             // 
             this.transportToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -401,7 +420,8 @@ namespace SFXPlayer
             // helpToolStripMenuItem
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.aboutToolStripMenuItem});
+            this.aboutToolStripMenuItem,
+            this.instructionsToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "Help";
@@ -412,6 +432,13 @@ namespace SFXPlayer
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             this.aboutToolStripMenuItem.Text = "&About SFX Player...";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
+            // 
+            // instructionsToolStripMenuItem
+            // 
+            this.instructionsToolStripMenuItem.Name = "instructionsToolStripMenuItem";
+            this.instructionsToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.instructionsToolStripMenuItem.Text = "&Instructions...";
+            this.instructionsToolStripMenuItem.Click += new System.EventHandler(this.instructionsToolStripMenuItem_Click);
             // 
             // ScrollTimer
             // 
@@ -1046,15 +1073,6 @@ namespace SFXPlayer
             }
         }
 
-        private void bnPrev_Click(object sender, EventArgs e)
-        {
-            NextPlayCueIndex -= 1;
-        }
-
-        private void bnNext_Click(object sender, EventArgs e)
-        {
-            NextPlayCueIndex += 1;
-        }
 
         private void autoLoadLastsfxCuelistToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -1100,6 +1118,7 @@ namespace SFXPlayer
         private System.Windows.Forms.RichTextBox rtPrevMainText;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem instructionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem recentAudioFilesToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator recentAudioFilesSeparator;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
@@ -1108,6 +1127,8 @@ namespace SFXPlayer
         private System.Windows.Forms.ToolStripMenuItem audioMidiDevicesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem previousCueToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem nextCueToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showMenuToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showDescriptionToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.PictureBox pictureBox2;
